@@ -1,69 +1,217 @@
-﻿@model LoginViewModel
-@using static ASI.Basecode.Resources.Views.Screen
+@model LoginViewModel
+
 @section styles {
-    <link rel="stylesheet" href="~/css/login.css" />
+    <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
 }
+
 @{
     ViewBag.LoginView = true;
-    ViewData["Title"] = "Login Page";
+    ViewData["Title"] = "Sign In | HiRAM";
 }
-<div>
-    @Html.AntiForgeryToken()
-</div>
-<div class="container py-5" style="display:flex; align-content:center;height:calc(100vh - 64px)">
-    <div class="row d-flex justify-content-center align-items-center h-100">
-        <div class="col-xl-10">
-            <div class="card rounded-3 text-black">
-                <div class="row g-0 w-1000px">
-                    <div class="col-lg-6">
-                        <div class="card-body p-md-5 mx-md-4">
-                            <div class="text-center">
-                                <img src="~/img/asi-logo-invert.svg"
-                                     style="width: 185px;" alt="logo">
-                            </div>
-                            <form method="post" action="/Account/Login" id="loginForm">
-                                <div class="form-outline mb-4">
-                                    <label class="form-label" for="form2Example11">@UserId</label>
-                                    <input type="text" id="form2Example11" class="form-control"
-                                           asp-for="UserId" placeholder="Enter userid" />
-                                    <span asp-validation-for="UserId" class="text-danger"></span>
-                                </div>
-                                <div class="form-outline mb-4">
-                                    <label class="form-label" for="form2Example22">@Password</label>
-                                    <input type="password" id="form2Example22" class="form-control"
-                                           asp-for="Password" placeholder="Enter password" />
-                                    <span asp-validation-for="Password" class="text-danger"></span>
-                                </div>
-                                <div class="text-center pt-1 mb-5 pb-1 d-flex flex-column align-items-center">
-                                    <button class="btn btn-primary btn-block login-btn gradient-custom-2 mb-3" type="submit">
-                                        @Login
-                                    </button>
-                                    <div>
-                                        <a class="text-muted" href="#!">@ForgotPass</a>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center justify-content-center pb-4">
-                                    <p class="mb-0 me-2 mr-1">@DontHaveAcc</p>
-                                    <a asp-controller="Account" asp-action="Register" class="btn btn-outline-danger">@CreateNew</a>
-                                </div>
-                            </form>
-                        </div>
+
+<div class="login-page" id="loginPage">
+    <button class="theme-toggle"
+            id="themeToggle"
+            type="button"
+            aria-label="Switch to dark mode"
+            aria-pressed="false">
+        <svg class="theme-icon theme-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path>
+        </svg>
+        <svg class="theme-icon theme-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20.4 15.1A8.5 8.5 0 0 1 8.9 3.6 8.5 8.5 0 1 0 20.4 15.1Z"></path>
+        </svg>
+        <span class="theme-toggle-text">Dark mode</span>
+    </button>
+
+    <main class="login-shell" aria-labelledby="loginHeading">
+        <section class="brand-panel" aria-label="About HiRAM">
+            <div class="brand-content">
+                <a class="brand" href="/" aria-label="HiRAM home">
+                    <span class="brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 32 32">
+                            <path d="M7 5.5v21M25 5.5v21M7 16h18"></path>
+                            <circle cx="7" cy="5.5" r="2.5"></circle>
+                            <circle cx="25" cy="26.5" r="2.5"></circle>
+                        </svg>
+                    </span>
+                    <span>HiRAM</span>
+                </a>
+
+                <div class="brand-message">
+                    <span class="eyebrow">School Resource Management</span>
+                    <h1>Equipment ready<br />when learning begins.</h1>
+                    <p>Reserve and manage school equipment from one simple, reliable place.</p>
+                </div>
+
+                <div class="equipment-visual" aria-hidden="true">
+                    <div class="visual-orbit visual-orbit-one"></div>
+                    <div class="visual-orbit visual-orbit-two"></div>
+                    <div class="visual-card visual-card-main">
+                        <span class="visual-icon">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="3" y="5" width="18" height="12" rx="2"></rect>
+                                <path d="M8 21h8M12 17v4"></path>
+                            </svg>
+                        </span>
+                        <span class="visual-copy">
+                            <strong>Equipment access</strong>
+                            <small>Organized and convenient</small>
+                        </span>
+                        <span class="visual-status">Ready</span>
                     </div>
-                    <div class="col-lg-6 d-flex">
-                        <img style="width:400px"src="~/img/LiveIT.png" />
+                    <div class="visual-card visual-card-small">
+                        <span class="calendar-icon">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                                <path d="M16 3v4M8 3v4M3 10h18"></path>
+                            </svg>
+                        </span>
+                        <span><strong>Easy reservations</strong><small>Plan ahead with confidence</small></span>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+
+            <p class="brand-footer">Equipment Borrowing &amp; Reservation System</p>
+        </section>
+
+        <section class="form-panel">
+            <div class="form-content">
+                <div class="mobile-brand" aria-hidden="true">
+                    <span class="brand-mark">
+                        <svg viewBox="0 0 32 32">
+                            <path d="M7 5.5v21M25 5.5v21M7 16h18"></path>
+                            <circle cx="7" cy="5.5" r="2.5"></circle>
+                            <circle cx="25" cy="26.5" r="2.5"></circle>
+                        </svg>
+                    </span>
+                    <span>HiRAM</span>
+                </div>
+
+                <header class="form-heading">
+                    <span class="welcome-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 3 4 7l8 4 8-4-8-4Z"></path>
+                            <path d="M7 9.5V14c0 1.7 2.2 3 5 3s5-1.3 5-3V9.5M20 7v6"></path>
+                        </svg>
+                    </span>
+                    <div>
+                        <h2 id="loginHeading">Welcome back</h2>
+                        <p>Sign in to continue to your HiRAM account.</p>
+                    </div>
+                </header>
+
+                <form class="login-form"
+                      id="loginForm"
+                      asp-controller="Account"
+                      asp-action="Login"
+                      method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+                    <div class="form-field">
+                        <label for="UserId">Email or ID</label>
+                        <div class="input-wrap">
+                            <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="12" cy="8" r="4"></circle>
+                                <path d="M4 21a8 8 0 0 1 16 0"></path>
+                            </svg>
+                            <input asp-for="UserId"
+                                   type="text"
+                                   placeholder="Enter your email or ID"
+                                   autocomplete="username" />
+                        </div>
+                        <span asp-validation-for="UserId" class="field-validation-error"></span>
+                    </div>
+
+                    <div class="form-field">
+                        <label for="Password">Password</label>
+                        <div class="input-wrap">
+                            <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+                                <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"></path>
+                            </svg>
+                            <input asp-for="Password"
+                                   type="password"
+                                   placeholder="Enter your password"
+                                   autocomplete="current-password" />
+                            <button class="password-toggle"
+                                    id="passwordToggle"
+                                    type="button"
+                                    aria-label="Show password"
+                                    aria-pressed="false">
+                                <svg class="eye-icon eye-open" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                    <circle cx="12" cy="12" r="2.5"></circle>
+                                </svg>
+                                <svg class="eye-icon eye-closed" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m3 3 18 18M10.6 6.1c.5-.1.9-.1 1.4-.1 6 0 9.5 6 9.5 6a16 16 0 0 1-2.1 2.8M6.4 6.4A16.7 16.7 0 0 0 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.2-1"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Password" class="field-validation-error"></span>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="remember-option">
+                            <input type="checkbox" name="RememberMe" />
+                            <span>Remember me</span>
+                        </label>
+                        <button class="forgot-link" type="button">Forgot password?</button>
+                    </div>
+
+                    <button class="sign-in-button" type="submit">
+                        <span>Sign In</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M5 12h14M14 7l5 5-5 5"></path>
+                        </svg>
+                    </button>
+
+                </form>
+            </div>
+
+            <p class="form-footer">Secure access for the HiRAM school community</p>
+        </section>
+    </main>
 </div>
 
 @section scripts {
+    <partial name="_ValidationScriptsPartial" />
     <script>
-        // Check for error message and display Toastr notification
-        var errorMessage = '@TempData["ErrorMessage"]';
-        if (errorMessage) {
-            toastr.error(errorMessage);
+        const loginPage = document.getElementById("loginPage");
+        const themeToggle = document.getElementById("themeToggle");
+        const themeText = themeToggle.querySelector(".theme-toggle-text");
+        const passwordInput = document.getElementById("Password");
+        const passwordToggle = document.getElementById("passwordToggle");
+
+        function applyTheme(theme) {
+            const isDark = theme === "dark";
+
+            loginPage.dataset.theme = theme;
+            document.body.classList.toggle("login-dark-mode", isDark);
+            themeToggle.setAttribute("aria-pressed", isDark.toString());
+            themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+            themeText.textContent = isDark ? "Light mode" : "Dark mode";
         }
+
+        const savedTheme = localStorage.getItem("hiram-theme");
+        const preferredTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        applyTheme(savedTheme || preferredTheme);
+
+        themeToggle.addEventListener("click", function () {
+            const nextTheme = loginPage.dataset.theme === "dark" ? "light" : "dark";
+            applyTheme(nextTheme);
+            localStorage.setItem("hiram-theme", nextTheme);
+        });
+
+        passwordToggle.addEventListener("click", function () {
+            const isVisible = passwordInput.type === "text";
+
+            passwordInput.type = isVisible ? "password" : "text";
+            passwordToggle.setAttribute("aria-pressed", (!isVisible).toString());
+            passwordToggle.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
+        });
     </script>
 }
+

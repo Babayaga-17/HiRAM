@@ -81,14 +81,14 @@ namespace ASI.Basecode.WebApp.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login(LoginViewModel model, string returnUrl)
         {
-            this._session.SetString("HasSession", "Exist");
+            //this._session.SetString("HasSession", "Exist");
 
             //User user = null;
 
             //User user = new() { Id = 0, UserId = "0", Name = "Name", Password = "Password" };
             
             //await this._signInManager.SignInAsync(user);
-            this._session.SetString("UserName", model.UserId);
+            //this._session.SetString("UserName", model.UserId);
 
             return RedirectToAction("Index", "Home");
 
