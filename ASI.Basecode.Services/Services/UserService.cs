@@ -24,32 +24,33 @@ namespace ASI.Basecode.Services.Services
 
         public LoginResult AuthenticateUser(string userId, string password, ref User user)
         {
-            user = new User();
-            var passwordKey = PasswordManager.EncryptPassword(password);
-            user = _repository.GetUsers().Where(x => x.UserId == userId &&
-                                                     x.Password == passwordKey).FirstOrDefault();
+            //user = new User();
+            //var passwordKey = PasswordManager.EncryptPassword(password);
+            //user = _repository.GetUsers().Where(x => x.UserId == userId &&
+            //                                         x.Password == passwordKey).FirstOrDefault();
 
-            return user != null ? LoginResult.Success : LoginResult.Failed;
+            //return user != null ? LoginResult.Success : LoginResult.Failed;
+            return LoginResult.Success;
         }
 
         public void AddUser(UserViewModel model)
         {
-            var user = new User();
-            if (!_repository.UserExists(model.UserId))
-            {
-                _mapper.Map(model, user);
-                user.Password = PasswordManager.EncryptPassword(model.Password);
-                user.CreatedTime = DateTime.Now;
-                user.UpdatedTime = DateTime.Now;
-                user.CreatedBy = System.Environment.UserName;
-                user.UpdatedBy = System.Environment.UserName;
+            //var user = new User();
+            //if (!_repository.UserExists(model.UserId))
+            //{
+            //    _mapper.Map(model, user);
+            //    user.Password = PasswordManager.EncryptPassword(model.Password);
+            //    user.CreatedTime = DateTime.Now;
+            //    user.UpdatedTime = DateTime.Now;
+            //    user.CreatedBy = System.Environment.UserName;
+            //    user.UpdatedBy = System.Environment.UserName;
 
-                _repository.AddUser(user);
-            }
-            else
-            {
-                throw new InvalidDataException(Resources.Messages.Errors.UserExists);
-            }
+            //    _repository.AddUser(user);
+            //}
+            //else
+            //{
+            //    throw new InvalidDataException(Resources.Messages.Errors.UserExists);
+            //}
         }
     }
 }
