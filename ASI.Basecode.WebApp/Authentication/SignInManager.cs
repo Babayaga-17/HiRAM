@@ -1,16 +1,16 @@
-﻿using System;
+﻿using ASI.Basecode.Data.Models;
+using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.WebApp.Extensions.Configuration;
+using ASI.Basecode.WebApp.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Security.Principal;
 using System.Threading.Tasks;
-using ASI.Basecode.WebApp.Extensions.Configuration;
-using ASI.Basecode.WebApp.Models;
-using ASI.Basecode.Resources.Constants;
-using ASI.Basecode.Data.Models;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using static ASI.Basecode.Resources.Constants.Enums;
 
 namespace ASI.Basecode.WebApp.Authentication
@@ -24,9 +24,9 @@ namespace ASI.Basecode.WebApp.Authentication
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         /// <summary>
-        /// Gets or sets the user.
+        /// Gets or sets the account.
         /// </summary>
-        public LoginUser user { get; set; }
+        public LoginAccount account { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the SignInManager class.
@@ -46,7 +46,7 @@ namespace ASI.Basecode.WebApp.Authentication
         {
             this._configuration = configuration;
             this._httpContextAccessor = httpContextAccessor;
-            user = new LoginUser();
+            account = new LoginAccount();
         }
 
         /// <summary>
@@ -58,17 +58,17 @@ namespace ASI.Basecode.WebApp.Authentication
         public Task<ClaimsIdentity> GetClaimsIdentity(string username, string password)
         {
             ClaimsIdentity claimsIdentity = null;
-            User userData = new User();
+            Account accountData = new();
 
-            user.loginResult = LoginResult.Success;//TODO this._accountService.AuthenticateUser(username, password, ref userData);
+            account.loginResult = LoginResult.Success;//TODO this._accountService.AuthenticateUser(username, password, ref userData);
 
-            if (user.loginResult == LoginResult.Failed)
+            if (account.loginResult == LoginResult.Failed)
             {
                 return Task.FromResult<ClaimsIdentity>(null);
             }
 
-            user.userData = userData;
-            claimsIdentity = CreateClaimsIdentity(userData);
+            account.accountData = accountData;
+            claimsIdentity = CreateClaimsIdentity(accountData);
             return Task.FromResult(claimsIdentity);
         }
 
@@ -77,20 +77,45 @@ namespace ASI.Basecode.WebApp.Authentication
         /// </summary>
         /// <param name="user">The user.</param>
         /// <returns>Instance of ClaimsIdentity</returns>
-        public ClaimsIdentity CreateClaimsIdentity(User user)
+        public ClaimsIdentity CreateClaimsIdentity(Account account)
         {
-            //var token = _configuration.GetTokenAuthentication();
-            ////TODO
-            //var claims = new List<Claim>()
-            //{
-            //    new Claim(ClaimTypes.NameIdentifier, user.UserId, ClaimValueTypes.String, Const.Issuer),
-            //    new Claim(ClaimTypes.Name, user.Name, ClaimValueTypes.String, Const.Issuer),
+            if (account == null)
+            {
+                throw new ArgumentNullException(nameof(account));
+            }
 
-            //    new Claim("UserId", user.UserId, ClaimValueTypes.String, Const.Issuer),
-            //    new Claim("UserName", user.Name, ClaimValueTypes.String, Const.Issuer),
-            //};
-            //return new ClaimsIdentity(claims, Const.AuthenticationScheme);
-            return null;
+            if (account.User == null)
+            {
+                throw new InvalidOperationException(
+                    "The account's related user was not loaded.");
+            }
+
+            if (account.Role == null)
+            {
+                throw new InvalidOperationException(
+                    "The account's related role was not loaded.");
+            }
+
+            var fullName = string.Join(" ", new[] { account.User.FirstName, account.User.MiddleName, account.User.LastName, account.User.Suffix }.Where(part => !string.IsNullOrWhiteSpace(part)));
+
+            if (string.IsNullOrWhiteSpace(fullName))
+            {
+                fullName = account.User.UserCode ?? account.Email ?? account.UserId.ToString();
+            }
+
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, account.UserId.ToString(), ClaimValueTypes.String, Const.Issuer),
+                new Claim(ClaimTypes.Name, fullName, ClaimValueTypes.String, Const.Issuer),
+                new Claim(ClaimTypes.Email, account.Email ?? string.Empty, ClaimValueTypes.String, Const.Issuer),
+                new Claim(ClaimTypes.Role, account.Role.RoleName, ClaimValueTypes.String, Const.Issuer),
+
+                new Claim("AccountId", account.AccountId.ToString(), ClaimValueTypes.String, Const.Issuer),
+                new Claim("UserId", account.UserId.ToString(), ClaimValueTypes.String, Const.Issuer),
+                new Claim("UserCode", account.User.UserCode ?? string.Empty, ClaimValueTypes.String, Const.Issuer)
+            };
+
+            return new ClaimsIdentity(claims, Const.AuthenticationScheme);
         }
 
         /// <summary>
@@ -121,9 +146,9 @@ namespace ASI.Basecode.WebApp.Authentication
         /// </summary>
         /// <param name="user">The user.</param>
         /// <param name="isPersistent">if set to <c>true</c> [is persistent].</param>
-        public async Task SignInAsync(User user, bool isPersistent = false)
+        public async Task SignInAsync(Account account, bool isPersistent = false)
         {
-            var claimsIdentity = this.CreateClaimsIdentity(user);
+            var claimsIdentity = this.CreateClaimsIdentity(account);
             var principal = this.CreateClaimsPrincipal(claimsIdentity);
             await this.SignInAsync(principal, isPersistent);
         }

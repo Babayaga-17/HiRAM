@@ -109,6 +109,10 @@
                       method="post">
                     @Html.AntiForgeryToken()
 
+                    <input type="hidden"
+                           name="returnUrl"
+                           value="@ViewData["ReturnUrl"]" />
+
                     <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
                     <div class="form-field">
                         <label for="UserId">Email or ID</label>

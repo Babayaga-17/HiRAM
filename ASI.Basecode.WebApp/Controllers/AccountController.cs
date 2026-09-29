@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using static ASI.Basecode.Resources.Constants.Enums;
@@ -25,7 +26,8 @@ namespace ASI.Basecode.WebApp.Controllers
         private readonly TokenValidationParametersFactory _tokenValidationParametersFactory;
         private readonly TokenProviderOptionsFactory _tokenProviderOptionsFactory;
         private readonly IConfiguration _appConfiguration;
-        private readonly IUserService _userService;
+        //private readonly IUserService _userService;
+        private readonly IAccountService _accountService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AccountController"/> class.
@@ -45,7 +47,7 @@ namespace ASI.Basecode.WebApp.Controllers
                             ILoggerFactory loggerFactory,
                             IConfiguration configuration,
                             IMapper mapper,
-                            IUserService userService,
+                            IAccountService accountService,
                             TokenValidationParametersFactory tokenValidationParametersFactory,
                             TokenProviderOptionsFactory tokenProviderOptionsFactory) : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
@@ -54,7 +56,8 @@ namespace ASI.Basecode.WebApp.Controllers
             this._tokenProviderOptionsFactory = tokenProviderOptionsFactory;
             this._tokenValidationParametersFactory = tokenValidationParametersFactory;
             this._appConfiguration = configuration;
-            this._userService = userService;
+            //this._userService = userService;
+            this._accountService = accountService;
         }
 
         /// <summary>
@@ -63,12 +66,19 @@ namespace ASI.Basecode.WebApp.Controllers
         /// <returns>Created response view</returns>
         [HttpGet]
         [AllowAnonymous]
-        public ActionResult Login()
+        public ActionResult Login(string returnUrl)
         {
-            TempData["returnUrl"] = System.Net.WebUtility.UrlDecode(HttpContext.Request.Query["ReturnUrl"]);
+            //TempData["returnUrl"] = System.Net.WebUtility.UrlDecode(HttpContext.Request.Query["ReturnUrl"]);
+            //this._sessionManager.Clear();
+            //this._session.SetString("SessionId", System.Guid.NewGuid().ToString());
+            //return this.View();
+
+            ViewData["ReturnUrl"] = returnUrl;
+
             this._sessionManager.Clear();
-            this._session.SetString("SessionId", System.Guid.NewGuid().ToString());
-            return this.View();
+            this._session.SetString("SessionId", Guid.NewGuid().ToString());
+
+            return View();
         }
 
         /// <summary>
@@ -86,27 +96,52 @@ namespace ASI.Basecode.WebApp.Controllers
             //User user = null;
 
             //User user = new() { Id = 0, UserId = "0", Name = "Name", Password = "Password" };
-            
+
             //await this._signInManager.SignInAsync(user);
             //this._session.SetString("UserName", model.UserId);
 
-            return RedirectToAction("Index", "Home");
+            //return RedirectToAction("Index", "Home");
 
-            /*var loginResult = _userService.AuthenticateUser(model.UserId, model.Password, ref user);
+            //var loginResult = _userService.AuthenticateUser(model.UserId, model.Password, ref user);
+            //if (loginResult == LoginResult.Success)
+            //{
+            //    // 認証OK
+            //    await this._signInManager.SignInAsync(user);
+            //    this._session.SetString("UserName", user.Name);
+            //    return RedirectToAction("Index", "Home");
+            //}
+            //else
+            //{
+            //    // 認証NG
+            //    TempData["ErrorMessage"] = "Incorrect UserId or Password";
+            //    return View();
+            //}
+            //return View(); 
+
+            //return null;
+
+            ViewData["ReturnUrl"] = returnUrl;
+
+            Account account = null;
+
+            var loginResult = _accountService.AuthenticateAccount(model.UserId, model.Password, ref account);
+
             if (loginResult == LoginResult.Success)
             {
-                // 認証OK
-                await this._signInManager.SignInAsync(user);
-                this._session.SetString("UserName", user.Name);
+                await _signInManager.SignInAsync(account);
+
+                if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return LocalRedirect(returnUrl);
+                }
+
                 return RedirectToAction("Index", "Home");
             }
-            else
-            {
-                // 認証NG
-                TempData["ErrorMessage"] = "Incorrect UserId or Password";
-                return View();
-            }
-            return View();*/
+
+            ModelState.AddModelError(string.Empty, "Incorrect email or password.");
+
+            return View(model);
+
         }
 
         [HttpGet]
@@ -120,19 +155,20 @@ namespace ASI.Basecode.WebApp.Controllers
         [AllowAnonymous]
         public IActionResult Register(UserViewModel model)
         {
-            try
-            {
-                _userService.AddUser(model);
-                return RedirectToAction("Login", "Account");
-            }
-            catch(InvalidDataException ex)
-            {
-                TempData["ErrorMessage"] = ex.Message;
-            }
-            catch(Exception ex)
-            {
-                TempData["ErrorMessage"] = Resources.Messages.Errors.ServerError;
-            }
+            //try
+            //{
+            //    _userService.AddUser(model);
+            //    return RedirectToAction("Login", "Account");
+            //}
+            //catch (InvalidDataException ex)
+            //{
+            //    TempData["ErrorMessage"] = ex.Message;
+            //}
+            //catch (Exception ex)
+            //{
+            //    TempData["ErrorMessage"] = Resources.Messages.Errors.ServerError;
+            //}
+            //return View();
             return View();
         }
 

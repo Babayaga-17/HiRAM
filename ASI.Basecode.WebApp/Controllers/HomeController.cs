@@ -33,8 +33,7 @@ namespace ASI.Basecode.WebApp.Controllers
         /// Returns Home View.
         /// </summary>
         /// <returns> Home View </returns>
-
-        [AllowAnonymous]
+        [Authorize]
         public IActionResult Index()
         {
             return View();
