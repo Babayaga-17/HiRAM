@@ -48,13 +48,11 @@ public partial class HiramDbContext : DbContext
     {
         modelBuilder.Entity<Account>(entity =>
         {
-            entity.HasKey(e => e.AccountId).HasName("PK__UserAcco__46A222CDF60F1670");
+            entity.HasIndex(e => e.RoleId, "IX_Accounts_role_id");
 
-            entity.HasIndex(e => e.RoleId, "IX_UserAccounts_role_id");
+            entity.HasIndex(e => e.Email, "UQ_Accounts_email").IsUnique();
 
-            entity.HasIndex(e => e.Email, "UQ_UserAccounts_email").IsUnique();
-
-            entity.HasIndex(e => e.UserId, "UQ_UserAccounts_user_id").IsUnique();
+            entity.HasIndex(e => e.UserId, "UQ_Accounts_user_id").IsUnique();
 
             entity.Property(e => e.AccountId).HasColumnName("account_id");
             entity.Property(e => e.AccountStatus)
@@ -96,18 +94,16 @@ public partial class HiramDbContext : DbContext
             entity.HasOne(d => d.Role).WithMany(p => p.Accounts)
                 .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_UserAccounts_Roles");
+                .HasConstraintName("FK_Accounts_Roles");
 
             entity.HasOne(d => d.User).WithOne(p => p.Account)
                 .HasForeignKey<Account>(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_UserAccounts_Users");
+                .HasConstraintName("FK_Accounts_Users");
         });
 
         modelBuilder.Entity<AuditLog>(entity =>
         {
-            entity.HasKey(e => e.AuditLogId).HasName("PK__AuditLog__6031F9F8F61D8187");
-
             entity.HasIndex(e => e.UserId, "IX_AuditLogs_user_id");
 
             entity.Property(e => e.AuditLogId).HasColumnName("audit_log_id");
@@ -154,7 +150,7 @@ public partial class HiramDbContext : DbContext
 
         modelBuilder.Entity<BorrowerProfile>(entity =>
         {
-            entity.HasKey(e => e.UserId).HasName("PK__Borrower__B9BE370FDD3E7201");
+            entity.HasKey(e => e.UserId);
 
             entity.HasIndex(e => e.DepartmentId, "IX_BorrowerProfiles_department_id");
 
@@ -212,11 +208,9 @@ public partial class HiramDbContext : DbContext
 
         modelBuilder.Entity<Department>(entity =>
         {
-            entity.HasKey(e => e.DepartmentId).HasName("PK__Departme__C22324224371E71D");
+            entity.HasIndex(e => e.DepartmentCode, "UQ_Departments_code").IsUnique();
 
-            entity.HasIndex(e => e.DepartmentCode, "UQ_Departments_department_code").IsUnique();
-
-            entity.HasIndex(e => e.DepartmentName, "UQ_Departments_department_name").IsUnique();
+            entity.HasIndex(e => e.DepartmentName, "UQ_Departments_name").IsUnique();
 
             entity.Property(e => e.DepartmentId).HasColumnName("department_id");
             entity.Property(e => e.CreatedAt)
@@ -254,19 +248,15 @@ public partial class HiramDbContext : DbContext
 
         modelBuilder.Entity<Equipment>(entity =>
         {
-            entity.HasKey(e => e.EquipmentId).HasName("PK__Equipmen__197068AFB7324C1D");
+            entity.HasIndex(e => e.CategoryId, "IX_Equipments_category_id");
 
-            entity.HasIndex(e => e.AvailabilityStatus, "IX_EquipmentItems_availability_status");
+            entity.HasIndex(e => e.EquipmentCode, "UQ_Equipments_code").IsUnique();
 
-            entity.HasIndex(e => e.CategoryId, "IX_EquipmentItems_category_id");
-
-            entity.HasIndex(e => e.EquipmentCode, "UQ_EquipmentItems_equipment_code").IsUnique();
-
-            entity.HasIndex(e => e.AssetTag, "UX_EquipmentItems_asset_tag")
+            entity.HasIndex(e => e.AssetTag, "UX_Equipments_asset_tag")
                 .IsUnique()
                 .HasFilter("([asset_tag] IS NOT NULL)");
 
-            entity.HasIndex(e => e.SerialNumber, "UX_EquipmentItems_serial_number")
+            entity.HasIndex(e => e.SerialNumber, "UX_Equipments_serial_number")
                 .IsUnique()
                 .HasFilter("([serial_number] IS NOT NULL)");
 
@@ -279,12 +269,6 @@ public partial class HiramDbContext : DbContext
                 .HasMaxLength(50)
                 .IsUnicode(false)
                 .HasColumnName("asset_tag");
-            entity.Property(e => e.AvailabilityStatus)
-                .IsRequired()
-                .HasMaxLength(20)
-                .IsUnicode(false)
-                .HasDefaultValue("Available")
-                .HasColumnName("availability_status");
             entity.Property(e => e.Brand)
                 .HasMaxLength(100)
                 .IsUnicode(false)
@@ -343,16 +327,16 @@ public partial class HiramDbContext : DbContext
             entity.HasOne(d => d.Category).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.CategoryId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_EquipmentItems_EquipmentCategories");
+                .HasConstraintName("FK_Equipments_Categories");
         });
 
         modelBuilder.Entity<EquipmentCategory>(entity =>
         {
-            entity.HasKey(e => e.CategoryId).HasName("PK__Equipmen__D54EE9B4E4B21EA0");
+            entity.HasKey(e => e.CategoryId);
 
-            entity.HasIndex(e => e.CategoryCode, "UQ_EquipmentCategories_category_code").IsUnique();
+            entity.HasIndex(e => e.CategoryCode, "UQ_EquipmentCategories_code").IsUnique();
 
-            entity.HasIndex(e => e.CategoryName, "UQ_EquipmentCategories_category_name").IsUnique();
+            entity.HasIndex(e => e.CategoryName, "UQ_EquipmentCategories_name").IsUnique();
 
             entity.Property(e => e.CategoryId).HasColumnName("category_id");
             entity.Property(e => e.CategoryCode)
@@ -390,9 +374,9 @@ public partial class HiramDbContext : DbContext
 
         modelBuilder.Entity<MaintenanceRecord>(entity =>
         {
-            entity.HasKey(e => e.MaintenanceId).HasName("PK__Maintena__9D754BEA38FE2FDD");
+            entity.HasKey(e => e.MaintenanceId);
 
-            entity.HasIndex(e => e.EquipmentId, "IX_MaintenanceRecords_equipment_id");
+            entity.HasIndex(e => new { e.EquipmentId, e.StartDateTime, e.EndDateTime }, "IX_MaintenanceRecords_equipment_dates");
 
             entity.Property(e => e.MaintenanceId).HasColumnName("maintenance_id");
             entity.Property(e => e.CompletedByUserId).HasColumnName("completed_by_user_id");
@@ -437,21 +421,23 @@ public partial class HiramDbContext : DbContext
 
             entity.HasOne(d => d.CompletedByUser).WithMany(p => p.MaintenanceRecordCompletedByUsers)
                 .HasForeignKey(d => d.CompletedByUserId)
-                .HasConstraintName("FK_MaintenanceRecords_completed_by");
+                .HasConstraintName("FK_MaintenanceRecords_CompletedBy");
 
             entity.HasOne(d => d.Equipment).WithMany(p => p.MaintenanceRecords)
                 .HasForeignKey(d => d.EquipmentId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_MaintenanceRecords_EquipmentItems");
+                .HasConstraintName("FK_MaintenanceRecords_Equipments");
 
             entity.HasOne(d => d.ReportedByUser).WithMany(p => p.MaintenanceRecordReportedByUsers)
                 .HasForeignKey(d => d.ReportedByUserId)
-                .HasConstraintName("FK_MaintenanceRecords_reported_by");
+                .HasConstraintName("FK_MaintenanceRecords_ReportedBy");
         });
 
         modelBuilder.Entity<PasswordResetToken>(entity =>
         {
-            entity.HasKey(e => e.TokenId).HasName("PK__Password__CB3C9E171470D717");
+            entity.HasKey(e => e.TokenId);
+
+            entity.HasIndex(e => e.AccountId, "IX_PasswordResetTokens_account_id");
 
             entity.HasIndex(e => e.TokenHash, "UQ_PasswordResetTokens_token_hash").IsUnique();
 
@@ -482,18 +468,14 @@ public partial class HiramDbContext : DbContext
             entity.HasOne(d => d.Account).WithMany(p => p.PasswordResetTokens)
                 .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PasswordResetTokens_UserAccounts");
+                .HasConstraintName("FK_PasswordResetTokens_Accounts");
         });
 
         modelBuilder.Entity<Reservation>(entity =>
         {
-            entity.HasKey(e => e.ReservationId).HasName("PK__Reservat__31384C291062F136");
-
             entity.HasIndex(e => e.BorrowerUserId, "IX_Reservations_borrower_user_id");
 
-            entity.HasIndex(e => new { e.StartDateTime, e.ExpectedReturnDateTime }, "IX_Reservations_dates");
-
-            entity.HasIndex(e => e.Status, "IX_Reservations_status");
+            entity.HasIndex(e => new { e.Status, e.StartDateTime, e.ExpectedReturnDateTime }, "IX_Reservations_status_dates");
 
             entity.HasIndex(e => e.ReservationNumber, "UQ_Reservations_reservation_number").IsUnique();
 
@@ -558,26 +540,24 @@ public partial class HiramDbContext : DbContext
 
             entity.HasOne(d => d.ApprovedByUser).WithMany(p => p.ReservationApprovedByUsers)
                 .HasForeignKey(d => d.ApprovedByUserId)
-                .HasConstraintName("FK_Reservations_approved_by");
+                .HasConstraintName("FK_Reservations_ApprovedBy");
 
-            entity.HasOne(d => d.BorrowerUser).WithMany(p => p.ReservationBorrowerUsers)
+            entity.HasOne(d => d.BorrowerUser).WithMany(p => p.Reservations)
                 .HasForeignKey(d => d.BorrowerUserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Reservations_borrower");
+                .HasConstraintName("FK_Reservations_BorrowerProfile");
 
             entity.HasOne(d => d.ReceivedByUser).WithMany(p => p.ReservationReceivedByUsers)
                 .HasForeignKey(d => d.ReceivedByUserId)
-                .HasConstraintName("FK_Reservations_received_by");
+                .HasConstraintName("FK_Reservations_ReceivedBy");
 
             entity.HasOne(d => d.RejectedByUser).WithMany(p => p.ReservationRejectedByUsers)
                 .HasForeignKey(d => d.RejectedByUserId)
-                .HasConstraintName("FK_Reservations_rejected_by");
+                .HasConstraintName("FK_Reservations_RejectedBy");
         });
 
         modelBuilder.Entity<ReservationItem>(entity =>
         {
-            entity.HasKey(e => e.ReservationItemId).HasName("PK__Reservat__83F218BF1A73C97C");
-
             entity.HasIndex(e => e.EquipmentId, "IX_ReservationItems_equipment_id");
 
             entity.HasIndex(e => new { e.ReservationId, e.EquipmentId }, "UQ_ReservationItems_reservation_equipment").IsUnique();
@@ -629,7 +609,7 @@ public partial class HiramDbContext : DbContext
             entity.HasOne(d => d.Equipment).WithMany(p => p.ReservationItems)
                 .HasForeignKey(d => d.EquipmentId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_ReservationItems_EquipmentItems");
+                .HasConstraintName("FK_ReservationItems_Equipments");
 
             entity.HasOne(d => d.Reservation).WithMany(p => p.ReservationItems)
                 .HasForeignKey(d => d.ReservationId)
@@ -639,8 +619,6 @@ public partial class HiramDbContext : DbContext
 
         modelBuilder.Entity<Role>(entity =>
         {
-            entity.HasKey(e => e.RoleId).HasName("PK__Roles__760965CC4648F8BB");
-
             entity.HasIndex(e => e.RoleName, "UQ_Roles_role_name").IsUnique();
 
             entity.Property(e => e.RoleId)
@@ -676,8 +654,6 @@ public partial class HiramDbContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.UserId).HasName("PK__Users__B9BE370F75F06690");
-
             entity.HasIndex(e => e.UserCode, "UQ_Users_user_code").IsUnique();
 
             entity.Property(e => e.UserId).HasColumnName("user_id");

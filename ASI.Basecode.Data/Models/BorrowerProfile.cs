@@ -33,6 +33,8 @@ public partial class BorrowerProfile
 
     public virtual Department Department { get; set; }
 
+    public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+
     public virtual User SuspendedByUser { get; set; }
 
     public virtual User User { get; set; }

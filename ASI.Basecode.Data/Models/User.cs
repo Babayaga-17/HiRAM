@@ -41,8 +41,6 @@ public partial class User
 
     public virtual ICollection<Reservation> ReservationApprovedByUsers { get; set; } = new List<Reservation>();
 
-    public virtual ICollection<Reservation> ReservationBorrowerUsers { get; set; } = new List<Reservation>();
-
     public virtual ICollection<Reservation> ReservationReceivedByUsers { get; set; } = new List<Reservation>();
 
     public virtual ICollection<Reservation> ReservationRejectedByUsers { get; set; } = new List<Reservation>();

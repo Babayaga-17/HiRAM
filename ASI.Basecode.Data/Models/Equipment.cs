@@ -25,8 +25,6 @@ public partial class Equipment
 
     public string ConditionStatus { get; set; }
 
-    public string AvailabilityStatus { get; set; }
-
     public string StorageLocation { get; set; }
 
     public DateOnly? AcquisitionDate { get; set; }

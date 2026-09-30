@@ -53,7 +53,7 @@ public partial class Reservation
 
     public virtual User ApprovedByUser { get; set; }
 
-    public virtual User BorrowerUser { get; set; }
+    public virtual BorrowerProfile BorrowerUser { get; set; }
 
     public virtual User ReceivedByUser { get; set; }
 

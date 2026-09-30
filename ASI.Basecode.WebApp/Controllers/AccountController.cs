@@ -169,6 +169,9 @@ namespace ASI.Basecode.WebApp.Controllers
             //    TempData["ErrorMessage"] = Resources.Messages.Errors.ServerError;
             //}
             //return View();
+
+            Debug.WriteLine(PasswordManager.EncryptPassword(model.Password));
+
             return View();
         }
 
