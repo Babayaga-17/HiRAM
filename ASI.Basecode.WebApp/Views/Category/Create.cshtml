@@ -1,0 +1,50 @@
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Add Category";
+    ViewData["TopbarPage"] = "Add category";
+    ViewData["FormMode"] = "create";
+}
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="Category" asp-action="Index">
+            <svg class="icon">
+                <use href="#i-chevron" />
+            </svg>Back to categories
+        </a>
+
+        <div class="eyebrow-line">
+            <span class="eyebrow-dot"></span>
+            EQUIPMENT MANAGEMENT
+        </div>
+
+        <h1>Add category</h1>
+        <p>Create a new group to keep related equipment together.</p>
+    </div>
+</div>
+
+<div class="form-page-grid">
+    <section class="content-card form-card" aria-label="Add category form">
+        <partial name="_CategoryForm" model="@(new CategoryViewModel())" />
+    </section>
+    <aside class="form-side-card">
+        <span class="side-card-icon">
+            <svg class="icon">
+                <use href="#i-layers" />
+            </svg>
+        </span>
+
+        <h2>Keep categories clear</h2>
+
+        <p>Choose a descriptive name and a short code. Categories help the team find the right equipment faster.</p>
+
+        <div class="side-card-tip">
+            <svg class="icon">
+                <use href="#i-info" />
+            </svg>Category codes should be unique.
+        </div>
+    </aside>
+</div>
+
+@section Scripts {
+    <script src="~/js/category-form.js" asp-append-version="true"></script>
+}

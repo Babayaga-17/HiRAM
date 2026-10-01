@@ -1,0 +1,39 @@
+@model CategoryViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Edit Category";
+    ViewData["TopbarPage"] = "Edit category";
+    ViewData["FormMode"] = "edit";
+}
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="Category" asp-action="Index">
+            <svg class="icon">
+                <use href="#i-chevron" />
+            </svg>Back to categories
+        </a>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>EQUIPMENT MANAGEMENT</div>
+        <h1>Edit category</h1>
+        <p>Update the details for <strong>@Model.Name</strong>.</p>
+    </div>
+</div>
+
+<div class="form-page-grid">
+    <section class="content-card form-card" aria-label="Edit category form"><partial name="_CategoryForm" model="Model" /></section>
+    <aside class="form-side-card">
+        <span class="side-card-icon">
+            <svg class="icon"><use href="#i-box" /></svg>
+        </span>
+        <h2>@Model.EquipmentCount equipment items</h2>
+        <p>Currently organized under this category.</p>
+        <div class="side-card-tip">
+            <svg class="icon">
+                <use href="#i-info" />
+            </svg>Changing a category affects how its equipment is grouped.
+        </div>
+    </aside>
+</div>
+
+@section Scripts {
+    <script src="~/js/category-form.js" asp-append-version="true"></script>
+}

@@ -135,7 +135,7 @@ namespace ASI.Basecode.WebApp.Controllers
                     return LocalRedirect(returnUrl);
                 }
 
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "Category");
             }
 
             ModelState.AddModelError(string.Empty, "Incorrect email or password.");

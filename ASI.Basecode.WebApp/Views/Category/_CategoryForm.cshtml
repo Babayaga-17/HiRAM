@@ -1,0 +1,15 @@
+@model CategoryViewModel
+@{
+    var isEdit = ViewData["FormMode"]?.ToString() == "edit";
+}
+<form class="category-form" id="categoryForm">
+    <div class="form-card-header"><span class="form-section-icon"><svg class="icon"><use href="#i-layers"/></svg></span><div><h2>Category information</h2><p>Enter the details used to identify this equipment group.</p></div></div>
+    <div class="form-grid">
+        <div class="form-group"><label for="categoryName">Category name <span class="required">*</span></label><input id="categoryName" name="categoryName" type="text" maxlength="100" placeholder="e.g. Audio & Visual" value="@Model?.Name" required /><small>Use a name that is easy to recognize.</small></div>
+        <div class="form-group"><label for="categoryCode">Category code <span class="required">*</span></label><input id="categoryCode" name="categoryCode" type="text" maxlength="20" placeholder="e.g. AV-001" value="@Model?.Code" required /><small>A short, unique code for this category.</small></div>
+        <div class="form-group form-group-wide"><label for="categoryDescription">Description</label><textarea id="categoryDescription" name="categoryDescription" rows="5" placeholder="Describe the equipment included in this category...">@Model?.Description</textarea><small>Help your team understand what belongs in this group.</small></div>
+    </div>
+    <div class="form-divider"></div>
+    <div class="status-setting"><div><h3>Category status</h3><p>Inactive categories stay visible here but are unavailable for new equipment.</p></div><label class="switch"><input id="categoryActive" type="checkbox" @(Model == null || Model.IsActive ? "checked" : null) /><span class="switch-track"></span><span class="switch-label" id="statusLabel">@(Model == null || Model.IsActive ? "Active" : "Inactive")</span></label></div>
+    <div class="form-actions"><a class="button button-secondary" asp-controller="Category" asp-action="Index">Cancel</a><button class="button button-primary" type="button" disabled title="Saving will be available when category management is connected"><svg class="icon"><use href="#i-check"/></svg>@(isEdit ? "Save changes" : "Add category")</button></div>
+</form>
