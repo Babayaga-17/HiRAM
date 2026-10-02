@@ -123,6 +123,76 @@ namespace ASI.Basecode.Services.Services
             return true;
         }
 
+        public bool SetEquipmentCategoryStatus(int categoryId, bool isActive, string updatedBy)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(categoryId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(updatedBy);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(updatedBy.Length, 100, nameof(updatedBy));
+
+            var category = _repository.GetEquipmentCategoryById(categoryId);
+
+            if (category == null)
+                return false;
+
+            if (category.IsActive == isActive)
+                return true;
+
+            category.IsActive = isActive;
+            category.UpdatedBy = updatedBy;
+            category.UpdatedAt = DateTime.Now;
+            _repository.UpdateEquipmentCategory(category);
+
+            return true;
+        }
+
+        public bool DeleteEquipmentCategory(int categoryId)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(categoryId);
+
+            var category = GetEquipmentCategoryById(categoryId);
+
+            if (category == null)
+                return false;
+
+            ValidateCategoryDeletion(category);
+
+            if (_repository.DeleteEquipmentCategory(categoryId))
+                return true;
+
+            // The category may have been activated, assigned equipment, or deleted
+            // between the first check and the database operation.
+            category = GetEquipmentCategoryById(categoryId);
+
+            if (category == null)
+                return false;
+
+            ValidateCategoryDeletion(category);
+
+            throw new EquipmentCategoryValidationException(new Dictionary<string, string>
+            {
+                [string.Empty] = "The category changed while you were deleting it. Please refresh the list and try again."
+            });
+        }
+
+        private static void ValidateCategoryDeletion(EquipmentCategoryListItem category)
+        {
+            if (category.IsActive)
+            {
+                throw new EquipmentCategoryValidationException(new Dictionary<string, string>
+                {
+                    [string.Empty] = "Deactivate the category before deleting it."
+                });
+            }
+
+            if (category.EquipmentCount > 0)
+            {
+                throw new EquipmentCategoryValidationException(new Dictionary<string, string>
+                {
+                    [string.Empty] = "This category has assigned equipment. Reassign that equipment before deleting the category."
+                });
+            }
+        }
+
         public IReadOnlyList<EquipmentCategoryListItem> GetEquipmentCategories()
         {
             return _repository.GetEquipmentCategories()

@@ -9,5 +9,7 @@ namespace ASI.Basecode.Services.Interfaces
         IReadOnlyList<EquipmentCategoryListItem> GetEquipmentCategories();
         EquipmentCategoryListItem GetEquipmentCategoryById(int id);
         bool EditEquipmentCategory(int categoryId, string categoryCode, string categoryName, string description, bool isActive, string updatedBy);
+        bool SetEquipmentCategoryStatus(int categoryId, bool isActive, string updatedBy);
+        bool DeleteEquipmentCategory(int categoryId);
     }
 }

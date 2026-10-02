@@ -35,6 +35,16 @@ namespace ASI.Basecode.Data.Repositories
             return GetDbSet<EquipmentCategory>().AsNoTracking();
         }
 
+        public bool DeleteEquipmentCategory(int id)
+        {
+            // Check the current state in the DELETE statement, even if it changed
+            // after the service checked it. Assigned equipment must be preserved.
+            return GetDbSet<EquipmentCategory>()
+                .Where(category => category.CategoryId == id &&
+                    !category.IsActive && !category.Equipment.Any())
+                .ExecuteDelete() == 1;
+        }
+
         public bool CategoryCodeExists(string categoryCode)
         {
             return GetDbSet<EquipmentCategory>()

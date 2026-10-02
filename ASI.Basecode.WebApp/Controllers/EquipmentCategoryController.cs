@@ -59,7 +59,7 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
                 exception,
                 "Failed to load equipment categories.");
 
-            ViewData["LoadError"] =
+            TempData["CategoryLoadError"] =
                 "Unable to load equipment categories. Please try again.";
 
             return View(Array.Empty<EquipmentCategoryViewModel>());
@@ -114,6 +114,7 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
         }
     }
 
+    [HttpGet]
     public IActionResult Edit(int id)
     {
         if (id <= 0)
@@ -208,6 +209,85 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
 
             return View(model);
         }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Deactivate(int id) => ChangeCategoryStatus(id, false);
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Activate(int id) => ChangeCategoryStatus(id, true);
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Delete(int id)
+    {
+        if (id <= 0)
+            return NotFound();
+
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized();
+
+        try
+        {
+            if (_equipmentCategoryService.DeleteEquipmentCategory(id))
+            {
+                _logger.LogInformation("Deleted equipment category {CategoryId} by user {UserId}.", id, userId);
+                TempData["CategorySuccess"] = "The category was deleted.";
+            }
+            else
+            {
+                TempData["CategoryError"] = "The category no longer exists.";
+            }
+        }
+        catch (EquipmentCategoryValidationException exception)
+        {
+            TempData["CategoryError"] = string.Join(" ", exception.Errors.Values);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Failed to delete category {CategoryId} for user {UserId}.", id, userId);
+            TempData["CategoryError"] = "Unable to delete the category. Please try again.";
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
+    private IActionResult ChangeCategoryStatus(int id, bool isActive)
+    {
+        if (id <= 0)
+            return NotFound();
+
+        var updatedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(updatedBy))
+            return Unauthorized();
+
+        try
+        {
+            if (_equipmentCategoryService.SetEquipmentCategoryStatus(id, isActive, updatedBy))
+            {
+                TempData["CategorySuccess"] = isActive
+                    ? "The category was activated."
+                    : "The category was deactivated.";
+            }
+            else
+            {
+                TempData["CategoryError"] = "The category no longer exists.";
+            }
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception,
+                "Failed to set category {CategoryId} active status to {IsActive} for user {UserId}.",
+                id, isActive, updatedBy);
+            TempData["CategoryError"] = "Unable to change the category status. Please try again.";
+        }
+
+        return RedirectToAction(nameof(Index));
     }
 
     private void SetEditPageData(EquipmentCategoryListItem category)

@@ -850,6 +850,52 @@ h1, h2, h3, p {
     cursor: not-allowed
 }
 
+.category-action-form {
+    display: inline-flex;
+    margin: 0;
+}
+
+.status-action-danger {
+    color: #b42318;
+    background: #fff1f0;
+}
+
+.status-action-danger:not(:disabled):hover {
+    color: #9f231e;
+    background: #ffe2df;
+}
+
+.button-danger {
+    color: #fff;
+    background: #b42318;
+    border-color: #b42318;
+}
+
+.button-danger:hover {
+    color: #fff;
+    background: #9f231e;
+}
+
+.category-notice {
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    border: 1px solid;
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+.category-notice-success {
+    color: #166534;
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.category-notice-error {
+    color: #b42318;
+    background: #fff1f0;
+    border-color: #fecaca;
+}
+
 .table-footer {
     display: flex;
     align-items: center;

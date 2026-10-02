@@ -3,6 +3,7 @@
     const filter = document.getElementById("statusFilter");
     const rows = Array.from(document.querySelectorAll("#categoryRows tr"));
     const detailsDialog = document.getElementById("detailsDialog"); 
+    const deleteDialog = document.getElementById("deleteCategoryDialog");
 
     function applyFilters() {
         const term = search.value.trim().toLowerCase();
@@ -35,9 +36,18 @@
             document.getElementById("detailsCode").textContent = row.dataset.code;
             document.getElementById("detailsEquipment").textContent = `${row.dataset.equipment} items`;
             document.getElementById("detailsStatus").textContent = row.dataset.status === "active" ? "Active" : "Inactive";
-            document.getElementById("detailsEdit").href = row.querySelector("a[title='Edit category']").href;
+            document.getElementById("detailsEdit").href = row.querySelector(".edit-category").href;
             detailsDialog.showModal();
         });
+
+        const deleteButton = row.querySelector(".delete-category");
+        if (deleteButton) {
+            deleteButton.addEventListener("click", () => {
+                document.getElementById("deleteCategoryId").value = row.dataset.id;
+                document.getElementById("deleteCategoryName").textContent = row.dataset.name;
+                deleteDialog.showModal();
+            });
+        }
     });
 
     document.querySelectorAll(".dialog-close").forEach(button => {
