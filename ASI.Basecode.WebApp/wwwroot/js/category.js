@@ -2,7 +2,7 @@
     const search = document.getElementById("categorySearch");
     const filter = document.getElementById("statusFilter");
     const rows = Array.from(document.querySelectorAll("#categoryRows tr"));
-    const detailsDialog = document.getElementById("detailsDialog");
+    const detailsDialog = document.getElementById("detailsDialog"); 
 
     function applyFilters() {
         const term = search.value.trim().toLowerCase();

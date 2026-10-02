@@ -1,0 +1,77 @@
+@model EquipmentCategoryFormViewModel
+@{
+    var isEdit = ViewData["FormMode"]?.ToString() == "Edit";
+}
+<form class="category-form"
+      id="categoryForm"
+      asp-controller="EquipmentCategory"
+      asp-action="@(isEdit ? "Edit" : "Create")"
+      method="post"
+      novalidate>
+
+    <div asp-validation-summary="ModelOnly"></div>
+
+    <div class="form-card-header">
+        <span class="form-section-icon">
+            <svg class="icon">
+                <use href="#i-layers" />
+            </svg>
+        </span>
+        <div>
+            <h2>Category information</h2>
+            <p>Enter the details used to identify this equipment group.</p>
+        </div>
+    </div>
+
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="categoryName">
+                Category name
+                <span class="required">*</span>
+            </label>
+            <input asp-for="CategoryName" id="categoryName" type="text" maxlength="100" placeholder="e.g. Audio & Visual" required />
+            <span asp-validation-for="CategoryName"></span>
+            <small>Use a name that is easy to recognize.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="categoryCode">
+                Category code
+                <span class="required">*</span>
+            </label>
+            <input asp-for="CategoryCode" id="categoryCode" type="text" maxlength="20" placeholder="e.g. AV-001" required />
+            <span asp-validation-for="CategoryCode"></span>
+            <small>A short, unique code for this category.</small>
+        </div>
+
+        <div class="form-group form-group-wide">
+            <label for="categoryDescription">Description</label>
+            <textarea asp-for="Description" id="categoryDescription" rows="5" maxlength="500" placeholder="Describe the equipment included in this category..."></textarea>
+            <span asp-validation-for="Description"></span>
+            <small>Help your team understand what belongs in this group.</small>
+        </div>
+    </div>
+    <div class="form-divider"></div>
+    <div class="status-setting">
+        <div>
+            <h3>Category status</h3>
+            <p>Inactive categories stay visible here but are unavailable for new equipment.</p>
+        </div>
+
+        <div>
+            <label class="switch">
+                <input asp-for="IsActive" id="categoryActive" />
+                <span class="switch-track"></span>
+                <span class="switch-label" id="statusLabel">@(Model == null || Model.IsActive ? "Active" : "Inactive")</span>
+            </label>
+            <span asp-validation-for="IsActive"></span>
+        </div>
+    </div>
+    <div class="form-actions">
+        <a class="button button-secondary" asp-controller="EquipmentCategory" asp-action="Index">Cancel</a>
+        <button class="button button-primary" type="submit" disabled="@isEdit">
+            <svg class="icon"><use href="#i-check" /></svg>
+            @(isEdit ? "Save changes" : "Add category")
+        </button>
+    </div>
+</form>

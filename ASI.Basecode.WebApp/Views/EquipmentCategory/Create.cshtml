@@ -1,3 +1,4 @@
+@model EquipmentCategoryFormViewModel
 @{
     Layout = "_AppLayout";
     ViewData["Title"] = "Add Category";
@@ -6,7 +7,7 @@
 }
 <div class="page-heading form-page-heading">
     <div>
-        <a class="back-link" asp-controller="Category" asp-action="Index">
+        <a class="back-link" asp-controller="EquipmentCategory" asp-action="Index">
             <svg class="icon">
                 <use href="#i-chevron" />
             </svg>Back to categories
@@ -24,7 +25,7 @@
 
 <div class="form-page-grid">
     <section class="content-card form-card" aria-label="Add category form">
-        <partial name="_CategoryForm" model="@(new CategoryViewModel())" />
+        <partial name="_CategoryForm" model="Model" />
     </section>
     <aside class="form-side-card">
         <span class="side-card-icon">
@@ -46,5 +47,7 @@
 </div>
 
 @section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
     <script src="~/js/category-form.js" asp-append-version="true"></script>
 }
