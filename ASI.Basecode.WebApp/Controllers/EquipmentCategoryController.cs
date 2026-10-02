@@ -1,6 +1,7 @@
 using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
+using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.Services;
 using ASI.Basecode.WebApp.Authentication;
 using ASI.Basecode.WebApp.Models;
@@ -115,7 +116,103 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
 
     public IActionResult Edit(int id)
     {
-        // No category can be edited until the list is connected to stored data.
-        return NotFound();
+        if (id <= 0)
+            return NotFound();
+
+        try
+        {
+            var category = _equipmentCategoryService.GetEquipmentCategoryById(id);
+
+            if (category == null) 
+                return NotFound();
+
+            SetEditPageData(category);
+
+            return View(new EquipmentCategoryFormViewModel
+            {
+                CategoryCode = category.CategoryCode,
+                CategoryName = category.CategoryName,
+                Description = category.Description,
+                IsActive = category.IsActive
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Failed to load category {CategoryId}.", id);
+
+            return StatusCode(500, "Unable to load the category. Please try again.");
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Edit(int id, EquipmentCategoryFormViewModel model)
+    {
+        if (id <= 0)
+            return NotFound();
+
+        var updatedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(updatedBy))
+            return Unauthorized();
+
+        EquipmentCategoryListItem category = null;
+
+        try
+        {
+            category = _equipmentCategoryService.GetEquipmentCategoryById(id);
+
+            if (category == null)
+                return NotFound();
+
+            SetEditPageData(category);
+
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var updated = _equipmentCategoryService.EditEquipmentCategory(
+                id,
+                model.CategoryCode,
+                model.CategoryName,
+                model.Description,
+                model.IsActive,
+                updatedBy
+            );
+
+            if (!updated)
+                return NotFound();
+
+            return RedirectToAction(nameof(Index));
+        }
+        catch (EquipmentCategoryValidationException exception)
+        {
+            foreach (var error in exception.Errors)
+                ModelState.AddModelError(error.Key, error.Value);
+
+            return View(model);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception, "Failed to edit category {CategoryId}.", id);
+
+            if (category == null)
+            {
+                return StatusCode(
+                    500, "Unable to load the category. Please try again.");
+            }
+
+            ModelState.AddModelError(
+                string.Empty,
+                "Unable to save the changes. Please try again.");
+
+            return View(model);
+        }
+    }
+
+    private void SetEditPageData(EquipmentCategoryListItem category)
+    {
+        ViewData["CategoryId"] = category.CategoryId;
+        ViewData["EquipmentCount"] = category.EquipmentCount;
     }
 }

@@ -17,21 +17,17 @@ namespace ASI.Basecode.Data.Repositories
         public void AddEquipmentCategory(EquipmentCategory equipmentCategory)
         {
             GetDbSet<EquipmentCategory>().Add(equipmentCategory);
+            SaveCategoryChanges(equipmentCategory);
+        }
 
-            try
-            {
-                UnitOfWork.SaveChanges();
-            }
-            // SQL Server reports duplicate unique values with error 2601 or 2627.
-            // This covers another request saving the same values after our checks.
-            catch (DbUpdateException exception) when (
-                exception.InnerException is SqlException sqlException &&
-                (sqlException.Number == 2601 || sqlException.Number == 2627))
-            {
-                // Stop tracking the failed insert so a later SaveChanges cannot retry it.
-                Context.Entry(equipmentCategory).State = EntityState.Detached;
-                throw new EquipmentCategoryConflictException(exception);
-            }
+        public EquipmentCategory GetEquipmentCategoryById(int id)
+        {
+            return GetDbSet<EquipmentCategory>().AsTracking().FirstOrDefault(category => category.CategoryId == id);
+        }
+
+        public void UpdateEquipmentCategory(EquipmentCategory equipmentCategory)
+        {
+            SaveCategoryChanges(equipmentCategory);
         }
 
         public IQueryable<EquipmentCategory> GetEquipmentCategories()
@@ -49,6 +45,48 @@ namespace ASI.Basecode.Data.Repositories
         {
             return GetDbSet<EquipmentCategory>()
                 .Any(category => category.CategoryName == categoryName);
+        }
+
+        public bool CategoryCodeExists(string categoryCode, int? excludeCategoryId = null)
+        {
+            var query = GetDbSet<EquipmentCategory>().Where(category => category.CategoryCode == categoryCode);
+
+            if (excludeCategoryId.HasValue)
+            {
+                query = query.Where(category => category.CategoryId != excludeCategoryId.Value);
+            }
+
+            return query.Any();
+        }
+
+        public bool CategoryNameExists(string categoryName, int? excludeCategoryId = null)
+        {
+            var query = GetDbSet<EquipmentCategory>().Where(category => category.CategoryName == categoryName);
+
+            if (excludeCategoryId.HasValue)
+            {
+                query = query.Where(category => category.CategoryId != excludeCategoryId.Value);
+            }
+
+            return query.Any();
+        }
+
+        private void SaveCategoryChanges(EquipmentCategory equipmentCategory)
+        {
+            try
+            {
+                UnitOfWork.SaveChanges();
+            }
+            // SQL Server reports duplicate unique values with error 2601 or 2627.
+            // This covers another request saving the same values after our checks.
+            catch (DbUpdateException exception) when (
+                exception.InnerException is SqlException sqlException &&
+                (sqlException.Number == 2601 || sqlException.Number == 2627))
+            {
+                // Stop tracking the failed insert so a later SaveChanges cannot retry it.
+                Context.Entry(equipmentCategory).State = EntityState.Detached;
+                throw new EquipmentCategoryConflictException(exception);
+            }
         }
     }
 }

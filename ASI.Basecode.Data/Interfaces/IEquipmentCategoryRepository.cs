@@ -11,7 +11,9 @@ namespace ASI.Basecode.Data.Interfaces
     {
         void AddEquipmentCategory(EquipmentCategory equipmentCategory);
         IQueryable<EquipmentCategory> GetEquipmentCategories();
-        bool CategoryCodeExists(string categoryCode);
-        bool CategoryNameExists(string categoryName);
+        EquipmentCategory GetEquipmentCategoryById(int id);
+        void UpdateEquipmentCategory(EquipmentCategory equipmentCategory);
+        bool CategoryCodeExists(string categoryCode, int? excludeCategoryId = null);
+        bool CategoryNameExists(string categoryName, int? excludeCategoryId = null);
     }
 }

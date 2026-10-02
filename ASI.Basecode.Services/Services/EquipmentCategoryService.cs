@@ -69,6 +69,60 @@ namespace ASI.Basecode.Services.Services
             }
         }
 
+        public bool EditEquipmentCategory(int categoryId, string categoryCode, string categoryName, string description, bool isActive, string updatedBy)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(categoryId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(categoryCode);
+            ArgumentException.ThrowIfNullOrWhiteSpace(categoryName);
+            ArgumentException.ThrowIfNullOrWhiteSpace(updatedBy);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(categoryCode.Length, 20, nameof(categoryCode));
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(categoryName.Length, 100, nameof(categoryName));
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(updatedBy.Length, 100, nameof(updatedBy));
+
+            if (description != null)
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(description.Length, 500, nameof(description));
+
+            categoryCode = categoryCode?.Trim();
+            categoryName = categoryName?.Trim();
+            description = description?.Trim();
+
+            // Apply the same input guards used in Add.
+            // Validate updatedBy using the same rules as createdBy.
+
+            var category = _repository.GetEquipmentCategoryById(categoryId);
+
+            if (category == null)
+                return false;
+
+            var errors = GetDuplicateErrors(categoryCode, categoryName, categoryId);
+
+            if (errors.Count > 0)
+                throw new EquipmentCategoryValidationException(errors);
+
+            category.CategoryCode = categoryCode;
+            category.CategoryName = categoryName;
+            category.Description = string.IsNullOrEmpty(description) ? null : description;
+            category.IsActive = isActive;
+            category.UpdatedBy = updatedBy;
+            category.UpdatedAt = DateTime.Now;
+
+            try
+            {
+                _repository.UpdateEquipmentCategory(category);
+            }
+            catch (EquipmentCategoryConflictException)
+            {
+                errors = GetDuplicateErrors(categoryCode, categoryName, categoryId);
+
+                if (errors.Count == 0)
+                    throw;
+
+                throw new EquipmentCategoryValidationException(errors);
+            }
+
+            return true;
+        }
+
         public IReadOnlyList<EquipmentCategoryListItem> GetEquipmentCategories()
         {
             return _repository.GetEquipmentCategories()
@@ -85,18 +139,34 @@ namespace ASI.Basecode.Services.Services
                 .ToList();
         }
 
-        private Dictionary<string, string> GetDuplicateErrors(string categoryCode, string categoryName)
+        public EquipmentCategoryListItem GetEquipmentCategoryById(int id)
+        {
+            return _repository.GetEquipmentCategories()
+                .Where(category => category.CategoryId == id)
+                .Select(category => new EquipmentCategoryListItem
+                {
+                    CategoryId = category.CategoryId,
+                    CategoryCode = category.CategoryCode,
+                    CategoryName = category.CategoryName,
+                    Description = category.Description ?? string.Empty,
+                    EquipmentCount = category.Equipment.Count,
+                    IsActive = category.IsActive
+                })
+                .SingleOrDefault();
+        }
+
+        private Dictionary<string, string> GetDuplicateErrors(string categoryCode, string categoryName, int? excludeCategoryId = null)
         {
             var errors = new Dictionary<string, string>();
 
-            if (_repository.CategoryCodeExists(categoryCode))
+            if (_repository.CategoryCodeExists(categoryCode, excludeCategoryId))
             {
                 errors.Add(
                     nameof(EquipmentCategory.CategoryCode),
                     ErrorMessages.CategoryCodeExists);
             }
 
-            if (_repository.CategoryNameExists(categoryName))
+            if (_repository.CategoryNameExists(categoryName, excludeCategoryId))
             {
                 errors.Add(
                     nameof(EquipmentCategory.CategoryName),

@@ -1,11 +1,13 @@
 @model EquipmentCategoryFormViewModel
 @{
-    var isEdit = ViewData["FormMode"]?.ToString() == "Edit";
+    var isEdit = ViewData["FormMode"]?.ToString() == "edit";
+    var categoryId = isEdit ? ViewData["CategoryId"] : null;
 }
 <form class="category-form"
       id="categoryForm"
       asp-controller="EquipmentCategory"
       asp-action="@(isEdit ? "Edit" : "Create")"
+      asp-route-id="@categoryId"    
       method="post"
       novalidate>
 
@@ -69,7 +71,7 @@
     </div>
     <div class="form-actions">
         <a class="button button-secondary" asp-controller="EquipmentCategory" asp-action="Index">Cancel</a>
-        <button class="button button-primary" type="submit" disabled="@isEdit">
+        <button class="button button-primary" type="submit">
             <svg class="icon"><use href="#i-check" /></svg>
             @(isEdit ? "Save changes" : "Add category")
         </button>
