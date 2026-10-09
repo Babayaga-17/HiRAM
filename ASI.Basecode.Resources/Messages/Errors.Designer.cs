@@ -61,6 +61,24 @@ namespace ASI.Basecode.Resources.Messages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Category Code already exists!.
+        /// </summary>
+        public static string CategoryCodeExists {
+            get {
+                return ResourceManager.GetString("CategoryCodeExists", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Category Name already exists!.
+        /// </summary>
+        public static string CategoryNameExists {
+            get {
+                return ResourceManager.GetString("CategoryNameExists", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Server error occured!.
         /// </summary>
         public static string ServerError {

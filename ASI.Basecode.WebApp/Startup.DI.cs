@@ -34,12 +34,14 @@ namespace ASI.Basecode.WebApp
 
             // Services
             this._services.TryAddSingleton<TokenValidationParametersFactory>();
-            this._services.AddScoped<IUserService, UserService>();
+            //this._services.AddScoped<IUserService, UserService>();
             this._services.AddScoped<IAccountService, AccountService>();
+            this._services.AddScoped<IEquipmentCategoryService, EquipmentCategoryService>();
 
             // Repositories
-            this._services.AddScoped<IUserRepository, UserRepository>();
+            //this._services.AddScoped<IUserRepository, UserRepository>();
             this._services.AddScoped<IAccountRepository, AccountRepository>();
+            this._services.AddScoped<IEquipmentCategoryRepository, EquipmentCategoryRepository>();
 
             // Manager Class
             this._services.AddScoped<SignInManager>();

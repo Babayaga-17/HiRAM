@@ -35,7 +35,7 @@ namespace ASI.Basecode.Services.Services
 
         public void AddUser(UserViewModel model)
         {
-            //var user = new User();
+            var user = new User();
             //if (!_repository.UserExists(model.UserId))
             //{
             //    _mapper.Map(model, user);
