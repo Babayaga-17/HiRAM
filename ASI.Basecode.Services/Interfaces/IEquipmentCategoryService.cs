@@ -5,10 +5,10 @@ namespace ASI.Basecode.Services.Interfaces
 {
     public interface IEquipmentCategoryService
     {
-        void AddEquipmentCategory(string categoryCode, string categoryName, string description, bool isActive, string createdBy);
-        IReadOnlyList<EquipmentCategoryListItem> GetEquipmentCategories();
+        void AddEquipmentCategory(EquipmentCategoryFormViewModel model, string createdBy);
+        List<EquipmentCategoryListItem> GetEquipmentCategories();
         EquipmentCategoryListItem GetEquipmentCategoryById(int id);
-        bool EditEquipmentCategory(int categoryId, string categoryCode, string categoryName, string description, bool isActive, string updatedBy);
+        bool EditEquipmentCategory(EquipmentCategoryFormViewModel model, string updatedBy);
         bool SetEquipmentCategoryStatus(int categoryId, bool isActive, string updatedBy);
         bool DeleteEquipmentCategory(int categoryId);
     }

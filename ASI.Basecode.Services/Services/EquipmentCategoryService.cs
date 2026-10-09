@@ -13,170 +13,92 @@ namespace ASI.Basecode.Services.Services
 {
     public class EquipmentCategoryService : IEquipmentCategoryService
     {
-        private readonly IEquipmentCategoryRepository _repository;
+        private readonly IEquipmentCategoryRepository _equipmentCategoryRepository;
 
-        public EquipmentCategoryService(IEquipmentCategoryRepository repository)
+        public EquipmentCategoryService(IEquipmentCategoryRepository equipmentCategoryRepository)
         {
-            _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+            _equipmentCategoryRepository = equipmentCategoryRepository;
         }
 
-        public void AddEquipmentCategory(string categoryCode, string categoryName, string description, bool isActive, string createdBy)
+        public void AddEquipmentCategory(EquipmentCategoryFormViewModel model, string createdBy)
         {
-            categoryCode = categoryCode?.Trim();
-            categoryName = categoryName?.Trim();
-            description = description?.Trim();
-
-            // Form messages belong to the ViewModel. These guards protect other callers.
-            ArgumentException.ThrowIfNullOrWhiteSpace(categoryCode);
-            ArgumentException.ThrowIfNullOrWhiteSpace(categoryName);
-            ArgumentException.ThrowIfNullOrWhiteSpace(createdBy);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(categoryCode.Length, 20, nameof(categoryCode));
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(categoryName.Length, 100, nameof(categoryName));
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(createdBy.Length, 100, nameof(createdBy));
-
-            if (description != null)
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(description.Length, 500, nameof(description));
-
-            var errors = GetDuplicateErrors(categoryCode, categoryName);
+            var errors = GetDuplicateErrors(model.CategoryCode, model.CategoryName);
 
             if (errors.Count > 0)
                 throw new EquipmentCategoryValidationException(errors);
 
             var equipmentCategory = new EquipmentCategory
             {
-                CategoryCode = categoryCode,
-                CategoryName = categoryName,
-                Description = string.IsNullOrEmpty(description) ? null : description,
-                IsActive = isActive,
+                CategoryCode = model.CategoryCode,
+                CategoryName = model.CategoryName,
+                Description = model.Description ?? null,
+                IsActive = model.IsActive,
                 CreatedBy = createdBy
             };
 
-            try
-            {
-                _repository.AddEquipmentCategory(equipmentCategory);
-            }
-            catch (EquipmentCategoryConflictException)
-            {
-                // Another request may have saved these values after our first check.
-                errors = GetDuplicateErrors(categoryCode, categoryName);
-
-                if (errors.Count == 0)
-                {
-                    errors.Add(string.Empty, "The category conflicts with a value already saved. Please check the code and name and try again.");
-                }
-
-                throw new EquipmentCategoryValidationException(errors);
-            }
+            _equipmentCategoryRepository.AddEquipmentCategory(equipmentCategory);
         }
 
-        public bool EditEquipmentCategory(int categoryId, string categoryCode, string categoryName, string description, bool isActive, string updatedBy)
+        public bool EditEquipmentCategory(EquipmentCategoryFormViewModel model, string updatedBy)
         {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(categoryId);
-            ArgumentException.ThrowIfNullOrWhiteSpace(categoryCode);
-            ArgumentException.ThrowIfNullOrWhiteSpace(categoryName);
-            ArgumentException.ThrowIfNullOrWhiteSpace(updatedBy);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(categoryCode.Length, 20, nameof(categoryCode));
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(categoryName.Length, 100, nameof(categoryName));
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(updatedBy.Length, 100, nameof(updatedBy));
+            var equipmentCategory = _equipmentCategoryRepository.GetEquipmentCategoryById(model.CategoryId);
 
-            if (description != null)
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(description.Length, 500, nameof(description));
-
-            categoryCode = categoryCode?.Trim();
-            categoryName = categoryName?.Trim();
-            description = description?.Trim();
-
-            // Apply the same input guards used in Add.
-            // Validate updatedBy using the same rules as createdBy.
-
-            var category = _repository.GetEquipmentCategoryById(categoryId);
-
-            if (category == null)
+            if (equipmentCategory == null)
                 return false;
 
-            var errors = GetDuplicateErrors(categoryCode, categoryName, categoryId);
+            var errors = GetDuplicateErrors(model.CategoryCode, model.CategoryName, model.CategoryId);
 
             if (errors.Count > 0)
                 throw new EquipmentCategoryValidationException(errors);
 
-            category.CategoryCode = categoryCode;
-            category.CategoryName = categoryName;
-            category.Description = string.IsNullOrEmpty(description) ? null : description;
-            category.IsActive = isActive;
-            category.UpdatedBy = updatedBy;
-            category.UpdatedAt = DateTime.Now;
+            equipmentCategory.CategoryCode = model.CategoryCode;
+            equipmentCategory.CategoryName = model.CategoryName;
+            equipmentCategory.Description = string.IsNullOrEmpty(model.Description) ? null : model.Description;
+            equipmentCategory.IsActive = model.IsActive;
+            equipmentCategory.UpdatedBy = updatedBy;
+            equipmentCategory.UpdatedAt = DateTime.Now;
 
-            try
-            {
-                _repository.UpdateEquipmentCategory(category);
-            }
-            catch (EquipmentCategoryConflictException)
-            {
-                errors = GetDuplicateErrors(categoryCode, categoryName, categoryId);
-
-                if (errors.Count == 0)
-                    throw;
-
-                throw new EquipmentCategoryValidationException(errors);
-            }
+            _equipmentCategoryRepository.UpdateEquipmentCategory(equipmentCategory);
 
             return true;
         }
 
         public bool SetEquipmentCategoryStatus(int categoryId, bool isActive, string updatedBy)
         {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(categoryId);
-            ArgumentException.ThrowIfNullOrWhiteSpace(updatedBy);
-            ArgumentOutOfRangeException.ThrowIfGreaterThan(updatedBy.Length, 100, nameof(updatedBy));
+            var equipmentCategory = _equipmentCategoryRepository.GetEquipmentCategoryById(categoryId);
 
-            var category = _repository.GetEquipmentCategoryById(categoryId);
-
-            if (category == null)
+            if (equipmentCategory == null)
                 return false;
 
-            if (category.IsActive == isActive)
+            if (equipmentCategory.IsActive == isActive)
                 return true;
 
-            category.IsActive = isActive;
-            category.UpdatedBy = updatedBy;
-            category.UpdatedAt = DateTime.Now;
-            _repository.UpdateEquipmentCategory(category);
+            equipmentCategory.IsActive = isActive;
+            equipmentCategory.UpdatedBy = updatedBy;
+            equipmentCategory.UpdatedAt = DateTime.Now;
+            _equipmentCategoryRepository.UpdateEquipmentCategory(equipmentCategory);
 
             return true;
         }
 
         public bool DeleteEquipmentCategory(int categoryId)
         {
-            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(categoryId);
+            var equipmentCategory = GetEquipmentCategoryById(categoryId);
 
-            var category = GetEquipmentCategoryById(categoryId);
-
-            if (category == null)
+            if (equipmentCategory == null)
                 return false;
 
-            ValidateCategoryDeletion(category);
+            ValidateCategoryDeletion(equipmentCategory);
 
-            if (_repository.DeleteEquipmentCategory(categoryId))
+            if (_equipmentCategoryRepository.DeleteEquipmentCategory(categoryId))
                 return true;
 
-            // The category may have been activated, assigned equipment, or deleted
-            // between the first check and the database operation.
-            category = GetEquipmentCategoryById(categoryId);
-
-            if (category == null)
-                return false;
-
-            ValidateCategoryDeletion(category);
-
-            throw new EquipmentCategoryValidationException(new Dictionary<string, string>
-            {
-                [string.Empty] = "The category changed while you were deleting it. Please refresh the list and try again."
-            });
+            return false;
         }
 
-        private static void ValidateCategoryDeletion(EquipmentCategoryListItem category)
+        private static void ValidateCategoryDeletion(EquipmentCategoryListItem equipmentCategory)
         {
-            if (category.IsActive)
+            if (equipmentCategory.IsActive)
             {
                 throw new EquipmentCategoryValidationException(new Dictionary<string, string>
                 {
@@ -184,7 +106,7 @@ namespace ASI.Basecode.Services.Services
                 });
             }
 
-            if (category.EquipmentCount > 0)
+            if (equipmentCategory.EquipmentCount > 0)
             {
                 throw new EquipmentCategoryValidationException(new Dictionary<string, string>
                 {
@@ -193,34 +115,31 @@ namespace ASI.Basecode.Services.Services
             }
         }
 
-        public IReadOnlyList<EquipmentCategoryListItem> GetEquipmentCategories()
+        public List<EquipmentCategoryListItem> GetEquipmentCategories()
         {
-            return _repository.GetEquipmentCategories()
-                .OrderBy(category => category.CategoryName)
-                .Select(category => new EquipmentCategoryListItem
+            return _equipmentCategoryRepository.GetEquipmentCategories().Select(equipmentCategory => new EquipmentCategoryListItem
                 {
-                    CategoryId = category.CategoryId,
-                    CategoryCode = category.CategoryCode,
-                    CategoryName = category.CategoryName,
-                    Description = category.Description ?? string.Empty,
-                    EquipmentCount = category.Equipment.Count,
-                    IsActive = category.IsActive
-                })
-                .ToList();
+                    CategoryId = equipmentCategory.CategoryId,
+                    CategoryCode = equipmentCategory.CategoryCode,
+                    CategoryName = equipmentCategory.CategoryName,
+                    Description = equipmentCategory.Description ?? string.Empty,
+                    EquipmentCount = equipmentCategory.Equipment.Count,
+                    IsActive = equipmentCategory.IsActive
+                }).ToList();
         }
 
         public EquipmentCategoryListItem GetEquipmentCategoryById(int id)
         {
-            return _repository.GetEquipmentCategories()
-                .Where(category => category.CategoryId == id)
-                .Select(category => new EquipmentCategoryListItem
+            return _equipmentCategoryRepository.GetEquipmentCategories()
+                .Where(equipmentCategory => equipmentCategory.CategoryId == id)
+                .Select(equipmentCategory => new EquipmentCategoryListItem
                 {
-                    CategoryId = category.CategoryId,
-                    CategoryCode = category.CategoryCode,
-                    CategoryName = category.CategoryName,
-                    Description = category.Description ?? string.Empty,
-                    EquipmentCount = category.Equipment.Count,
-                    IsActive = category.IsActive
+                    CategoryId = equipmentCategory.CategoryId,
+                    CategoryCode = equipmentCategory.CategoryCode,
+                    CategoryName = equipmentCategory.CategoryName,
+                    Description = equipmentCategory.Description ?? string.Empty,
+                    EquipmentCount = equipmentCategory.Equipment.Count,
+                    IsActive = equipmentCategory.IsActive
                 })
                 .SingleOrDefault();
         }
@@ -229,18 +148,14 @@ namespace ASI.Basecode.Services.Services
         {
             var errors = new Dictionary<string, string>();
 
-            if (_repository.CategoryCodeExists(categoryCode, excludeCategoryId))
+            if (_equipmentCategoryRepository.CategoryCodeExists(categoryCode, excludeCategoryId))
             {
-                errors.Add(
-                    nameof(EquipmentCategory.CategoryCode),
-                    ErrorMessages.CategoryCodeExists);
+                errors.Add(nameof(EquipmentCategory.CategoryCode), ErrorMessages.CategoryCodeExists);
             }
 
-            if (_repository.CategoryNameExists(categoryName, excludeCategoryId))
+            if (_equipmentCategoryRepository.CategoryNameExists(categoryName, excludeCategoryId))
             {
-                errors.Add(
-                    nameof(EquipmentCategory.CategoryName),
-                    ErrorMessages.CategoryNameExists);
+                errors.Add(nameof(EquipmentCategory.CategoryName), ErrorMessages.CategoryNameExists);
             }
 
             return errors;

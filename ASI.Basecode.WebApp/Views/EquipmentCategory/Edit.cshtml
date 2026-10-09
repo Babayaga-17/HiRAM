@@ -1,4 +1,5 @@
-@model EquipmentCategoryFormViewModel
+@using ASI.Basecode.Services.ServiceModels
+@model EquipmentCategoryListItem
 @{
     Layout = "_AppLayout";
     ViewData["Title"] = "Edit Category";
@@ -20,19 +21,13 @@
 
 <div class="form-page-grid">
     <section class="content-card form-card" aria-label="Edit category form">
-        <partial name="_CategoryForm"model="@(new EquipmentCategoryFormViewModel
-            {
-                CategoryCode = Model.CategoryCode,
-                CategoryName = Model.CategoryName,
-                Description = Model.Description,
-                IsActive = Model.IsActive
-            })" />
+        <partial name="_CategoryForm"model="@(new EquipmentCategoryFormViewModel(Model))" />
     </section>
     <aside class="form-side-card">
         <span class="side-card-icon">
             <svg class="icon"><use href="#i-box" /></svg>
         </span>
-        <h2>@ViewData["EquipmentCount"] equipment items</h2>
+        <h2>@Model.EquipmentCount equipment items</h2>
         <p>Currently organized under this category.</p>
         <div class="side-card-tip">
             <svg class="icon">

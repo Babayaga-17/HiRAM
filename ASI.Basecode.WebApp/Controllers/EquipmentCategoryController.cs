@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Claims;
 
@@ -38,31 +40,14 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
     {
         try
         {
-            var categories = _equipmentCategoryService
-                .GetEquipmentCategories()
-                .Select(category => new EquipmentCategoryViewModel
-                {
-                    CategoryId = category.CategoryId,
-                    CategoryCode = category.CategoryCode,
-                    CategoryName = category.CategoryName,
-                    Description = category.Description,
-                    EquipmentCount = category.EquipmentCount,
-                    IsActive = category.IsActive
-                })
-                .ToList();
-
-            return View(categories);
+            var equipmentCategories = _equipmentCategoryService.GetEquipmentCategories();
+            return View(equipmentCategories);
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            _logger.LogError(
-                exception,
-                "Failed to load equipment categories.");
+            TempData["CategoryLoadError"] = "Unable to load equipment categories. Please try again.";
 
-            TempData["CategoryLoadError"] =
-                "Unable to load equipment categories. Please try again.";
-
-            return View(Array.Empty<EquipmentCategoryViewModel>());
+            return View(new List<EquipmentCategoryListItem>());
         }
     }
 
@@ -70,25 +55,12 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
     public IActionResult Create() => View(new EquipmentCategoryFormViewModel());
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
+    //[ValidateAntiForgeryToken]
     public IActionResult Create(EquipmentCategoryFormViewModel model)
     {
-        if (!ModelState.IsValid)
-            return View(model);
-
-        var createdBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (string.IsNullOrWhiteSpace(createdBy))
-            return Unauthorized();
-
         try
         {
-            _equipmentCategoryService.AddEquipmentCategory(
-                model.CategoryCode,
-                model.CategoryName,
-                model.Description,
-                model.IsActive,
-                createdBy);
+            _equipmentCategoryService.AddEquipmentCategory(model, UserId);
 
             return RedirectToAction(nameof(Index));
         }
@@ -99,16 +71,9 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
 
             return View(model);
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            _logger.LogError(
-                exception,
-                "Failed to create an equipment category for user {UserId}.",
-                createdBy);
-
-            ModelState.AddModelError(
-                string.Empty,
-                "Unable to save the category. Please try again.");
+            ModelState.AddModelError(string.Empty, "Unable to save the category. Please try again.");
 
             return View(model);
         }
@@ -117,70 +82,37 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
     [HttpGet]
     public IActionResult Edit(int id)
     {
-        if (id <= 0)
-            return NotFound();
-
         try
         {
-            var category = _equipmentCategoryService.GetEquipmentCategoryById(id);
+            var equipmentCategory = _equipmentCategoryService.GetEquipmentCategoryById(id);
 
-            if (category == null) 
+            if (equipmentCategory == null)
                 return NotFound();
 
-            SetEditPageData(category);
-
-            return View(new EquipmentCategoryFormViewModel
-            {
-                CategoryCode = category.CategoryCode,
-                CategoryName = category.CategoryName,
-                Description = category.Description,
-                IsActive = category.IsActive
-            });
+            return View(equipmentCategory);
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Failed to load category {CategoryId}.", id);
-
             return StatusCode(500, "Unable to load the category. Please try again.");
         }
     }
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult Edit(int id, EquipmentCategoryFormViewModel model)
+    //[ValidateAntiForgeryToken]
+    public IActionResult Edit(EquipmentCategoryFormViewModel model)
     {
-        if (id <= 0)
-            return NotFound();
-
-        var updatedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (string.IsNullOrWhiteSpace(updatedBy))
-            return Unauthorized();
-
-        EquipmentCategoryListItem category = null;
+        EquipmentCategoryListItem equipmentCategoryListItem = null;
 
         try
         {
-            category = _equipmentCategoryService.GetEquipmentCategoryById(id);
+            equipmentCategoryListItem = _equipmentCategoryService.GetEquipmentCategoryById(model.CategoryId);
 
-            if (category == null)
+            if (equipmentCategoryListItem == null)
                 return NotFound();
 
-            SetEditPageData(category);
+            var updatedEquipmentCategory = _equipmentCategoryService.EditEquipmentCategory(model, UserId);
 
-            if (!ModelState.IsValid)
-                return View(model);
-
-            var updated = _equipmentCategoryService.EditEquipmentCategory(
-                id,
-                model.CategoryCode,
-                model.CategoryName,
-                model.Description,
-                model.IsActive,
-                updatedBy
-            );
-
-            if (!updated)
+            if (!updatedEquipmentCategory)
                 return NotFound();
 
             return RedirectToAction(nameof(Index));
@@ -190,52 +122,38 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
             foreach (var error in exception.Errors)
                 ModelState.AddModelError(error.Key, error.Value);
 
-            return View(model);
+            return View(equipmentCategoryListItem);
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            _logger.LogError(
-                exception, "Failed to edit category {CategoryId}.", id);
-
-            if (category == null)
+            if (equipmentCategoryListItem == null)
             {
-                return StatusCode(
-                    500, "Unable to load the category. Please try again.");
+                return StatusCode(500, "Unable to load the category. Please try again.");
             }
 
-            ModelState.AddModelError(
-                string.Empty,
-                "Unable to save the changes. Please try again.");
+            ModelState.AddModelError(string.Empty, "Unable to save the changes. Please try again.");
 
-            return View(model);
+            return View(equipmentCategoryListItem);
         }
     }
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
+    //[ValidateAntiForgeryToken]
     public IActionResult Deactivate(int id) => ChangeCategoryStatus(id, false);
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
+    //[ValidateAntiForgeryToken]
     public IActionResult Activate(int id) => ChangeCategoryStatus(id, true);
 
     [HttpPost]
-    [ValidateAntiForgeryToken]
+    //[ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
-        if (id <= 0)
-            return NotFound();
-
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (string.IsNullOrWhiteSpace(userId))
-            return Unauthorized();
-
         try
         {
-            if (_equipmentCategoryService.DeleteEquipmentCategory(id))
+            var isDeleted = _equipmentCategoryService.DeleteEquipmentCategory(id);
+            if (isDeleted)
             {
-                _logger.LogInformation("Deleted equipment category {CategoryId} by user {UserId}.", id, userId);
                 TempData["CategorySuccess"] = "The category was deleted.";
             }
             else
@@ -249,7 +167,6 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Failed to delete category {CategoryId} for user {UserId}.", id, userId);
             TempData["CategoryError"] = "Unable to delete the category. Please try again.";
         }
 
@@ -258,41 +175,22 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
 
     private IActionResult ChangeCategoryStatus(int id, bool isActive)
     {
-        if (id <= 0)
-            return NotFound();
-
-        var updatedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (string.IsNullOrWhiteSpace(updatedBy))
-            return Unauthorized();
-
         try
         {
-            if (_equipmentCategoryService.SetEquipmentCategoryStatus(id, isActive, updatedBy))
+            if (_equipmentCategoryService.SetEquipmentCategoryStatus(id, isActive, UserId))
             {
-                TempData["CategorySuccess"] = isActive
-                    ? "The category was activated."
-                    : "The category was deactivated.";
+                TempData["CategorySuccess"] = isActive ? "The category was activated." : "The category was deactivated.";
             }
             else
             {
                 TempData["CategoryError"] = "The category no longer exists.";
             }
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            _logger.LogError(exception,
-                "Failed to set category {CategoryId} active status to {IsActive} for user {UserId}.",
-                id, isActive, updatedBy);
             TempData["CategoryError"] = "Unable to change the category status. Please try again.";
         }
 
         return RedirectToAction(nameof(Index));
-    }
-
-    private void SetEditPageData(EquipmentCategoryListItem category)
-    {
-        ViewData["CategoryId"] = category.CategoryId;
-        ViewData["EquipmentCount"] = category.EquipmentCount;
     }
 }

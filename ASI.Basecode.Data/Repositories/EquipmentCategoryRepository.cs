@@ -17,7 +17,7 @@ namespace ASI.Basecode.Data.Repositories
         public void AddEquipmentCategory(EquipmentCategory equipmentCategory)
         {
             GetDbSet<EquipmentCategory>().Add(equipmentCategory);
-            SaveCategoryChanges(equipmentCategory);
+            UnitOfWork.SaveChanges();
         }
 
         public EquipmentCategory GetEquipmentCategoryById(int id)
@@ -27,7 +27,8 @@ namespace ASI.Basecode.Data.Repositories
 
         public void UpdateEquipmentCategory(EquipmentCategory equipmentCategory)
         {
-            SaveCategoryChanges(equipmentCategory);
+            GetDbSet<EquipmentCategory>().Update(equipmentCategory);
+            UnitOfWork.SaveChanges();
         }
 
         public IQueryable<EquipmentCategory> GetEquipmentCategories()
@@ -37,24 +38,9 @@ namespace ASI.Basecode.Data.Repositories
 
         public bool DeleteEquipmentCategory(int id)
         {
-            // Check the current state in the DELETE statement, even if it changed
-            // after the service checked it. Assigned equipment must be preserved.
             return GetDbSet<EquipmentCategory>()
-                .Where(category => category.CategoryId == id &&
-                    !category.IsActive && !category.Equipment.Any())
+                .Where(category => category.CategoryId == id && !category.IsActive && !category.Equipment.Any())
                 .ExecuteDelete() == 1;
-        }
-
-        public bool CategoryCodeExists(string categoryCode)
-        {
-            return GetDbSet<EquipmentCategory>()
-                .Any(category => category.CategoryCode == categoryCode);
-        }
-
-        public bool CategoryNameExists(string categoryName)
-        {
-            return GetDbSet<EquipmentCategory>()
-                .Any(category => category.CategoryName == categoryName);
         }
 
         public bool CategoryCodeExists(string categoryCode, int? excludeCategoryId = null)
@@ -79,24 +65,6 @@ namespace ASI.Basecode.Data.Repositories
             }
 
             return query.Any();
-        }
-
-        private void SaveCategoryChanges(EquipmentCategory equipmentCategory)
-        {
-            try
-            {
-                UnitOfWork.SaveChanges();
-            }
-            // SQL Server reports duplicate unique values with error 2601 or 2627.
-            // This covers another request saving the same values after our checks.
-            catch (DbUpdateException exception) when (
-                exception.InnerException is SqlException sqlException &&
-                (sqlException.Number == 2601 || sqlException.Number == 2627))
-            {
-                // Stop tracking the failed insert so a later SaveChanges cannot retry it.
-                Context.Entry(equipmentCategory).State = EntityState.Detached;
-                throw new EquipmentCategoryConflictException(exception);
-            }
         }
     }
 }

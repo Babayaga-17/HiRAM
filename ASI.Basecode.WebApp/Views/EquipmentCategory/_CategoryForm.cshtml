@@ -1,17 +1,19 @@
+@using ASI.Basecode.Services.ServiceModels
 @model EquipmentCategoryFormViewModel
 @{
     var isEdit = ViewData["FormMode"]?.ToString() == "edit";
-    var categoryId = isEdit ? ViewData["CategoryId"] : null;
+    var categoryId = isEdit ? Model.CategoryId : -1;
 }
 <form class="category-form"
       id="categoryForm"
       asp-controller="EquipmentCategory"
       asp-action="@(isEdit ? "Edit" : "Create")"
-      asp-route-id="@categoryId"    
       method="post"
       novalidate>
 
     <div asp-validation-summary="ModelOnly"></div>
+
+    <input asp-for="CategoryId" type="hidden"/>
 
     <div class="form-card-header">
         <span class="form-section-icon">

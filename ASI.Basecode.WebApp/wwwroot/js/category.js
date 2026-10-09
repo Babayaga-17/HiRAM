@@ -10,8 +10,7 @@
         const status = filter.value;
         let visible = 0;
         rows.forEach(row => {
-            const matchesText = [row.dataset.name, row.dataset.code, row.dataset.description]
-                .some(value => value.toLowerCase().includes(term));
+            const matchesText = [row.dataset.name, row.dataset.code, row.dataset.description].some(value => value.toLowerCase().includes(term));
             const matchesStatus = status === "all" || row.dataset.status === status;
             row.hidden = !(matchesText && matchesStatus);
             if (!row.hidden) visible++;
