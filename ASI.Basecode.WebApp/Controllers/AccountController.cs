@@ -56,7 +56,6 @@ namespace ASI.Basecode.WebApp.Controllers
             this._tokenProviderOptionsFactory = tokenProviderOptionsFactory;
             this._tokenValidationParametersFactory = tokenValidationParametersFactory;
             this._appConfiguration = configuration;
-            //this._userService = userService;
             this._accountService = accountService;
         }
 
@@ -135,7 +134,7 @@ namespace ASI.Basecode.WebApp.Controllers
                     return LocalRedirect(returnUrl);
                 }
 
-                return RedirectToAction("Index", "EquipmentCategory");
+                return RedirectToAction("Index", "Dashboard");
             }
 
             ModelState.AddModelError(string.Empty, "Incorrect email or password.");
