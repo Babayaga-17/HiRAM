@@ -20,7 +20,7 @@ using System.Security.Claims;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize]
+[Authorize(Roles = "Custodian, Admin")]
 public class EquipmentCategoryController : ControllerBase<EquipmentCategoryController>
 {
     private readonly IEquipmentCategoryService _equipmentCategoryService;
@@ -55,7 +55,6 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
     public IActionResult Create() => View(new EquipmentCategoryFormViewModel());
 
     [HttpPost]
-    //[ValidateAntiForgeryToken]
     public IActionResult Create(EquipmentCategoryFormViewModel model)
     {
         try
@@ -98,7 +97,6 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
     }
 
     [HttpPost]
-    //[ValidateAntiForgeryToken]
     public IActionResult Edit(EquipmentCategoryFormViewModel model)
     {
         EquipmentCategoryListItem equipmentCategoryListItem = null;
@@ -138,15 +136,12 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
     }
 
     [HttpPost]
-    //[ValidateAntiForgeryToken]
     public IActionResult Deactivate(int id) => ChangeCategoryStatus(id, false);
 
     [HttpPost]
-    //[ValidateAntiForgeryToken]
     public IActionResult Activate(int id) => ChangeCategoryStatus(id, true);
 
     [HttpPost]
-    //[ValidateAntiForgeryToken]
     public IActionResult Delete(int id)
     {
         try
@@ -177,7 +172,8 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
     {
         try
         {
-            if (_equipmentCategoryService.SetEquipmentCategoryStatus(id, isActive, UserId))
+            var isStatusChanged = _equipmentCategoryService.SetEquipmentCategoryStatus(id, isActive, UserId);
+            if (isStatusChanged)
             {
                 TempData["CategorySuccess"] = isActive ? "The category was activated." : "The category was deactivated.";
             }

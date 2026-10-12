@@ -1,12 +1,63 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
 @{
     Layout = "_AppLayout";
     ViewData["Title"] = "Admin Dashboard";
     ViewData["TopbarPage"] = "Dashboard";
 }
 
-<h1>Admin Dashboard</h1>
-<p>Welcome, @User.Identity?.Name.</p>
-<p>View system activity and manage HiRAM here.</p>
+<div class="page-heading">
+    <div>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMIN OVERVIEW</div>
+        <h1>Welcome, @User.Identity?.Name</h1>
+        <p>Monitor school resources, borrower records, and borrowing activity.</p>
+    </div>
+</div>
+
+@* UI placeholders only. Connect system overview data when the related features are implemented. *@
+<section class="admin-stats" aria-label="System overview">
+    <article class="stat-card">
+        <span class="stat-icon stat-icon-blue"><svg class="icon"><use href="#i-box" /></svg></span>
+        <span class="stat-copy"><span>Active equipment</span><strong>&mdash;</strong><small>Equipment in the active inventory</small></span>
+    </article>
+    <article class="stat-card">
+        <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-tools" /></svg></span>
+        <span class="stat-copy"><span>Equipment for repair</span><strong>&mdash;</strong><small>Items requiring attention</small></span>
+    </article>
+    <article class="stat-card">
+        <span class="stat-icon stat-icon-teal"><svg class="icon"><use href="#i-check" /></svg></span>
+        <span class="stat-copy"><span>Active borrowers</span><strong>&mdash;</strong><small>Active student and faculty profiles</small></span>
+    </article>
+    <article class="stat-card">
+        <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-calendar" /></svg></span>
+        <span class="stat-copy"><span>Pending requests</span><strong>&mdash;</strong><small>Reservations awaiting custodian review</small></span>
+    </article>
+</section>
+
+<section class="content-card admin-list" aria-labelledby="availabilityHeading">
+    <h2 id="availabilityHeading">Equipment availability</h2>
+    <p class="admin-description">An overview of available, reserved, borrowed, and unavailable equipment.</p>
+    <p class="admin-empty">Equipment availability totals will appear here.</p>
+</section>
+
+<div class="admin-lists">
+    <section class="content-card admin-list" aria-labelledby="activityHeading">
+        <h2 id="activityHeading">Recent borrowing activity</h2>
+        <p class="admin-description">Recent reservations, releases, and returns across the school.</p>
+        <p class="admin-empty">Borrower names, equipment details, activity, and dates will appear here.</p>
+    </section>
+    <section class="content-card admin-list" aria-labelledby="overdueHeading">
+        <h2 id="overdueHeading">Borrowers with overdue items</h2>
+        <p class="admin-description">Outstanding equipment that has passed its return deadline.</p>
+        <p class="admin-empty">Borrower details, overdue equipment, and return deadlines will appear here.</p>
+    </section>
+</div>
+
+<section class="content-card dashboard-panel" aria-labelledby="categoriesHeading">
+    <div>
+        <h2 id="categoriesHeading">Equipment categories</h2>
+        <p>Maintain the categories used to organize school equipment.</p>
+    </div>
+    <a class="button button-primary" asp-controller="EquipmentCategory" asp-action="Index">
+        <svg class="icon"><use href="#i-layers" /></svg>
+        Manage categories
+    </a>
+</section>

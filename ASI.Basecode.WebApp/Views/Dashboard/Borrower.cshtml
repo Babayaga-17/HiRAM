@@ -1,12 +1,52 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
 @{
     Layout = "_AppLayout";
     ViewData["Title"] = "Borrower Dashboard";
     ViewData["TopbarPage"] = "Dashboard";
 }
 
-<h1>Borrower Dashboard</h1>
-<p>Welcome, @User.Identity?.Name.</p>
-<p>View your reservations, borrowed equipment, and upcoming returns here.</p>
+<div class="page-heading">
+    <div>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>BORROWER OVERVIEW</div>
+        <h1>Welcome, @User.Identity?.Name</h1>
+        <p>Keep track of your requests, pickups, and equipment returns.</p>
+    </div>
+</div>
+
+@* UI placeholders. Connect real borrowing data when the transaction features are implemented. *@
+<section class="borrower-stats" aria-label="Your borrowing overview">
+    <article class="stat-card">
+        <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-calendar" /></svg></span>
+        <span class="stat-copy"><span>Pending requests</span><strong>&mdash;</strong><small>Waiting for approval</small></span>
+    </article>
+    <article class="stat-card">
+        <span class="stat-icon stat-icon-teal"><svg class="icon"><use href="#i-check" /></svg></span>
+        <span class="stat-copy"><span>Approved reservations</span><strong>&mdash;</strong><small>Not yet released</small></span>
+    </article>
+    <article class="stat-card">
+        <span class="stat-icon stat-icon-blue"><svg class="icon"><use href="#i-box" /></svg></span>
+        <span class="stat-copy"><span>Currently borrowed</span><strong>&mdash;</strong><small>Equipment items still with you</small></span>
+    </article>
+    <article class="stat-card">
+        <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-info" /></svg></span>
+        <span class="stat-copy"><span>Overdue items</span><strong>&mdash;</strong><small>Equipment past its return deadline</small></span>
+    </article>
+</section>
+
+<div class="borrower-lists">
+    <section class="content-card borrower-list" aria-labelledby="pickupHeading">
+        <h2 id="pickupHeading">Upcoming pickups</h2>
+        <p class="borrower-description">Approved reservations awaiting release.</p>
+        <p class="borrower-empty">Your upcoming pickups will appear here.</p>
+    </section>
+    <section class="content-card borrower-list" aria-labelledby="returnHeading">
+        <h2 id="returnHeading">Return deadlines</h2>
+        <p class="borrower-description">Due dates for equipment you borrow.</p>
+        <p class="borrower-empty">Your return deadlines will appear here.</p>
+    </section>
+</div>
+
+<section class="content-card borrower-list" aria-labelledby="recentHeading">
+    <h2 id="recentHeading">Recent requests</h2>
+    <p class="borrower-description">Your latest equipment reservations and their status.</p>
+    <p class="borrower-empty">Your recent requests will appear here.</p>
+</section>

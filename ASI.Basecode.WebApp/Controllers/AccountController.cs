@@ -56,7 +56,6 @@ namespace ASI.Basecode.WebApp.Controllers
             this._tokenProviderOptionsFactory = tokenProviderOptionsFactory;
             this._tokenValidationParametersFactory = tokenValidationParametersFactory;
             this._appConfiguration = configuration;
-            //this._userService = userService;
             this._accountService = accountService;
         }
 

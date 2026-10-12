@@ -5,6 +5,7 @@
         displayName = "HiRAM User";
     }
 
+    var roleName = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Signed in";
     var initial = displayName.Substring(0, 1).ToUpperInvariant();
     var topbarPage = ViewData["TopbarPage"]?.ToString() ?? ViewData["Title"]?.ToString() ?? "Workspace";
 }
@@ -21,7 +22,7 @@
                 <span class="avatar">@initial</span>
                 <span class="profile-copy">
                     <strong>@displayName</strong>
-                    <small>Signed in</small>
+                    <small>@roleName</small>
                 </span>
                 <svg class="icon profile-chevron"><use href="#i-chevron" /></svg>
             </summary>
