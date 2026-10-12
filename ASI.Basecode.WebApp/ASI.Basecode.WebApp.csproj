@@ -40,7 +40,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Views\Dashboard\" />
     <Folder Include="Views\EquipmentCategory\" />
     <Folder Include="wwwroot\img\" />
   </ItemGroup>
