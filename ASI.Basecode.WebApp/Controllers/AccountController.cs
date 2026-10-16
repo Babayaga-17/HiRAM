@@ -27,7 +27,7 @@ namespace ASI.Basecode.WebApp.Controllers
         private readonly TokenProviderOptionsFactory _tokenProviderOptionsFactory;
         private readonly IConfiguration _appConfiguration;
         private readonly IAccountService _accountService;
-        private readonly IPasswordResetService _reset;
+        private readonly IPasswordResetService _passwordResetService;
 
         public AccountController(
                             SignInManager signInManager,
@@ -36,7 +36,7 @@ namespace ASI.Basecode.WebApp.Controllers
                             IConfiguration configuration,
                             IMapper mapper,
                             IAccountService accountService,
-                            IPasswordResetService reset,
+                            IPasswordResetService passwordResetService,
                             TokenValidationParametersFactory tokenValidationParametersFactory,
                             TokenProviderOptionsFactory tokenProviderOptionsFactory) : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
@@ -46,7 +46,7 @@ namespace ASI.Basecode.WebApp.Controllers
             this._tokenValidationParametersFactory = tokenValidationParametersFactory;
             this._appConfiguration = configuration;
             this._accountService = accountService;
-            this._reset = reset;
+            this._passwordResetService = passwordResetService;
         }
 
         [HttpGet]
@@ -99,7 +99,7 @@ namespace ASI.Basecode.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ForgotPassword(string email)
         {
-            if (!await _reset.SendResetCodeAsync(email))
+            if (!await _passwordResetService.SendResetCodeAsync(email, UserId))
             {
                 ViewBag.Error = "Account cannot be found.";
                 return View();
@@ -120,7 +120,7 @@ namespace ASI.Basecode.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult VerifyCode(string email, string code, string newPassword)
         {
-            if (!_reset.ResetPassword(email, code, newPassword))
+            if (!_passwordResetService.ResetPassword(email, code, newPassword, UserId))
             {
                 ViewBag.Email = email;
                 ViewBag.Error = "Invalid or expired code.";
