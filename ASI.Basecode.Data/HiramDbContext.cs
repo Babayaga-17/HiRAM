@@ -326,7 +326,7 @@ public partial class HiramDbContext : DbContext
 
             entity.HasOne(d => d.Category).WithMany(p => p.Equipment)
                 .HasForeignKey(d => d.CategoryId)
-                .OnDelete(DeleteBehavior.SetNull)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Equipments_Categories");
         });
 
