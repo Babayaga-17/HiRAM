@@ -10,6 +10,7 @@ namespace ASI.Basecode.Services.Interfaces
     public interface IEquipmentService
     {
         void AddEquipment(EquipmentFormViewModel model, string createdBy);
+        void DeleteEquipment(int id, string deletedBy);
         List<EquipmentListItem> GetEquipments();
         EquipmentListItem GetEquipmentById(int id);
         bool EditEquipment(EquipmentFormViewModel model, string updatedBy);

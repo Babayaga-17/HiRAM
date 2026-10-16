@@ -10,6 +10,7 @@ namespace ASI.Basecode.Data.Interfaces
     public interface IEquipmentRepository
     {
         void AddEquipment(Equipment equipment);
+        void DeleteEquipment(Equipment equipment);
         IQueryable<Equipment> GetEquipments();
         Equipment GetEquipmentById(int id);
         void UpdateEquipment(Equipment equipment);

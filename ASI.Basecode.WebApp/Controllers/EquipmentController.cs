@@ -165,6 +165,52 @@ public class EquipmentController : ControllerBase<EquipmentController>
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Delete(int id)
+    {
+        try
+        {
+            var equipment = _equipmentService.GetEquipmentById(id);
+
+            if (equipment == null)
+            {
+                TempData["EquipmentError"] = "The equipment no longer exists.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (equipment.IsActive)
+            {
+                TempData["EquipmentError"] =
+                    "Please deactivate the equipment before deleting it.";
+
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Delete the equipment through the service.
+            // This method must be implemented in IEquipmentService
+            // and EquipmentService.
+            _equipmentService.DeleteEquipment(id, UserId);
+
+            TempData["EquipmentSuccess"] =
+                "The equipment was deleted successfully.";
+        }
+        catch (EquipmentValidationException exception)
+        {
+            TempData["EquipmentError"] =
+                string.Join(" ", exception.Errors.Values);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to delete equipment.");
+
+            TempData["EquipmentError"] =
+                "Unable to delete the equipment. Please try again.";
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
     // Builds Category dropdown. The form lists active categories (plus the item's current one);
     // the Index filter lists all categories.
     private void LoadCategories(int? currentCategoryId, bool includeInactive = false)

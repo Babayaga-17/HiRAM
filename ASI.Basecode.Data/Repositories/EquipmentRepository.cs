@@ -1,12 +1,9 @@
-﻿using ASI.Basecode.Data.Interfaces;
+﻿
+using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using Basecode.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ASI.Basecode.Data.Repositories
 {
@@ -22,6 +19,12 @@ namespace ASI.Basecode.Data.Repositories
             UnitOfWork.SaveChanges();
         }
 
+        public void DeleteEquipment(Equipment equipment)
+        {
+            GetDbSet<Equipment>().Remove(equipment);
+            UnitOfWork.SaveChanges();
+        }
+
         public IQueryable<Equipment> GetEquipments()
         {
             return GetDbSet<Equipment>().AsNoTracking();
@@ -29,7 +32,9 @@ namespace ASI.Basecode.Data.Repositories
 
         public Equipment GetEquipmentById(int id)
         {
-            return GetDbSet<Equipment>().AsTracking().FirstOrDefault(equipment => equipment.EquipmentId == id);
+            return GetDbSet<Equipment>()
+                .AsTracking()
+                .FirstOrDefault(equipment => equipment.EquipmentId == id);
         }
 
         public void UpdateEquipment(Equipment equipment)
@@ -40,11 +45,13 @@ namespace ASI.Basecode.Data.Repositories
 
         public bool EquipmentCodeExists(string equipmentCode, int? excludeEquipmentId = null)
         {
-            var query = GetDbSet<Equipment>().Where(equipment => equipment.EquipmentCode == equipmentCode);
+            var query = GetDbSet<Equipment>()
+                .Where(equipment => equipment.EquipmentCode == equipmentCode);
 
             if (excludeEquipmentId.HasValue)
             {
-                query = query.Where(equipment => equipment.EquipmentId != excludeEquipmentId.Value);
+                query = query.Where(
+                    equipment => equipment.EquipmentId != excludeEquipmentId.Value);
             }
 
             return query.Any();
@@ -52,11 +59,13 @@ namespace ASI.Basecode.Data.Repositories
 
         public bool SerialNumberExists(string serialNumber, int? excludeEquipmentId = null)
         {
-            var query = GetDbSet<Equipment>().Where(equipment => equipment.SerialNumber == serialNumber);
+            var query = GetDbSet<Equipment>()
+                .Where(equipment => equipment.SerialNumber == serialNumber);
 
             if (excludeEquipmentId.HasValue)
             {
-                query = query.Where(equipment => equipment.EquipmentId != excludeEquipmentId.Value);
+                query = query.Where(
+                    equipment => equipment.EquipmentId != excludeEquipmentId.Value);
             }
 
             return query.Any();
@@ -64,11 +73,13 @@ namespace ASI.Basecode.Data.Repositories
 
         public bool AssetTagExists(string assetTag, int? excludeEquipmentId = null)
         {
-            var query = GetDbSet<Equipment>().Where(equipment => equipment.AssetTag == assetTag);
+            var query = GetDbSet<Equipment>()
+                .Where(equipment => equipment.AssetTag == assetTag);
 
             if (excludeEquipmentId.HasValue)
             {
-                query = query.Where(equipment => equipment.EquipmentId != excludeEquipmentId.Value);
+                query = query.Where(
+                    equipment => equipment.EquipmentId != excludeEquipmentId.Value);
             }
 
             return query.Any();

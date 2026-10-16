@@ -125,6 +125,29 @@ namespace ASI.Basecode.Services.Services
             return true;
         }
 
+        public void DeleteEquipment(int id, string deletedBy)
+        {
+            var equipment = _equipmentRepository.GetEquipmentById(id);
+
+            if (equipment == null)
+            {
+                throw new EquipmentValidationException(new Dictionary<string, string>
+                {
+                    [string.Empty] = "Equipment not found."
+                });
+            }
+
+            if (equipment.IsActive)
+            {
+                throw new EquipmentValidationException(new Dictionary<string, string>
+                {
+                    [string.Empty] = "Please deactivate the equipment before deleting it."
+                });
+            }
+
+            _equipmentRepository.DeleteEquipment(equipment);
+        }
+
         public List<EquipmentListItem> GetEquipments()
         {
             return GetEquipmentItems().OrderBy(item => item.EquipmentName).ToList();

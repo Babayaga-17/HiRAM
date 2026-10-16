@@ -1,65 +1,4 @@
-﻿
-/*
-(function () {
-    const form = document.getElementById("equipmentFilterForm");
-    const dialog = document.getElementById("equipmentDialog");
-
-    if (form) {
-        form.querySelectorAll("select").forEach(select =>
-            select.addEventListener("change", () => form.submit()));
-    }
-
-    if (!dialog) return;
-
-    document.querySelectorAll(".view-equipment").forEach(button => {
-        button.addEventListener("click", async () => {
-            try {
-                const response = await fetch(button.dataset.url);
-                if (!response.ok) throw new Error("Request failed");
-                dialog.innerHTML = await response.text();
-                dialog.showModal();
-            } catch (error) {
-                alert("Unable to load the equipment details. Please try again.");
-            }
-        });
-    });
-
-    dialog.addEventListener("click", event => {
-        if (event.target.closest(".dialog-close")) dialog.close();
-    });
-})();(function () {
-    const form = document.getElementById("equipmentFilterForm");
-    const dialog = document.getElementById("equipmentDialog");
-
-    if (form) {
-        form.querySelectorAll("select").forEach(select =>
-            select.addEventListener("change", () => form.submit()));
-    }
-
-    if (!dialog) return;
-
-    document.querySelectorAll(".view-equipment").forEach(button => {
-        button.addEventListener("click", async () => {
-            try {
-                const response = await fetch(button.dataset.url);
-                if (!response.ok) throw new Error("Request failed");
-                dialog.innerHTML = await response.text();
-                dialog.showModal();
-            } catch (error) {
-                alert("Unable to load the equipment details. Please try again.");
-            }
-        });
-    });
-
-    dialog.addEventListener("click", event => {
-        if (event.target.closest(".dialog-close")) dialog.close();
-    });
-})();
-*/
-
-
-
-(function () {
+﻿(function () {
     const PAGE_SIZE = 10;
     const search = document.getElementById("equipmentSearch");
     const categoryFilter = document.getElementById("categoryFilter");
@@ -70,10 +9,13 @@
     const resultCount = document.getElementById("resultCount");
     const pager = document.getElementById("pager");
     const detailsDialog = document.getElementById("detailsDialog");
+    const deleteDialog = document.getElementById("deleteEquipmentDialog");
     let page = 1;
 
     const show = value => (value && value.trim()) ? value : "—";
 
+
+    // Search and filtering
     function matchingRows() {
         const term = search.value.trim().toLowerCase();
         return rows.filter(row => {
@@ -125,6 +67,8 @@
         render();
     }
 
+
+    // Search and filter events
     search.addEventListener("input", filterChanged);
     categoryFilter.addEventListener("change", filterChanged);
     statusFilter.addEventListener("change", filterChanged);
@@ -156,11 +100,43 @@
             document.getElementById("detailsEdit").href = row.querySelector(".edit-equipment").href;
             detailsDialog.showModal();
         });
+
+        // Delete equipment
+        const deleteButton = row.querySelector(".delete-equipment");
+
+        if (deleteButton && deleteDialog) {
+            deleteButton.addEventListener("click", () => {
+                document.getElementById("deleteEquipmentId").value =
+                    row.dataset.id;
+
+                document.getElementById("deleteEquipmentName").textContent =
+                    row.dataset.name;
+
+                deleteDialog.showModal();
+            });
+        }
     });
 
     document.querySelectorAll(".dialog-close").forEach(button => {
-        button.addEventListener("click", () => button.closest("dialog").close());
+        button.addEventListener("click", () => {
+            const dialog = button.closest("dialog");
+
+            if (dialog) {
+                dialog.close();
+            }
+        });
+    });
+
+    // Close a dialog by clicking its backdrop
+    [detailsDialog, deleteDialog].forEach(dialog => {
+        if (!dialog) return;
+
+        dialog.addEventListener("click", event => {
+            if (event.target === dialog) {
+                dialog.close();
+            }
+        });
     });
 
     render();
-})();
+})();   
