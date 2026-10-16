@@ -1,0 +1,157 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@model EquipmentFormViewModel
+@{
+    var isEdit = ViewData["FormMode"]?.ToString() == "edit";
+    var categoryOptions = ViewBag.Categories as Microsoft.AspNetCore.Mvc.Rendering.SelectList;
+    var hasCategories = categoryOptions != null && categoryOptions.Any();
+}
+<form class="category-form"
+      id="equipmentForm"
+      asp-controller="Equipment"
+      asp-action="@(isEdit ? "Edit" : "Create")"
+      method="post"
+      novalidate>
+    
+    <!--This shows every validation error at the top of the form.-->
+    <!-- <div asp-validation-summary="ModelOnly"></div> -->
+    <div asp-validation-summary="All"></div>
+
+    <input asp-for="EquipmentId" type="hidden" />
+
+    <div class="form-card-header">
+        <span class="form-section-icon">
+            <svg class="icon">
+                <use href="#i-box" />
+            </svg>
+        </span>
+        <div>
+            <h2>Equipment information</h2>
+            <p>Enter the details used to identify and track this item.</p>
+        </div>
+    </div>
+
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="equipmentName">
+                Equipment name
+                <span class="required">*</span>
+            </label>
+            <input asp-for="EquipmentName" id="equipmentName" type="text" maxlength="150" placeholder="e.g. Dell Latitude 5440" />
+            <span asp-validation-for="EquipmentName"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="equipmentCode">
+                Equipment code / ID
+                <span class="required">*</span>
+            </label>
+            <input asp-for="EquipmentCode" id="equipmentCode" type="text" maxlength="50" placeholder="e.g. LPT-024" />
+            <span asp-validation-for="EquipmentCode"></span>
+            <small>Must be unique.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="equipmentCategory">
+                Category
+                <span class="required">*</span>
+            </label>
+            <select asp-for="CategoryId" id="equipmentCategory" asp-items="@categoryOptions">
+                <option value="">Select a category</option>
+            </select>
+            <span asp-validation-for="CategoryId"></span>
+            @if (hasCategories)
+            {
+                <small>Only active categories can be assigned.</small>
+            }
+            else
+            {
+                <small>No active categories yet. Add one on the Categories page first.</small>
+            }
+        </div>
+
+        <div class="form-group">
+            <label for="equipmentCondition">
+                Condition
+                <span class="required">*</span>
+            </label>
+            <select asp-for="ConditionStatus" id="equipmentCondition">
+                @foreach (var condition in EquipmentFormViewModel.Conditions)
+                {
+                    <option value="@condition">@condition</option>
+                }
+            </select>
+            <span asp-validation-for="ConditionStatus"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="equipmentBrand">Brand</label>
+            <input asp-for="Brand" id="equipmentBrand" type="text" maxlength="100" />
+            <span asp-validation-for="Brand"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="equipmentModel">Model</label>
+            <input asp-for="Model" id="equipmentModel" type="text" maxlength="100" />
+            <span asp-validation-for="Model"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="equipmentSerial">Serial number</label>
+            <input asp-for="SerialNumber" id="equipmentSerial" type="text" maxlength="100" />
+            <span asp-validation-for="SerialNumber"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="equipmentAssetTag">Asset tag</label>
+            <input asp-for="AssetTag" id="equipmentAssetTag" type="text" maxlength="50" />
+            <span asp-validation-for="AssetTag"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="equipmentLocation">Storage location</label>
+            <input asp-for="StorageLocation" id="equipmentLocation" type="text" maxlength="150" placeholder="e.g. Media Center A" />
+            <span asp-validation-for="StorageLocation"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="equipmentAcquired">Acquisition date</label>
+            <input asp-for="AcquisitionDate" id="equipmentAcquired" type="date" asp-format="{0:yyyy-MM-dd}" />
+            <span asp-validation-for="AcquisitionDate"></span>
+        </div>
+
+        <div class="form-group">
+            <label for="equipmentCost">Acquisition cost</label>
+            <input asp-for="AcquisitionCost" id="equipmentCost" type="number" step="0.01" min="0" />
+            <span asp-validation-for="AcquisitionCost"></span>
+        </div>
+
+        <div class="form-group form-group-wide">
+            <label for="equipmentDescription">Description</label>
+            <textarea asp-for="Description" id="equipmentDescription" rows="4" maxlength="500" placeholder="Describe this equipment..."></textarea>
+            <span asp-validation-for="Description"></span>
+        </div>
+    </div>
+    <div class="form-divider"></div>
+    <div class="status-setting">
+        <div>
+            <h3>Equipment status</h3>
+            <p>Inactive equipment is unavailable for borrowing.</p>
+        </div>
+
+        <div>
+            <label class="switch">
+                <input asp-for="IsActive" id="equipmentActive" />
+                <span class="switch-track"></span>
+                <span class="switch-label" id="statusLabel">@(Model == null || Model.IsActive ? "Active" : "Inactive")</span>
+            </label>
+            <span asp-validation-for="IsActive"></span>
+        </div>
+    </div>
+    <div class="form-actions">
+        <a class="button button-secondary" asp-controller="Equipment" asp-action="Index">Cancel</a>
+        <button class="button button-primary" type="submit">
+            <svg class="icon"><use href="#i-check" /></svg>
+            @(isEdit ? "Save changes" : "Add equipment")
+        </button>
+    </div>
+</form>

@@ -8,6 +8,7 @@
 
     var isDashboardPage = currentController == "Dashboard";
     var isCategoriesPage = currentController == "EquipmentCategory";
+    var isEquipmentPage = currentController == "Equipment";
 }
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Main navigation">
@@ -48,9 +49,13 @@
         {
             <span class="nav-caption nav-caption-spaced">MANAGE</span>
 
-            <span class="nav-link nav-link-disabled" aria-disabled="true">
-                Equipment <span class="nav-soon">Soon</span>
-            </span>
+            <a class="@(isEquipmentPage ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="Equipment"
+               asp-action="Index"
+               aria-current="@(isEquipmentPage ? "page" : null)">
+                <svg class="icon"><use href="#i-box" /></svg>
+                Equipment
+            </a>
 
             <a class="@(isCategoriesPage ? "nav-link nav-link-active" : "nav-link")"
                asp-controller="EquipmentCategory"

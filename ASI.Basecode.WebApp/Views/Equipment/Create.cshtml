@@ -1,0 +1,59 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@model EquipmentFormViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Add Equipment";
+    ViewData["TopbarPage"] = "Add equipment";
+    ViewData["FormMode"] = "create";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/equipment.css" asp-append-version="true" />
+}
+
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="Equipment" asp-action="Index">
+            <svg class="icon">
+                <use href="#i-chevron" />
+            </svg>Back to equipment
+        </a>
+
+        <div class="eyebrow-line">
+            <span class="eyebrow-dot"></span>
+            EQUIPMENT MANAGEMENT
+        </div>
+
+        <h1>Add equipment</h1>
+        <p>Register a new item in the school inventory.</p>
+    </div>
+</div>
+
+<div class="form-page-grid">
+    <section class="content-card form-card" aria-label="Add equipment form">
+        <partial name="_EquipmentForm" model="Model" />
+    </section>
+    <aside class="form-side-card">
+        <span class="side-card-icon">
+            <svg class="icon">
+                <use href="#i-box" />
+            </svg>
+        </span>
+
+        <h2>Keep records accurate</h2>
+
+        <p>Clear codes, locations, and conditions help borrowers and custodians find the right equipment.</p>
+
+        <div class="side-card-tip">
+            <svg class="icon">
+                <use href="#i-info" />
+            </svg>Equipment codes, serial numbers, and asset tags must be unique.
+        </div>
+    </aside>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/equipment-form.js" asp-append-version="true"></script>
+}

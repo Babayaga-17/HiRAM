@@ -37,11 +37,15 @@ namespace ASI.Basecode.WebApp
             //this._services.AddScoped<IUserService, UserService>();
             this._services.AddScoped<IAccountService, AccountService>();
             this._services.AddScoped<IEquipmentCategoryService, EquipmentCategoryService>();
+            this._services.AddScoped<IEquipmentService, EquipmentService>();
+            this._services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+
 
             // Repositories
             //this._services.AddScoped<IUserRepository, UserRepository>();
             this._services.AddScoped<IAccountRepository, AccountRepository>();
             this._services.AddScoped<IEquipmentCategoryRepository, EquipmentCategoryRepository>();
+            this._services.AddScoped<IEquipmentRepository, EquipmentRepository>();
 
             // Manager Class
             this._services.AddScoped<SignInManager>();

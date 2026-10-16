@@ -1,0 +1,96 @@
+﻿.form-group select {
+    width: 100%;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--white);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+}
+
+.status-badge.status-available {
+    color: #149a7d;
+    background: #e7f7f1;
+}
+
+.status-badge.status-reserved {
+    color: #2f6fdb;
+    background: #e8f0fe;
+}
+
+.status-badge.status-borrowed {
+    color: #6a46d8;
+    background: #f0eaff;
+}
+
+.status-badge.status-undermaintenance {
+    color: #5d6b82;
+    background: #eceff4;
+}
+
+.status-badge.status-unavailable {
+    color: #d64550;
+    background: #fdecee;
+}
+
+.status-badge[class*="status-"] > span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+}
+
+.condition-badge {
+    display: inline-block;
+    padding: 6px 9px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 750;
+    background: #eef1f6;
+    color: #3f4d66;
+}
+
+.condition-fair {
+    background: #fbf3dc;
+    color: #8a6b1f;
+}
+
+.condition-damaged, .condition-lost {
+    background: #fdecee;
+    color: #d64550;
+}
+
+.table-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.pager {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.pager-link {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--white);
+    color: var(--ink);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.pager-active {
+    background: var(--purple);
+    border-color: var(--purple);
+    color: #fff;
+}
