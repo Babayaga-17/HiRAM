@@ -51,13 +51,19 @@
     </section>
 </div>
 
-<section class="content-card dashboard-panel" aria-labelledby="categoriesHeading">
+<section class="content-card dashboard-panel" aria-labelledby="inventoryHeading">
     <div>
-        <h2 id="categoriesHeading">Equipment categories</h2>
-        <p>Organize equipment groups and keep category details up to date.</p>
+        <h2 id="inventoryHeading">Equipment and categories</h2>
+        <p>Maintain equipment details and availability, and keep category groups up to date.</p>
     </div>
-    <a class="button button-primary" asp-controller="EquipmentCategory" asp-action="Index">
-        <svg class="icon"><use href="#i-layers" /></svg>
-        Manage categories
-    </a>
+    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <a class="button button-primary" asp-controller="Equipment" asp-action="Index">
+            <svg class="icon"><use href="#i-box" /></svg>
+            Manage equipment
+        </a>
+        <a class="button button-primary" asp-controller="EquipmentCategory" asp-action="Index">
+            <svg class="icon"><use href="#i-layers" /></svg>
+            Manage categories
+        </a>
+    </div>
 </section>

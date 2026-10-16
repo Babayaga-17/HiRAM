@@ -1,0 +1,49 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@model EquipmentFormViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Edit Equipment";
+    ViewData["TopbarPage"] = "Edit equipment";
+    ViewData["FormMode"] = "edit";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/equipment.css" asp-append-version="true" />
+}
+
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="Equipment" asp-action="Index">
+            <svg class="icon">
+                <use href="#i-chevron" />
+            </svg>Back to equipment
+        </a>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>EQUIPMENT MANAGEMENT</div>
+        <h1>Edit equipment</h1>
+        <p>Update the details for <strong>@Model.EquipmentName</strong>.</p>
+    </div>
+</div>
+
+<div class="form-page-grid">
+    <section class="content-card form-card" aria-label="Edit equipment form">
+        <partial name="_EquipmentForm" model="Model" />
+    </section>
+    <aside class="form-side-card">
+        <span class="side-card-icon">
+            <svg class="icon"><use href="#i-box" /></svg>
+        </span>
+        <h2>@Model.EquipmentCode</h2>
+        <p>Changes apply to future reservations and reports.</p>
+        <div class="side-card-tip">
+            <svg class="icon">
+                <use href="#i-info" />
+            </svg>Equipment in Damaged or Lost condition cannot be borrowed.
+        </div>
+    </aside>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/equipment-form.js" asp-append-version="true"></script>
+}
