@@ -12,6 +12,38 @@
     const deleteDialog = document.getElementById("deleteEquipmentDialog");
     let page = 1;
 
+    // Keep the current table view across action POSTs and their redirects.
+    const stateKey = "hiram.equipment.pendingTableState";
+    const filters = { search, statusFilter, categoryFilter };
+    try {
+        const saved = JSON.parse(sessionStorage.getItem(stateKey) || "null");
+        sessionStorage.removeItem(stateKey);
+        if (saved) {
+            if (Number.isSafeInteger(saved.page) && saved.page > 0) page = saved.page;
+            Object.entries(filters).forEach(([key, field]) => {
+                const value = saved[key];
+                if (typeof value !== "string") return;
+                if (field.tagName === "SELECT" &&
+                    !Array.from(field.options).some(option => option.value === value)) return;
+                field.value = value;
+            });
+        }
+    } catch {
+        // The table remains usable when browser storage is unavailable.
+    }
+
+    document.querySelectorAll("#equipmentRows form[method='post'], #deleteEquipmentDialog form[method='post']").forEach(form => {
+        form.addEventListener("submit", () => {
+            try {
+                const state = { page };
+                Object.entries(filters).forEach(([key, field]) => { state[key] = field.value; });
+                sessionStorage.setItem(stateKey, JSON.stringify(state));
+            } catch {
+                // Let the action proceed even when browser storage is unavailable.
+            }
+        });
+    });
+
     const show = value => (value && value.trim()) ? value : "—";
 
 
@@ -139,4 +171,4 @@
     });
 
     render();
-})();   
+})();
