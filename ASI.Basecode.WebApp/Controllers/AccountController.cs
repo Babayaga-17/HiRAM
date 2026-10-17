@@ -99,7 +99,7 @@ namespace ASI.Basecode.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ForgotPassword(string email)
         {
-            if (!await _passwordResetService.SendResetCodeAsync(email, UserId))
+            if (!await _passwordResetService.SendResetCodeAsync(email))
             {
                 ViewBag.Error = "Account cannot be found.";
                 return View();
@@ -120,7 +120,7 @@ namespace ASI.Basecode.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult VerifyCode(string email, string code, string newPassword)
         {
-            if (!_passwordResetService.ResetPassword(email, code, newPassword, UserId))
+            if (!_passwordResetService.ResetPassword(email, code, newPassword))
             {
                 ViewBag.Email = email;
                 ViewBag.Error = "Invalid or expired code.";

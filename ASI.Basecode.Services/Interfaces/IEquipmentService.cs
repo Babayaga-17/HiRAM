@@ -15,5 +15,6 @@ namespace ASI.Basecode.Services.Interfaces
         EquipmentListItem GetEquipmentById(int id);
         bool EditEquipment(EquipmentFormViewModel model, string updatedBy);
         bool SetEquipmentStatus(int equipmentId, bool isActive, string updatedBy);
+        EquipmentIndexViewModel GetEquipmentPage(int page, string search, int? categoryId, string status);
     }
 }

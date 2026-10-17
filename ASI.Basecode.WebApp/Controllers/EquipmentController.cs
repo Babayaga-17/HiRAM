@@ -34,18 +34,18 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpGet]
-    public IActionResult Index()
+    public IActionResult Index(int page = 1, string search = "", int? categoryId = null, string status = "all")
     {
         try
         {
             LoadCategories(null, true);
-            return View(_equipmentService.GetEquipments());
+            var model = _equipmentService.GetEquipmentPage(page, search, categoryId, status);
+            return View(model);
         }
         catch (Exception)
         {
-            LoadCategories(null, true);
             TempData["EquipmentLoadError"] = "Unable to load equipment. Please try again.";
-            return View(new List<EquipmentListItem>());
+            return View(new EquipmentIndexViewModel());
         }
     }
 
@@ -133,18 +133,18 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpPost]
-    public IActionResult Activate(int id)
+    public IActionResult Activate(int id, int page = 1, string search = "", int? categoryId = null, string status = "all")
     {
-        return SetStatus(id, true);
+        return SetStatus(id, true, page, search, categoryId, status);
     }
 
     [HttpPost]
-    public IActionResult Deactivate(int id)
+    public IActionResult Deactivate(int id, int page = 1, string search = "", int? categoryId = null, string status = "all")
     {
-        return SetStatus(id, false);
+        return SetStatus(id, false, page, search, categoryId, status);
     }
 
-    private IActionResult SetStatus(int id, bool isActive)
+    private IActionResult SetStatus(int id, bool isActive, int page, string search, int? categoryId, string status)
     {
         try
         {
@@ -162,12 +162,18 @@ public class EquipmentController : ControllerBase<EquipmentController>
             TempData["EquipmentError"] = "Unable to change the equipment status. Please try again.";
         }
 
-        return RedirectToAction(nameof(Index));
+        return RedirectToAction(nameof(Index), new
+        {
+            page,
+            search,
+            categoryId,
+            status
+        });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Delete(int id)
+    public IActionResult Delete(int id, int page = 1, string search = "", int? categoryId = null, string status = "all")
     {
         try
         {
