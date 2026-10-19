@@ -3,6 +3,9 @@
     if (string.IsNullOrWhiteSpace(displayName)) displayName = "HiRAM User";
     var initial = displayName.Substring(0, 1).ToUpperInvariant();
     var topbarPage = ViewData["TopbarPage"]?.ToString() ?? "Equipment categories";
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var isCategories = currentController == "EquipmentCategory";
+    var isBorrower = currentController == "BorrowerProfile";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -49,7 +52,22 @@
                 <span class="nav-link nav-link-disabled" aria-disabled="true"><svg class="icon"><use href="#i-grid"/></svg>Dashboard<span class="nav-soon">Soon</span></span>
                 <span class="nav-caption nav-caption-spaced">MANAGE</span>
                 <span class="nav-link nav-link-disabled" aria-disabled="true"><svg class="icon"><use href="#i-box"/></svg>Equipment<span class="nav-soon">Soon</span></span>
-                <a class="nav-link nav-link-active" asp-controller="EquipmentCategory" asp-action="Index" aria-current="page"><svg class="icon"><use href="#i-layers"/></svg>Categories<span class="active-dot"></span></a>
+                <a class="nav-link @(isCategories ? "nav-link-active" : "")" asp-controller="EquipmentCategory" asp-action="Index" aria-current="@(isCategories ? "page" : null)">
+                    <svg class="icon"><use href="#i-layers" /></svg>Categories
+                    @if (isCategories)
+                    {
+                        <span class="active-dot"></span>
+                    }
+                </a>
+                <a class="nav-link @(isBorrower ? "nav-link-active" : "")"
+                   asp-controller="BorrowerProfile" asp-action="Index"
+                   aria-current="@(isBorrower ? "page" : null)">
+                    <svg class="icon"><use href="#i-layers" /></svg>Borrowers
+                    @if (isBorrower)
+                    {
+                        <span class="active-dot"></span>
+                    }
+                </a>
                 <span class="nav-link nav-link-disabled" aria-disabled="true"><svg class="icon"><use href="#i-calendar"/></svg>Reservations<span class="nav-soon">Soon</span></span>
                 <span class="nav-link nav-link-disabled" aria-disabled="true"><svg class="icon"><use href="#i-tools"/></svg>Maintenance<span class="nav-soon">Soon</span></span>
                 <span class="nav-caption nav-caption-spaced">INSIGHTS</span>

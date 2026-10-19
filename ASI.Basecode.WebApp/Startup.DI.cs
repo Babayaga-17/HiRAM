@@ -37,6 +37,7 @@ namespace ASI.Basecode.WebApp
             //this._services.AddScoped<IUserService, UserService>();
             this._services.AddScoped<IAccountService, AccountService>();
             this._services.AddScoped<IEquipmentCategoryService, EquipmentCategoryService>();
+            this._services.AddScoped<IBorrowerProfileService, BorrowerProfileService>();
 
             // Repositories
             //this._services.AddScoped<IUserRepository, UserRepository>();

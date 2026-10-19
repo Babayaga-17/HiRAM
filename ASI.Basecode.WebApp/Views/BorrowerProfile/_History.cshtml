@@ -1,0 +1,64 @@
+﻿@* ASI.Basecode.WebApp/Views/BorrowerProfile/_History.cshtml *@
+@using ASI.Basecode.Services.Services
+@model BorrowerHistoryViewModel
+@{
+    int total = Model.Rows.Count;
+    int current = Model.Rows.Count(r => r.BorrowedAt.HasValue && !r.ReturnedAt.HasValue);
+    int returned = Model.Rows.Count(r => r.ReturnedAt.HasValue);
+    string Badge(string st)
+    {
+        var x = (st ?? "").ToLowerInvariant();
+        if (x.Contains("return") || x.Contains("complete")) return "active";
+        if (x.Contains("reject") || x.Contains("cancel") || x.Contains("overdue")) return "suspended";
+        return "other";
+    }
+}
+<h3>Borrowing history</h3>
+<p class="bp-sub">@Model.FullName · @Model.UserCode</p>
+
+<div class="bp-stats" style="margin:18px 0">
+    <div class="bp-stat"><small>Reservations</small><strong>@total</strong></div>
+    <div class="bp-stat"><small>Currently borrowed</small><strong>@current</strong></div>
+    <div class="bp-stat"><small>Returned</small><strong>@returned</strong></div>
+</div>
+
+@if (!Model.Rows.Any())
+{
+    <div class="bp-empty">This borrower has no reservations yet.</div>
+}
+else
+{
+    <div class="bp-table-wrap" style="border:1px solid var(--border);border-radius:12px">
+        <table class="bp-table">
+            <thead><tr><th>Reservation</th><th>Equipment</th><th>Schedule</th><th>Borrowed / Returned</th><th>Status</th></tr></thead>
+            <tbody>
+                @foreach (var r in Model.Rows)
+                {
+                    <tr>
+                        <td><div class="bp-name">@r.ReservationNumber</div><div class="bp-muted">@r.Purpose</div></td>
+                        <td>
+                            @if (!r.Items.Any())
+                            {
+                                <span class="bp-muted">—</span>
+                            }
+                            @foreach (var i in r.Items)
+                            {
+                                <div>@i.EquipmentName <span class="bp-muted">@i.EquipmentCode@(i.IsReturned ? " · returned" : "")</span></div>
+                            }
+                        </td>
+                        <td>@r.StartDateTime.ToString("MMM dd, h:mm tt")<div class="bp-muted">to @r.ExpectedReturnDateTime.ToString("MMM dd, h:mm tt")</div></td>
+                        <td>
+                            @(r.BorrowedAt.HasValue? r.BorrowedAt.Value.ToString("MMM dd, h:mm tt") : "Not yet borrowed")
+                            <div class="bp-muted">@(r.ReturnedAt.HasValue ? "Returned " + r.ReturnedAt.Value.ToString("MMM dd, h:mm tt") : "Not returned")</div>
+                        </td>
+                        <td><span class="bp-badge @Badge(r.Status)">@r.Status</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<div class="bp-foot" style="margin-top:18px">
+    <button type="button" class="bp-btn ghost" onclick="bpHistClose()">Close</button>
+</div>
