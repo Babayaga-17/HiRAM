@@ -36,7 +36,7 @@ namespace ASI.Basecode.Services.Services
 
             var equipment = new Equipment
             {
-                CategoryId = model.CategoryId,
+                CategoryId = model.CategoryId.Value, // validated above: GetValidationErrors requires a category
                 EquipmentCode = model.EquipmentCode,
                 AssetTag = model.AssetTag,
                 EquipmentName = model.EquipmentName,
@@ -69,7 +69,7 @@ namespace ASI.Basecode.Services.Services
             if (errors.Count > 0)
                 throw new EquipmentValidationException(errors);
 
-            equipment.CategoryId = model.CategoryId;
+            equipment.CategoryId = model.CategoryId.Value; // validated above
             equipment.EquipmentCode = model.EquipmentCode;
             equipment.AssetTag = model.AssetTag;
             equipment.EquipmentName = model.EquipmentName;
