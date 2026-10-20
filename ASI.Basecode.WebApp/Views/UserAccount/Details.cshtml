@@ -1,0 +1,111 @@
+@using ASI.Basecode.Services.ServiceModels
+@model UserAccountListItem
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "User Account";
+    ViewData["TopbarPage"] = "User account";
+    var isSelf = ViewData["IsSelf"] as bool? == true;
+    var isLocked = Model.LockoutEndAt.HasValue && Model.LockoutEndAt.Value > DateTime.Now;
+    string Stamp(DateTime? value) => value.HasValue ? value.Value.ToString("MMM d, yyyy h:mm tt") : "—";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/user-account.css" asp-append-version="true" />
+}
+
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="UserAccount" asp-action="Index"><svg class="icon"><use href="#i-chevron" /></svg>Back to users</a>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMINISTRATION</div>
+        <h1>@Model.FullName</h1>
+        <p>@Model.UserCode · @Model.Email</p>
+    </div>
+    <a class="button button-primary heading-action" asp-controller="UserAccount" asp-action="Edit" asp-route-id="@Model.UserId"><svg class="icon"><use href="#i-edit" /></svg>Edit user</a>
+</div>
+
+@if (TempData["UserAccountSuccess"] is string successMessage)
+{
+    <div class="category-notice category-notice-success" role="status">@successMessage</div>
+}
+@if (TempData["UserAccountError"] is string errorMessage)
+{
+    <div class="category-notice category-notice-error" role="alert">@errorMessage</div>
+}
+
+<div class="form-page-grid">
+    <section class="content-card form-card" aria-label="Account details">
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-user" /></svg></span>
+            <div><h2>Account details</h2><p>Personal information, role, and sign-in status.</p></div>
+        </div>
+        <dl class="details-list">
+            <div><dt>User ID</dt><dd>@Model.UserCode</dd></div>
+            <div><dt>Full name</dt><dd>@Model.FullName</dd></div>
+            <div><dt>Email</dt><dd>@Model.Email</dd></div>
+            <div><dt>Contact number</dt><dd>@(string.IsNullOrEmpty(Model.ContactNumber) ? "—" : Model.ContactNumber)</dd></div>
+            <div><dt>Role</dt><dd><span class="role-pill">@Model.RoleName</span></dd></div>
+            <div><dt>Status</dt><dd><span class="status-badge status-@Model.AccountStatus.ToLowerInvariant()"><span></span>@Model.AccountStatus</span></dd></div>
+            <div><dt>Last sign-in</dt><dd>@Stamp(Model.LastLoginAt)</dd></div>
+            <div><dt>Failed sign-in attempts</dt><dd>@Model.FailedLoginAttempts</dd></div>
+            <div><dt>Locked until</dt><dd>@(isLocked ? Stamp(Model.LockoutEndAt) : "Not locked")</dd></div>
+            <div><dt>Created</dt><dd>@Stamp(Model.CreatedAt)</dd></div>
+            <div><dt>Last updated</dt><dd>@Stamp(Model.UpdatedAt)</dd></div>
+        </dl>
+    </section>
+
+    <aside class="form-side-card account-actions-card">
+        <span class="side-card-icon"><svg class="icon"><use href="#i-shield" /></svg></span>
+        <h2>Account access</h2>
+
+        @if (isSelf)
+        {
+            <p>This is your own account. You cannot deactivate it or change its role.</p>
+        }
+        else if (Model.IsActive)
+        {
+            <p>Deactivated users can no longer sign in until the account is activated again.</p>
+            <button type="button" class="button button-danger" data-open-dialog="deactivateDialog">Deactivate account</button>
+        }
+        else
+        {
+            <p>This account is <strong>@Model.AccountStatus</strong> and cannot sign in.</p>
+            <form asp-controller="UserAccount" asp-action="Activate" asp-route-id="@Model.UserId" method="post">
+                <input type="hidden" name="version" value="@Model.Version" />
+                <button type="submit" class="button button-primary"><svg class="icon"><use href="#i-check" /></svg>Activate account</button>
+            </form>
+        }
+
+        <div class="form-divider"></div>
+        <p>Reset access gives the user a new temporary password and clears failed sign-in attempts and any lockout.</p>
+        <button type="button" class="button button-secondary" data-open-dialog="resetDialog"><svg class="icon"><use href="#i-lock" /></svg>Reset access</button>
+    </aside>
+</div>
+
+@if (!isSelf && Model.IsActive)
+{
+    <dialog class="app-dialog" id="deactivateDialog" aria-labelledby="deactivateTitle">
+        <h2 id="deactivateTitle">Deactivate account</h2>
+        <p><strong>@Model.FullName</strong> will no longer be able to sign in to HiRAM until the account is activated again.</p>
+        <form asp-controller="UserAccount" asp-action="Deactivate" asp-route-id="@Model.UserId" method="post">
+            <input type="hidden" name="version" value="@Model.Version" />
+            <div class="dialog-actions">
+                <button type="button" class="button button-secondary dialog-close">Cancel</button>
+                <button type="submit" class="button button-danger">Deactivate</button>
+            </div>
+        </form>
+    </dialog>
+}
+
+<dialog class="app-dialog" id="resetDialog" aria-labelledby="resetTitle">
+    <h2 id="resetTitle">Reset account access</h2>
+    <p>A new temporary password will be generated for <strong>@Model.FullName</strong>. Their current password stops working immediately.</p>
+    <form asp-controller="UserAccount" asp-action="ResetAccess" asp-route-id="@Model.UserId" method="post">
+        <div class="dialog-actions">
+            <button type="button" class="button button-secondary dialog-close">Cancel</button>
+            <button type="submit" class="button button-primary">Reset access</button>
+        </div>
+    </form>
+</dialog>
+
+@section Scripts {
+    <script src="~/js/user-account.js" asp-append-version="true"></script>
+}

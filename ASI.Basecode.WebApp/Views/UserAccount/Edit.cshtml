@@ -1,0 +1,36 @@
+@using ASI.Basecode.Services.ServiceModels
+@model UserAccountFormViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Edit User";
+    ViewData["TopbarPage"] = "Edit user";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/user-account.css" asp-append-version="true" />
+}
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="UserAccount" asp-action="Details" asp-route-id="@Model.UserId"><svg class="icon"><use href="#i-chevron" /></svg>Back to account</a>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMINISTRATION</div>
+        <h1>Edit user</h1>
+        <p>Update the details, role, or status for <strong>@Model.UserCode</strong>.</p>
+    </div>
+</div>
+
+<div class="form-page-grid">
+    <section class="content-card form-card" aria-label="Edit user form">
+        <partial name="_UserAccountForm" model="Model" />
+    </section>
+    <aside class="form-side-card">
+        <span class="side-card-icon"><svg class="icon"><use href="#i-shield" /></svg></span>
+        <h2>Changing a role</h2>
+        <p>The new role applies the next time the user signs in.</p>
+        <div class="side-card-tip"><svg class="icon"><use href="#i-info" /></svg>The password is not changed here. Use Reset access on the account page.</div>
+    </aside>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/user-account.js" asp-append-version="true"></script>
+}

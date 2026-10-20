@@ -95,5 +95,77 @@ namespace ASI.Basecode.Resources.Messages {
                 return ResourceManager.GetString("UserExists", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You cannot change your own role.
+        /// </summary>
+        public static string CannotChangeOwnRole {
+            get {
+                return ResourceManager.GetString("CannotChangeOwnRole", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to You cannot deactivate your own account.
+        /// </summary>
+        public static string CannotDeactivateOwnAccount {
+            get {
+                return ResourceManager.GetString("CannotDeactivateOwnAccount", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Email already exists!
+        /// </summary>
+        public static string EmailExists {
+            get {
+                return ResourceManager.GetString("EmailExists", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This is the last active Admin account. Assign another active Admin first.
+        /// </summary>
+        public static string LastActiveAdmin {
+            get {
+                return ResourceManager.GetString("LastActiveAdmin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The selected role is inactive and cannot be assigned.
+        /// </summary>
+        public static string RoleInactive {
+            get {
+                return ResourceManager.GetString("RoleInactive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Select a valid role.
+        /// </summary>
+        public static string RoleNotFound {
+            get {
+                return ResourceManager.GetString("RoleNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This account was changed by someone else after you opened it. Reload the page and try again.
+        /// </summary>
+        public static string UserAccountChanged {
+            get {
+                return ResourceManager.GetString("UserAccountChanged", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to User ID already exists!
+        /// </summary>
+        public static string UserCodeExists {
+            get {
+                return ResourceManager.GetString("UserCodeExists", resourceCulture);
+            }
+        }
     }
 }
