@@ -324,8 +324,22 @@ else
                             </a>
                         }
 
-                        <span>Page @Model.Page of @Model.TotalPages</span>
-
+                        @for (var p = Math.Max(1, Model.Page - 2); p <= Math.Min(Model.TotalPages, Model.Page + 2); p++)
+                        {
+                            if (p == Model.Page)
+                            {
+                                <span class="pager-link pager-active" aria-current="page">
+                                    @p
+                                </span>
+                            }
+                            else
+                            {
+                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-search="@Model.Search"
+                                   asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                                    @p
+                                </a>
+                            }
+                        }
                         @if (Model.Page < Model.TotalPages)
                         {
                             <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search"

@@ -6,16 +6,11 @@
     rows.forEach(row => {
         row.querySelector(".view-category").addEventListener("click", () => {
             document.getElementById("detailsTitle").textContent = row.dataset.name;
-            document.getElementById("detailsDescription").textContent =
-                row.dataset.description || "No description provided.";
+            document.getElementById("detailsDescription").textContent = row.dataset.description || "No description provided.";
             document.getElementById("detailsCode").textContent = row.dataset.code;
-            document.getElementById("detailsEquipment").textContent =
-                `${row.dataset.equipment} items`;
-            document.getElementById("detailsStatus").textContent =
-                row.dataset.status === "active" ? "Active" : "Inactive";
-            document.getElementById("detailsEdit").href =
-                row.querySelector(".edit-category").href;
-
+            document.getElementById("detailsEquipment").textContent = `${row.dataset.equipment} items`;
+            document.getElementById("detailsStatus").textContent = row.dataset.status === "active" ? "Active" : "Inactive";
+            document.getElementById("detailsEdit").href =row.querySelector(".edit-category").href;
             detailsDialog.showModal();
         });
 

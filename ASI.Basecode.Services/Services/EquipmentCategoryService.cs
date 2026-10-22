@@ -161,16 +161,20 @@ namespace ASI.Basecode.Services.Services
             return errors;
         }
 
-        public EquipmentCategoryIndexViewModel GetEquipmentCategoryPage(int page, string search, string status)
+        public EquipmentCategoryIndexViewModel GetEquipmentCategoryPage(EquipmentCategoryListRequest request)
         {
-            const int pageSize = 10;
+            const int pageSize = 5;
 
-            search = (search ?? string.Empty).Trim();
-            status = status == "active" || status == "inactive" ? status : "all";
+            var search = (request.Search ?? string.Empty).Trim();
+            var page = request.Page;
+
+            var status = request.Status == "active" ||
+                         request.Status == "inactive"
+                ? request.Status
+                : "all";
 
             // This remains IQueryable, so filtering and pagination run in SQL.
             var allCategories = _equipmentCategoryRepository.GetEquipmentCategories();
-
             var query = allCategories;
 
             if (!string.IsNullOrWhiteSpace(search))

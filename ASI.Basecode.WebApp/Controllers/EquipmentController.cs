@@ -34,12 +34,12 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpGet]
-    public IActionResult Index(int page = 1, string search = "", int? categoryId = null, string status = "all")
+    public IActionResult Index(EquipmentListRequest request)
     {
         try
         {
             LoadCategories(null, true);
-            var model = _equipmentService.GetEquipmentPage(page, search, categoryId, status);
+            var model = _equipmentService.GetEquipmentPage(request);
             return View(model);
         }
         catch (Exception)
@@ -133,47 +133,20 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpPost]
-    public IActionResult Activate(int id, int page = 1, string search = "", int? categoryId = null, string status = "all")
+    public IActionResult Activate(int id, EquipmentListRequest request)
     {
-        return SetStatus(id, true, page, search, categoryId, status);
+        return SetStatus(id, true, request);
     }
 
     [HttpPost]
-    public IActionResult Deactivate(int id, int page = 1, string search = "", int? categoryId = null, string status = "all")
+    public IActionResult Deactivate(int id, EquipmentListRequest request)
     {
-        return SetStatus(id, false, page, search, categoryId, status);
-    }
-
-    private IActionResult SetStatus(int id, bool isActive, int page, string search, int? categoryId, string status)
-    {
-        try
-        {
-            if (_equipmentService.SetEquipmentStatus(id, isActive, UserId))
-                TempData["EquipmentSuccess"] = isActive ? "The equipment was activated." : "The equipment was deactivated.";
-            else
-                TempData["EquipmentError"] = "The equipment no longer exists.";
-        }
-        catch (EquipmentValidationException exception)
-        {
-            TempData["EquipmentError"] = string.Join(" ", exception.Errors.Values);
-        }
-        catch (Exception)
-        {
-            TempData["EquipmentError"] = "Unable to change the equipment status. Please try again.";
-        }
-
-        return RedirectToAction(nameof(Index), new
-        {
-            page,
-            search,
-            categoryId,
-            status
-        });
+        return SetStatus(id, false, request);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Delete(int id, int page = 1, string search = "", int? categoryId = null, string status = "all")
+    public IActionResult Delete(int id, EquipmentListRequest request)
     {
         try
         {
@@ -182,7 +155,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
             if (equipment == null)
             {
                 TempData["EquipmentError"] = "The equipment no longer exists.";
-                return RedirectToAction(nameof(Index));
+                return RedirectToList(request);
             }
 
             if (equipment.IsActive)
@@ -190,7 +163,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
                 TempData["EquipmentError"] =
                     "Please deactivate the equipment before deleting it.";
 
-                return RedirectToAction(nameof(Index));
+                return RedirectToList(request);
             }
 
             // Delete the equipment through the service.
@@ -208,13 +181,34 @@ public class EquipmentController : ControllerBase<EquipmentController>
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Unable to delete equipment.");
+            // _logger.LogError(exception, "Unable to delete equipment.");
 
             TempData["EquipmentError"] =
                 "Unable to delete the equipment. Please try again.";
         }
 
-        return RedirectToAction(nameof(Index));
+        return RedirectToList(request);
+    }
+
+    private IActionResult SetStatus(int id, bool isActive, EquipmentListRequest request)
+    {
+        try
+        {
+            if (_equipmentService.SetEquipmentStatus(id, isActive, UserId))
+                TempData["EquipmentSuccess"] = isActive ? "The equipment was activated." : "The equipment was deactivated.";
+            else
+                TempData["EquipmentError"] = "The equipment no longer exists.";
+        }
+        catch (EquipmentValidationException exception)
+        {
+            TempData["EquipmentError"] = string.Join(" ", exception.Errors.Values);
+        }
+        catch (Exception)
+        {
+            TempData["EquipmentError"] = "Unable to change the equipment status. Please try again.";
+        }
+
+        return RedirectToList(request);
     }
 
     // Builds Category dropdown. The form lists active categories (plus the item's current one);
@@ -232,5 +226,16 @@ public class EquipmentController : ControllerBase<EquipmentController>
             .ToList();
 
         ViewBag.Categories = new SelectList(categories, "CategoryId", "Name");
+    }
+
+    private IActionResult RedirectToList(EquipmentListRequest request)
+    {
+        return RedirectToAction(nameof(Index), new
+        {
+            page = request.Page,
+            search = request.Search,
+            categoryId = request.CategoryId,
+            status = request.Status
+        });
     }
 }

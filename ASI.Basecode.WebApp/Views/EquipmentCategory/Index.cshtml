@@ -182,6 +182,11 @@ else
                                         {
                                             <form class="category-action-form" asp-controller="EquipmentCategory"
                                                   asp-action="Deactivate" asp-route-id="@category.CategoryId" method="post">
+
+                                                <input type="hidden" name="page" value="@Model.Page" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="status" value="@Model.Status" />
+
                                                 <button type="submit" class="status-action"
                                                         aria-label="Deactivate @category.CategoryName">Deactivate</button>
                                             </form>
@@ -190,6 +195,11 @@ else
                                         {
                                             <form class="category-action-form" asp-controller="EquipmentCategory" asp-action="Activate"
                                                   asp-route-id="@category.CategoryId" method="post">
+
+                                                <input type="hidden" name="page" value="@Model.Page" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="status" value="@Model.Status" />
+
                                                 <button type="submit" class="status-action"
                                                         aria-label="Activate @category.CategoryName">Activate</button>
                                             </form>
@@ -241,7 +251,22 @@ else
                             </a>
                         }
 
-                        <span>Page @Model.Page of @Model.TotalPages</span>
+                        @for (var p = Math.Max(1, Model.Page - 2); p <= Math.Min(Model.TotalPages, Model.Page + 2); p++)
+                        {
+                            if (p == Model.Page)
+                            {
+                                <span class="pager-link pager-active" aria-current="page">
+                                    @p
+                                </span>
+                            }
+                            else
+                            {
+                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-search="@Model.Search"
+                                   asp-route-status="@Model.Status">
+                                    @p
+                                </a>
+                            }
+                        }
 
                         @if (Model.Page < Model.TotalPages)
                         {
@@ -304,6 +329,11 @@ else
             <p id="deleteCategoryMessage">Permanently delete <strong id="deleteCategoryName"></strong>? This cannot be undone.
             </p>
             <form asp-controller="EquipmentCategory" asp-action="Delete" method="post">
+
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="status" value="@Model.Status" />
+
                 <input type="hidden" name="id" id="deleteCategoryId" />
                 <div class="dialog-actions">
                     <button type="button" class="button button-secondary dialog-close">Cancel</button>

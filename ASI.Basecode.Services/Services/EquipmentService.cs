@@ -257,11 +257,13 @@ namespace ASI.Basecode.Services.Services
             return errors;
         }
 
-        public EquipmentIndexViewModel GetEquipmentPage(int page, string search, int? categoryId, string status)
+        public EquipmentIndexViewModel GetEquipmentPage(EquipmentListRequest request)
         {
-            const int pageSize = 10;
+            const int pageSize = 5;
 
-            search = (search ?? string.Empty).Trim();
+            var search = (request.Search ?? string.Empty).Trim();
+            var page = request.Page;
+            var categoryId = request.CategoryId;
 
             if (categoryId <= 0)
             {
@@ -269,7 +271,7 @@ namespace ASI.Basecode.Services.Services
             }
 
             // Translate the selected status into your existing enum.
-            EquipmentAvailability? selectedStatus = (status ?? "").ToLowerInvariant() switch
+            EquipmentAvailability? selectedStatus = (request.Status ?? "").ToLowerInvariant() switch
             {
                 "available" => EquipmentAvailability.Available,
                 "reserved" => EquipmentAvailability.Reserved,
@@ -279,7 +281,7 @@ namespace ASI.Basecode.Services.Services
                 _ => null
             };
 
-            status = selectedStatus.HasValue
+            var status = selectedStatus.HasValue
                 ? selectedStatus.Value.ToString().ToLowerInvariant()
                 : "all";
 

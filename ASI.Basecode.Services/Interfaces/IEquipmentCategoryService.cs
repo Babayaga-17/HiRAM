@@ -11,6 +11,6 @@ namespace ASI.Basecode.Services.Interfaces
         bool EditEquipmentCategory(EquipmentCategoryFormViewModel model, string updatedBy);
         bool SetEquipmentCategoryStatus(int categoryId, bool isActive, string updatedBy);
         bool DeleteEquipmentCategory(int categoryId);
-        EquipmentCategoryIndexViewModel GetEquipmentCategoryPage(int page, string search, string status);
+        EquipmentCategoryIndexViewModel GetEquipmentCategoryPage(EquipmentCategoryListRequest request);
     }
 }
