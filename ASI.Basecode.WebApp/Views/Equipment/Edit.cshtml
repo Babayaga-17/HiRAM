@@ -5,10 +5,12 @@
     ViewData["Title"] = "Edit Equipment";
     ViewData["TopbarPage"] = "Edit equipment";
     ViewData["FormMode"] = "edit";
+    ViewData["PhotoMode"] = "edit";
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/equipment.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/equipment-photos.css" asp-append-version="true" />
 }
 
 <div class="page-heading form-page-heading">
@@ -20,7 +22,7 @@
         </a>
         <div class="eyebrow-line"><span class="eyebrow-dot"></span>EQUIPMENT MANAGEMENT</div>
         <h1>Edit equipment</h1>
-        <p>Update the details for <strong>@Model.EquipmentName</strong>.</p>
+        <p>Updating <strong>@Model.EquipmentName</strong>. Replace, remove or reorder its photos below.</p>
     </div>
 </div>
 
@@ -28,18 +30,7 @@
     <section class="content-card form-card" aria-label="Edit equipment form">
         <partial name="_EquipmentForm" model="Model" />
     </section>
-    <aside class="form-side-card">
-        <span class="side-card-icon">
-            <svg class="icon"><use href="#i-box" /></svg>
-        </span>
-        <h2>@Model.EquipmentCode</h2>
-        <p>Changes apply to future reservations and reports.</p>
-        <div class="side-card-tip">
-            <svg class="icon">
-                <use href="#i-info" />
-            </svg>Equipment in Damaged or Lost condition cannot be borrowed.
-        </div>
-    </aside>
+    <partial name="_EquipmentPhotosPanel" />
 </div>
 
 @section Scripts {
