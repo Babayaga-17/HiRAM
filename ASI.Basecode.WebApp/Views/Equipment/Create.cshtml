@@ -5,10 +5,12 @@
     ViewData["Title"] = "Add Equipment";
     ViewData["TopbarPage"] = "Add equipment";
     ViewData["FormMode"] = "create";
+    ViewData["PhotoMode"] = "create";
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/equipment.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/equipment-photos.css" asp-append-version="true" />
 }
 
 <div class="page-heading form-page-heading">
@@ -25,7 +27,7 @@
         </div>
 
         <h1>Add equipment</h1>
-        <p>Register a new item in the school inventory.</p>
+        <p>Register a new item and add photos so borrowers can recognise it.</p>
     </div>
 </div>
 
@@ -33,23 +35,7 @@
     <section class="content-card form-card" aria-label="Add equipment form">
         <partial name="_EquipmentForm" model="Model" />
     </section>
-    <aside class="form-side-card">
-        <span class="side-card-icon">
-            <svg class="icon">
-                <use href="#i-box" />
-            </svg>
-        </span>
-
-        <h2>Keep records accurate</h2>
-
-        <p>Clear codes, locations, and conditions help borrowers and custodians find the right equipment.</p>
-
-        <div class="side-card-tip">
-            <svg class="icon">
-                <use href="#i-info" />
-            </svg>Equipment codes, serial numbers, and asset tags must be unique.
-        </div>
-    </aside>
+    <partial name="_EquipmentPhotosPanel" />
 </div>
 
 @section Scripts {

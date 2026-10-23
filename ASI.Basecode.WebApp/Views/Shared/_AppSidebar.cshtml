@@ -15,6 +15,7 @@
     var canManageUsers = ASI.Basecode.WebApp.Authorization.MenuAccess.CanAccess(User, "UserAccount");
     var isUsersPage = currentController == "UserAccount" && currentAction != "RoleAccess";
     var isRoleAccessPage = currentController == "UserAccount" && currentAction == "RoleAccess";
+    var isBrowsePage = currentController == "BrowseEquipment";
 }
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Main navigation">
@@ -38,9 +39,13 @@
         {
             <span class="nav-caption nav-caption-spaced">BORROWING</span>
 
-            <span class="nav-link nav-link-disabled" aria-disabled="true">
-                Browse Equipment <span class="nav-soon">Soon</span>
-            </span>
+            <a class="@(isBrowsePage ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="BrowseEquipment"
+               asp-action="Index"
+               aria-current="@(isBrowsePage ? "page" : null)">
+                <svg class="icon"><use href="#i-box" /></svg>
+                Browse Equipment
+            </a>
 
             <span class="nav-link nav-link-disabled" aria-disabled="true">
                 My Reservations <span class="nav-soon">Soon</span>
