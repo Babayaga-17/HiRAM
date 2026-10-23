@@ -35,6 +35,9 @@ namespace ASI.Basecode.Services.ServiceModels
         public EquipmentAvailability Status { get; set; }
         public DateTime? NextReservationStart { get; set; }
 
+        // Photo URLs for this equipment.
+        public List<string> ImageUrls { get; set; } = new List<string>();
+
         public string StatusLabel => Status switch
         {
             EquipmentAvailability.Available => "Available",

@@ -15,6 +15,7 @@ namespace ASI.Basecode.Services.Services
     public class EquipmentService : IEquipmentService
     {
         private static readonly string[] BlockingReservationStatuses = { "Approved", "Borrowed", "Overdue" };
+        private static readonly string[] BorrowableConditions = { "Excellent", "Good", "Fair" };
 
         private readonly IEquipmentRepository _equipmentRepository;
         private readonly IEquipmentCategoryService _equipmentCategoryService;
@@ -158,12 +159,143 @@ namespace ASI.Basecode.Services.Services
             return GetEquipmentItems().Where(item => item.EquipmentId == id).SingleOrDefault();
         }
 
-        // Status is computed from the database: is_active, condition, maintenance and reservations.
-        private IQueryable<EquipmentListItem> GetEquipmentItems()
+        // equipment a borrower can browse (active equipment in active categories)
+        public List<EquipmentListItem> GetBorrowableEquipments()
+        {
+            return GetEquipmentItems(GetBorrowerVisibleEquipments())
+                .OrderBy(item => item.EquipmentName)
+                .ToList();
+        }
+
+        public EquipmentListItem GetBorrowableEquipmentById(int id)
+        {
+            return GetEquipmentItems(GetBorrowerVisibleEquipments().Where(equipment => equipment.EquipmentId == id))
+                .SingleOrDefault();
+        }
+
+        public EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end)
+        {
+            var result = new EquipmentAvailabilityResult();
+
+            if (end <= start)
+            {
+                result.Reason = "The end date and time must be after the start date and time.";
+                return result;
+            }
+
+            var equipment = GetBorrowerVisibleEquipments()
+                .Where(item => item.EquipmentId == equipmentId)
+                .Select(item => new { item.IsActive, item.ConditionStatus })
+                .SingleOrDefault();
+
+            if (equipment == null)
+            {
+                result.Reason = "This equipment is not available for borrowing.";
+                return result;
+            }
+
+            if (!equipment.IsActive)
+            {
+                result.Reason = "This equipment is inactive and cannot be borrowed.";
+                return result;
+            }
+
+            if (!BorrowableConditions.Contains(equipment.ConditionStatus))
+            {
+                result.Reason = "Equipment in " + equipment.ConditionStatus + " condition cannot be borrowed.";
+                return result;
+            }
+
+            if (start < DateTime.Now.AddMinutes(-5))
+            {
+                result.Reason = "The start date and time cannot be in the past.";
+                return result;
+            }
+
+            result.Periods = GetBusyPeriods(equipmentId, start, end);
+            result.Slots = GetFreeSlots(result.Periods, start, end);
+
+            if (result.Periods.Any(period => period.Type == "Maintenance"))
+                result.Reason = "This equipment is scheduled for maintenance during this period.";
+            else if (result.Periods.Count > 0)
+                result.Reason = "This equipment is already reserved during this period.";
+            else
+                result.IsAvailable = true;
+
+            return result;
+        }
+
+        private IQueryable<Equipment> GetBorrowerVisibleEquipments()
+        {
+            return _equipmentRepository.GetEquipments();
+        }
+
+        // Approved, borrowed and overdue reservations plus scheduled maintenance that overlap [start, end).
+        // Only dates are returned. Borrower names are never exposed.
+        private List<EquipmentBusyPeriod> GetBusyPeriods(int equipmentId, DateTime start, DateTime end)
+        {
+            var reservations = _equipmentRepository.GetEquipments()
+                .Where(item => item.EquipmentId == equipmentId)
+                .SelectMany(item => item.ReservationItems)
+                .Where(reservationItem => !reservationItem.IsReturned
+                    && BlockingReservationStatuses.Contains(reservationItem.Reservation.Status)
+                    && reservationItem.Reservation.StartDateTime < end
+                    && reservationItem.Reservation.ExpectedReturnDateTime > start)
+                .Select(reservationItem => new EquipmentBusyPeriod
+                {
+                    Start = reservationItem.Reservation.StartDateTime,
+                    End = reservationItem.Reservation.ExpectedReturnDateTime,
+                    Type = "Reservation",
+                    Label = reservationItem.Reservation.Status == "Approved" ? "Reserved" : "In use"
+                })
+                .ToList();
+
+            var maintenance = _equipmentRepository.GetEquipments()
+                .Where(item => item.EquipmentId == equipmentId)
+                .SelectMany(item => item.MaintenanceRecords)
+                .Where(record => (record.Status == "Scheduled" || record.Status == "InProgress")
+                    && record.StartDateTime < end
+                    && (record.EndDateTime == null || record.EndDateTime > start))
+                .Select(record => new { record.StartDateTime, record.EndDateTime })
+                .ToList()
+                .Select(record => new EquipmentBusyPeriod
+                {
+                    Start = record.StartDateTime,
+                    End = record.EndDateTime ?? end,
+                    Type = "Maintenance",
+                    Label = "Under maintenance"
+                })
+                .ToList();
+
+            return reservations.Concat(maintenance).OrderBy(period => period.Start).ToList();
+        }
+
+        // The gaps between busy periods are the dates and times the equipment is free.
+        private static List<EquipmentFreeSlot> GetFreeSlots(List<EquipmentBusyPeriod> periods, DateTime start, DateTime end)
+        {
+            var slots = new List<EquipmentFreeSlot>();
+            var cursor = start;
+
+            foreach (var period in periods.OrderBy(item => item.Start))
+            {
+                if (period.Start > cursor)
+                    slots.Add(new EquipmentFreeSlot { Start = cursor, End = period.Start });
+
+                if (period.End > cursor)
+                    cursor = period.End;
+            }
+
+            if (cursor < end)
+                slots.Add(new EquipmentFreeSlot { Start = cursor, End = end });
+
+            return slots;
+        }
+
+        private IQueryable<EquipmentListItem> GetEquipmentItems(IQueryable<Equipment> source = null)
         {
             var now = DateTime.Now;
 
-            return _equipmentRepository.GetEquipments().Select(equipment => new EquipmentListItem
+            return (source ?? _equipmentRepository.GetEquipments()).Select(equipment => new EquipmentListItem
             {
                 EquipmentId = equipment.EquipmentId,
                 EquipmentCode = equipment.EquipmentCode,
