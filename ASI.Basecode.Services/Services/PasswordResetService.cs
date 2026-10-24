@@ -24,7 +24,7 @@ namespace ASI.Basecode.Services.Services
             _configuration = config;
         }
 
-        public async Task<bool> SendResetCodeAsync(string email, string createdBy)
+        public async Task<bool> SendResetCodeAsync(string email)
         {
             var account = _passwordResetRepository.GetAccountByEmail(email?.Trim());
             if (account == null) return false;
@@ -36,7 +36,7 @@ namespace ASI.Basecode.Services.Services
                 AccountId = account.AccountId,
                 TokenHash = Hash(code),
                 ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-                CreatedBy = "UserId",
+                CreatedBy = "PasswordReset",
                 CreatedAt = DateTime.UtcNow
             });
 
@@ -58,7 +58,7 @@ namespace ASI.Basecode.Services.Services
             return true;
         }
 
-        public bool ResetPassword(string email, string code, string newPassword, string updatedBy)
+        public bool ResetPassword(string email, string code, string newPassword)
         {
             var account = _passwordResetRepository.GetAccountByEmail(email?.Trim());
             if (account == null) return false;
@@ -69,11 +69,11 @@ namespace ASI.Basecode.Services.Services
             account.PasswordHash = PasswordManager.EncryptPassword(newPassword);
             account.FailedLoginAttempts = 0;
             account.LockoutEndAt = null;
-            account.UpdatedBy = updatedBy;
+            account.UpdatedBy = "PasswordReset";
             account.UpdatedAt = DateTime.UtcNow;
 
             token.UsedAt = DateTime.UtcNow;
-            token.UpdatedBy = updatedBy;
+            token.UpdatedBy = "PasswordReset";
             token.UpdatedAt = DateTime.UtcNow;
 
             _passwordResetRepository.Save();
