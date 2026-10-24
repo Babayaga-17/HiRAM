@@ -53,6 +53,16 @@ namespace ASI.Basecode.WebApp.Controllers
         [AllowAnonymous]
         public ActionResult Login(string returnUrl)
         {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return LocalRedirect(returnUrl);
+                }
+
+                return RedirectToAction("Index", "Dashboard");
+            }
+
             ViewData["ReturnUrl"] = returnUrl;
 
             this._sessionManager.Clear();
@@ -61,8 +71,21 @@ namespace ASI.Basecode.WebApp.Controllers
             return View();
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword() => View();
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult VerifyCode(string email)
+        {
+            ViewBag.Email = email;
+            return View();
+        }
+
         [HttpPost]
         [AllowAnonymous]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string returnUrl)
         {
             ViewData["ReturnUrl"] = returnUrl;
@@ -73,7 +96,7 @@ namespace ASI.Basecode.WebApp.Controllers
 
             if (loginResult == LoginResult.Success)
             {
-                await _signInManager.SignInAsync(account);
+                await _signInManager.SignInAsync(account, model.RememberMe);
 
                 if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
                 {
@@ -88,12 +111,6 @@ namespace ASI.Basecode.WebApp.Controllers
             return View(model);
         }
 
-        // ---------- Forgot password ----------
-
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult ForgotPassword() => View();
-
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -105,14 +122,6 @@ namespace ASI.Basecode.WebApp.Controllers
                 return View();
             }
             return RedirectToAction("VerifyCode", new { email });
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult VerifyCode(string email)
-        {
-            ViewBag.Email = email;
-            return View();
         }
 
         [HttpPost]
