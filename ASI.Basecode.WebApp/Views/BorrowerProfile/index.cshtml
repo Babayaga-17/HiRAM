@@ -1,0 +1,290 @@
+﻿@* ASI.Basecode.WebApp/Views/BorrowerProfile/Index.cshtml *@
+@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.Services
+@model BorrowerPageViewModel
+@{
+    ViewData["Title"] = "Borrower Profile";
+    ViewData["TopbarPage"] = "Borrower profile";
+    Layout = "~/Views/Shared/_AppLayout.cshtml";
+    var rows = Model.Rows;
+    int showFrom = Model.TotalCount == 0 ? 0 : (Model.Page - 1) * Model.PageSize + 1;
+    int showTo = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
+    bool filtered = !string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.Status);
+}
+
+
+<div class="bp">
+    <div class="bp-head">
+        <div>
+            <div class="bp-eyebrow">HiRAM · Borrowers</div>
+            <h1 class="bp-title">Borrower Profile</h1>
+            <p class="bp-sub">Manage borrower information, department, program and eligibility status.</p>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="bp-alert ok">@TempData["Success"]</div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="bp-alert err">@TempData["Error"]</div>
+    }
+
+    <div class="bp-stats">
+        <div class="bp-stat"><small>Total Borrowers</small><strong>@Model.OverallTotal</strong></div>
+        <div class="bp-stat"><small>Eligible</small><strong>@Model.OverallEligible</strong></div>
+        <div class="bp-stat"><small>Suspended</small><strong>@Model.OverallSuspended</strong></div>
+    </div>
+
+    <div class="bp-card">
+        <div class="bp-toolbar">
+            <form method="get" asp-action="Index">
+                <input class="bp-input" type="search" name="search" value="@Model.Search" placeholder="Search by name, user code, program or department" />
+                <select class="bp-select" name="status" onchange="this.form.submit()">
+                    <option value="" selected="@string.IsNullOrEmpty(Model.Status)">All status</option>
+                    <option value="Eligible" selected="@(Model.Status == "Eligible")">Active (Eligible)</option>
+                    <option value="Suspended" selected="@(Model.Status == "Suspended")">Suspended</option>
+                </select>
+                <button class="bp-btn" type="submit">Search</button>
+                @if (filtered)
+                {
+                    <a class="bp-btn ghost bp-clear-link" asp-action="Index">Clear</a>
+                }
+            </form>
+        </div>
+
+        @if (!rows.Any())
+        {
+            <div class="bp-empty">No borrowers found.</div>
+        }
+        else
+        {
+            <div class="bp-table-wrap">
+                <table class="bp-table">
+                    <thead><tr><th>Borrower</th><th>Department</th><th>Program</th><th>Contact</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        @foreach (var b in rows)
+                        {
+                            var initials = string.Concat((b.FullName ?? "?").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpper(p[0])));
+                            var badge = b.EligibilityStatus == "Eligible" ? "active" : b.EligibilityStatus == "Suspended" ? "suspended" : "other";
+                            <tr>
+                                <td><div class="bp-user"><div class="bp-avatar">@initials</div><div><div class="bp-name">@b.FullName</div><div class="bp-muted">@b.UserCode</div></div></div></td>
+                                <td>@(b.DepartmentName ?? "—")</td>
+                                <td>
+                                    @(string.IsNullOrEmpty(b.Program) ? "—" : b.Program)
+                                    @if (b.YearLevel.HasValue)
+                                    {
+                                        <div class="bp-muted">Year @b.YearLevel</div>
+                                    }
+                                </td>
+                                <td>@(string.IsNullOrEmpty(b.ContactNumber) ? "—" : b.ContactNumber)</td>
+                                <td>
+                                    <span class="bp-badge @badge">@b.EligibilityStatus</span>
+                                    @if (b.EligibilityStatus == "Suspended")
+                                    {
+                                        <div class="bp-muted" title="@b.SuspensionReason">@(b.SuspendedUntil.HasValue ? "until " + b.SuspendedUntil.Value.ToString("MMM dd, yyyy") : "indefinite")</div>
+                                    }
+                                </td>
+                                <td>@b.CreatedAt.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    <div class="bp-actions">
+                                        <button type="button" class="bp-icon-btn" data-url="@Url.Action("History", new { id = b.UserId })" onclick="bpHistory(this)">History</button>
+                                        @if (b.EligibilityStatus == "Suspended")
+                                        {
+                                            <form method="post" asp-action="SetStatus" class="bp-status-form">
+                                                <input type="hidden" name="id" value="@b.UserId" />
+                                                <input type="hidden" name="suspend" value="false" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="status" value="@Model.Status" />
+                                                <input type="hidden" name="page" value="@Model.Page" />
+                                                <button type="submit" class="bp-icon-btn">Activate</button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="bp-icon-btn" data-id="@b.UserId" data-name="@b.FullName" onclick="bpSuspend(this)">Suspend</button>
+                                        }
+                                        <button type="button" class="bp-icon-btn"
+                                                data-id="@b.UserId" data-code="@b.UserCode" data-name="@b.FullName" data-phone="@b.ContactNumber"
+                                                data-dept="@b.DepartmentId" data-program="@b.Program" data-year="@b.YearLevel"
+                                                data-status="@b.EligibilityStatus" data-reason="@b.SuspensionReason"
+                                                data-until="@(b.SuspendedUntil?.ToString("yyyy-MM-dd"))"
+                                                onclick="bpEdit(this)">
+                                            Edit
+                                        </button>
+                                        <button type="button" class="bp-icon-btn del" data-id="@b.UserId" data-name="@b.FullName"
+                                                onclick="bpDelete(this.dataset.id, this.dataset.name)">
+                                            Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bp-pager">
+                <div class="bp-muted">Showing @showFrom–@showTo of @Model.TotalCount borrowers</div>
+                @if (Model.TotalPages > 1)
+                {
+                    var pageList = Enumerable.Range(1, Model.TotalPages)
+                    .Where(p => p == 1 || p == Model.TotalPages || Math.Abs(p - Model.Page) <= 1).ToList();
+                    int lastShown = 0;
+                    <nav class="bp-pages" aria-label="Borrower pages">
+                        @if (Model.Page > 1)
+                        {
+                            <a class="bp-page" asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-page="@(Model.Page - 1)">&lsaquo; Prev</a>
+                        }
+                        else
+                        {
+                            <span class="bp-page disabled">&lsaquo; Prev</span>
+                        }
+                        @foreach (var p in pageList)
+                        {
+                            if (p - lastShown > 1)
+                            {
+                                <span class="bp-page gap">&hellip;</span>
+                            }
+                            <a class="bp-page @(p == Model.Page ? "active" : "")" asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-page="@p">@p</a>
+                            lastShown = p;
+                        }
+                        @if (Model.Page < Model.TotalPages)
+                        {
+                            <a class="bp-page" asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-page="@(Model.Page + 1)">Next &rsaquo;</a>
+                        }
+                        else
+                        {
+                            <span class="bp-page disabled">Next &rsaquo;</span>
+                        }
+                    </nav>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<div class="bp-modal" id="bpModal">
+    <div class="bp-dialog">
+        <h3>Edit Borrower</h3>
+        <p class="bp-sub">Name, contact number and user code are read-only. You can update the department, program, year level and eligibility status.</p>
+        <form method="post" asp-action="Save">
+            <input type="hidden" name="UserId" id="f_id" value="0" />
+            <input type="hidden" name="search" value="@Model.Search" />
+            <input type="hidden" name="status" value="@Model.Status" />
+            <input type="hidden" name="page" value="@Model.Page" />
+            <div class="bp-grid">
+                <div><label class="bp-label">User code</label><input class="bp-input" id="f_code" readonly tabindex="-1" /></div>
+                <div><label class="bp-label">Contact number</label><input class="bp-input" id="f_phone" readonly tabindex="-1" /></div>
+                <div class="full"><label class="bp-label">Full name</label><input class="bp-input" id="f_name" readonly tabindex="-1" /></div>
+                <div class="full">
+                    <label class="bp-label">Department *</label>
+                    <select class="bp-select" name="DepartmentId" id="f_dept" required>
+                        <option value="">Select department</option>
+                        @foreach (var d in Model.Departments)
+                        {
+                            <option value="@d.DepartmentId">@d.DepartmentName</option>
+                        }
+                    </select>
+                </div>
+                <div><label class="bp-label">Program</label><input class="bp-input" name="Program" id="f_program" maxlength="150" /></div>
+                <div><label class="bp-label">Year level</label><input class="bp-input" type="number" min="1" max="10" name="YearLevel" id="f_year" /></div>
+                <div class="full">
+                    <label class="bp-label">Eligibility status *</label>
+                    <select class="bp-select" name="EligibilityStatus" id="f_status" onchange="bpToggle()"><option>Eligible</option><option>Suspended</option></select>
+                </div>
+                <div class="full bp-suspension-fields" id="susp">
+                    <div class="bp-grid bp-suspension-grid">
+                        <div><label class="bp-label">Suspended until</label><input class="bp-input" type="date" name="SuspendedUntil" id="f_until" /></div>
+                        <div><label class="bp-label">Reason</label><input class="bp-input" name="SuspensionReason" id="f_reason" maxlength="250" /></div>
+                    </div>
+                </div>
+            </div>
+            <div class="bp-foot">
+                <button type="button" class="bp-btn ghost" onclick="bpClose()">Cancel</button>
+                <button type="submit" class="bp-btn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="bp-modal" id="bpDelModal">
+    <div class="bp-dialog bp-delete-dialog">
+        <h3>Delete borrower?</h3>
+        <p class="bp-sub" id="bpDelText"></p>
+        <form method="post" asp-action="Delete" class="bp-delete-form">
+            <input type="hidden" name="id" id="d_id" />
+            <input type="hidden" name="search" value="@Model.Search" />
+            <input type="hidden" name="status" value="@Model.Status" />
+            <input type="hidden" name="page" value="@Model.Page" />
+            <div class="bp-foot">
+                <button type="button" class="bp-btn ghost" onclick="document.getElementById('bpDelModal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="bp-btn danger">Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="bp-modal" id="bpSuspModal">
+    <div class="bp-dialog bp-suspend-dialog">
+        <h3>Suspend borrower</h3>
+        <p class="bp-sub" id="bpSuspText"></p>
+        <form method="post" asp-action="SetStatus">
+            <input type="hidden" name="id" id="s_id" />
+            <input type="hidden" name="suspend" value="true" />
+            <input type="hidden" name="search" value="@Model.Search" />
+            <input type="hidden" name="status" value="@Model.Status" />
+            <input type="hidden" name="page" value="@Model.Page" />
+            <div class="bp-grid">
+                <div class="full"><label class="bp-label">Reason</label><input class="bp-input" name="reason" maxlength="250" /></div>
+                <div class="full"><label class="bp-label">Suspended until (optional)</label><input class="bp-input" type="date" name="until" /></div>
+            </div>
+            <div class="bp-foot">
+                <button type="button" class="bp-btn ghost" onclick="document.getElementById('bpSuspModal').classList.remove('open')">Cancel</button>
+                <button type="submit" class="bp-btn danger">Suspend</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="bp-modal" id="bpHistModal">
+    <div class="bp-dialog bp-history-dialog" id="bpHistBody"></div>
+</div>
+
+<script>
+    const $ = id => document.getElementById(id);
+    function bpToggle() { $('susp').style.display = $('f_status').value === 'Suspended' ? 'block' : 'none'; }
+    function bpEdit(btn) {
+        const d = btn.dataset;
+        $('f_id').value = d.id; $('f_code').value = d.code; $('f_name').value = d.name; $('f_phone').value = d.phone || '';
+        $('f_dept').value = d.dept; $('f_program').value = d.program || ''; $('f_year').value = d.year || '';
+        $('f_status').value = d.status === 'Suspended' ? 'Suspended' : 'Eligible';
+        $('f_until').value = d.until || ''; $('f_reason').value = d.reason || '';
+        bpToggle(); $('bpModal').classList.add('open');
+    }
+    function bpClose() { $('bpModal').classList.remove('open'); }
+    function bpSuspend(btn) {
+        $('s_id').value = btn.dataset.id;
+        $('bpSuspText').textContent = 'Suspend ' + btn.dataset.name + '? They will be marked as not eligible to borrow.';
+        $('bpSuspModal').classList.add('open');
+    }
+    async function bpHistory(btn) {
+        const box = $('bpHistBody');
+        box.innerHTML = '<p class="bp-sub">Loading history...</p>';
+        $('bpHistModal').classList.add('open');
+        try {
+            const r = await fetch(btn.dataset.url);
+            box.innerHTML = r.ok ? await r.text() : '<p class="bp-sub">Could not load the borrowing history.</p>';
+        } catch (e) {
+            box.innerHTML = '<p class="bp-sub">Could not load the borrowing history.</p>';
+        }
+    }
+    function bpHistClose() { $('bpHistModal').classList.remove('open'); }
+    function bpDelete(id, name) {
+        $('d_id').value = id;
+        $('bpDelText').textContent = 'This removes ' + name + ' from the borrower list only. Their user record stays in the system.';
+        $('bpDelModal').classList.add('open');
+    }
+    document.querySelectorAll('.bp-modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+</script>
