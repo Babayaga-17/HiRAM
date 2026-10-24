@@ -40,13 +40,16 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IEquipmentService, EquipmentService>();
             this._services.AddScoped<IEquipmentRepository, EquipmentRepository>();
             this._services.AddScoped<IPasswordResetService, PasswordResetService>();
+            this._services.AddScoped<IUserAccountService, UserAccountService>();
 
             // Repositories
-            //this._services.AddScoped<IUserRepository, UserRepository>();
+            this._services.AddScoped<IUserRepository, UserRepository>();
             this._services.AddScoped<IAccountRepository, AccountRepository>();
             this._services.AddScoped<IEquipmentCategoryRepository, EquipmentCategoryRepository>();
             this._services.AddScoped<IEquipmentRepository, EquipmentRepository>();
             this._services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
+            this._services.AddScoped<IRoleRepository, RoleRepository>();
+            this._services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
             // Manager Class
             this._services.AddScoped<SignInManager>();

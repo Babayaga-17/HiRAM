@@ -1,0 +1,37 @@
+@using ASI.Basecode.Services.ServiceModels
+@model UserAccountListItem
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Access Reset";
+    ViewData["TopbarPage"] = "Reset access";
+    var temporaryPassword = ViewData["TemporaryPassword"] as string;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/user-account.css" asp-append-version="true" />
+}
+<div class="page-heading form-page-heading">
+    <div>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMINISTRATION</div>
+        <h1>Access reset</h1>
+        <p>Account access for <strong>@Model.FullName</strong> (@Model.UserCode) has been reset.</p>
+    </div>
+</div>
+
+<section class="content-card form-card temp-password-card" aria-label="Temporary password">
+    <div class="form-card-header">
+        <span class="form-section-icon"><svg class="icon"><use href="#i-lock" /></svg></span>
+        <div><h2>Temporary password</h2><p>Give this to the user through a secure channel. It is shown only once.</p></div>
+    </div>
+    <div class="temp-password">
+        <code id="temporaryPassword">@temporaryPassword</code>
+        <button type="button" class="button button-secondary" id="copyPassword"><svg class="icon"><use href="#i-check" /></svg>Copy</button>
+    </div>
+    <p class="temp-password-note">Failed sign-in attempts and any lockout were cleared. The user signs in with <strong>@Model.Email</strong> and this password.</p>
+    <div class="form-actions">
+        <a class="button button-primary" asp-controller="UserAccount" asp-action="Details" asp-route-id="@Model.UserId">Done</a>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="~/js/user-account.js" asp-append-version="true"></script>
+}

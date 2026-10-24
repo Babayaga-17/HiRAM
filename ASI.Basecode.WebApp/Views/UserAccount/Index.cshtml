@@ -1,0 +1,142 @@
+@using ASI.Basecode.Services.ServiceModels
+@model List<UserAccountListItem>
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Users & Roles";
+    ViewData["TopbarPage"] = "Users & roles";
+    var roles = ViewData["Roles"] as List<RoleListItem> ?? new List<RoleListItem>();
+    var activeCount = Model.Count(account => account.IsActive);
+    var loadError = TempData["UserAccountLoadError"] as string;
+
+    string LastActive(DateTime? value)
+    {
+        if (!value.HasValue) return "Never";
+        var v = value.Value;
+        if (v.Date == DateTime.Today) return "Today, " + v.ToString("h:mm tt");
+        if (v.Date == DateTime.Today.AddDays(-1)) return "Yesterday, " + v.ToString("h:mm tt");
+        return v.Year == DateTime.Today.Year ? v.ToString("MMM d, h:mm tt") : v.ToString("MMM d, yyyy");
+    }
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/user-account.css" asp-append-version="true" />
+}
+
+<div class="page-heading">
+    <div>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMINISTRATION</div>
+        <h1>Users &amp; roles</h1>
+        <p>Manage system access and role assignments for HiRAM users.</p>
+    </div>
+    <a class="button button-primary heading-action" asp-controller="UserAccount" asp-action="Create"><svg class="icon"><use href="#i-plus" /></svg>Create user</a>
+</div>
+
+@if (TempData["UserAccountSuccess"] is string successMessage)
+{
+    <div class="category-notice category-notice-success" role="status">@successMessage</div>
+}
+@if (TempData["UserAccountError"] is string errorMessage)
+{
+    <div class="category-notice category-notice-error" role="alert">@errorMessage</div>
+}
+
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">@loadError</div>
+}
+else
+{
+    <section class="stats-grid" aria-label="User overview">
+        <div class="stat-card">
+            <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-users" /></svg></span>
+            <span class="stat-copy"><span>Total users</span><strong>@Model.Count</strong><small>Accounts in HiRAM</small></span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon stat-icon-teal"><svg class="icon"><use href="#i-check" /></svg></span>
+            <span class="stat-copy"><span>Active accounts</span><strong>@activeCount</strong><small>Can sign in</small></span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon stat-icon-blue"><svg class="icon"><use href="#i-shield" /></svg></span>
+            <span class="stat-copy"><span>Roles</span><strong>@roles.Count</strong><small><a asp-controller="UserAccount" asp-action="RoleAccess">View role access</a></small></span>
+        </div>
+    </section>
+
+    <section class="content-card category-list" aria-labelledby="userListHeading">
+        <div class="card-heading">
+            <div><h2 id="userListHeading">All users</h2><p>Search accounts and manage their roles and status.</p></div>
+            <span class="count-pill">@Model.Count @(Model.Count == 1 ? "user" : "users")</span>
+        </div>
+
+        @if (Model.Count == 0)
+        {
+            <div class="empty-categories">
+                <span class="empty-icon"><svg class="icon"><use href="#i-users" /></svg></span>
+                <h3>No user accounts yet</h3>
+                <p>Create an account to give someone access to HiRAM.</p>
+                <a class="button button-primary" asp-controller="UserAccount" asp-action="Create"><svg class="icon"><use href="#i-plus" /></svg>Create user</a>
+            </div>
+        }
+        else
+        {
+            <div class="list-toolbar">
+                <label class="search-field"><svg class="icon"><use href="#i-search" /></svg><span class="sr-only">Search users</span><input id="userSearch" type="search" placeholder="Search user, email, or ID…" autocomplete="off" /></label>
+                <label class="filter-field">
+                    <span>Role</span>
+                    <select id="roleFilter" aria-label="Filter by role">
+                        <option value="all">All roles</option>
+                        @foreach (var role in roles)
+                        {
+                            <option value="@role.RoleName.ToLowerInvariant()">@role.RoleName</option>
+                        }
+                    </select>
+                </label>
+                <label class="filter-field">
+                    <span>Status</span>
+                    <select id="statusFilter" aria-label="Filter by status">
+                        <option value="all">All statuses</option>
+                        @foreach (var status in ASI.Basecode.Resources.Constants.AccountStatuses.All)
+                        {
+                            <option value="@status.ToLowerInvariant()">@status</option>
+                        }
+                    </select>
+                </label>
+            </div>
+            <div class="table-scroll">
+                <table class="category-table">
+                    <thead><tr><th scope="col">USER</th><th scope="col">EMAIL</th><th scope="col">ROLE</th><th scope="col">LAST ACTIVE</th><th scope="col">STATUS</th><th scope="col" class="actions-column">ACTIONS</th></tr></thead>
+                    <tbody id="userRows">
+                        @foreach (var account in Model)
+                        {
+                            <tr data-search="@($"{account.FullName} {account.UserCode} {account.Email}".ToLowerInvariant())" data-role="@account.RoleName.ToLowerInvariant()" data-status="@account.AccountStatus.ToLowerInvariant()">
+                                <td><div class="category-name-cell"><span class="category-tile"><svg class="icon"><use href="#i-user" /></svg></span><span><strong>@account.FullName</strong><small>@account.UserCode</small></span></div></td>
+                                <td>@account.Email</td>
+                                <td><span class="role-pill">@account.RoleName</span></td>
+                                <td>@LastActive(account.LastLoginAt)</td>
+                                <td><span class="status-badge status-@account.AccountStatus.ToLowerInvariant()"><span></span>@account.AccountStatus</span></td>
+                                <td class="actions-column">
+                                    <div class="row-actions">
+                                        <a class="icon-button" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="View @account.FullName" title="View account"><svg class="icon"><use href="#i-eye" /></svg></a>
+                                        <a class="icon-button" asp-controller="UserAccount" asp-action="Edit" asp-route-id="@account.UserId" aria-label="Edit @account.FullName" title="Edit account"><svg class="icon"><use href="#i-edit" /></svg></a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="empty-results" id="emptyResults" hidden>
+                <span class="empty-icon"><svg class="icon"><use href="#i-search" /></svg></span>
+                <h3>No matching users</h3>
+                <p>Try a different search term, role, or status.</p>
+                <button type="button" class="text-button" id="clearFilters">Clear filters</button>
+            </div>
+            <div class="table-footer"><span id="resultCount">Showing @Model.Count of @Model.Count users</span></div>
+        }
+    </section>
+}
+
+@section Scripts {
+    @if (Model.Count > 0 && loadError == null)
+    {
+        <script src="~/js/user-account.js" asp-append-version="true"></script>
+    }
+}
