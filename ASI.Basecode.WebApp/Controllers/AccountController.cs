@@ -21,6 +21,9 @@ namespace ASI.Basecode.WebApp.Controllers
 {
     public class AccountController : ControllerBase<AccountController>
     {
+        private const string ResetEmailKey = "ResetEmail";
+        private const string ResetTokenKey = "ResetTokenId";
+
         private readonly SessionManager _sessionManager;
         private readonly SignInManager _signInManager;
         private readonly TokenValidationParametersFactory _tokenValidationParametersFactory;
@@ -92,14 +95,18 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult ForgotPassword() => View();
+        public IActionResult ForgotPassword()
+        {
+            ViewBag.Error = TempData["Error"];
+            return View();
+        }
 
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ForgotPassword(string email)
         {
-            if (!await _passwordResetService.SendResetCodeAsync(email, UserId))
+            if (!await _passwordResetService.SendResetCodeAsync(email))
             {
                 ViewBag.Error = "Account cannot be found.";
                 return View();
@@ -107,6 +114,7 @@ namespace ASI.Basecode.WebApp.Controllers
             return RedirectToAction("VerifyCode", new { email });
         }
 
+        // Step 1: verify the code only
         [HttpGet]
         [AllowAnonymous]
         public IActionResult VerifyCode(string email)
@@ -118,15 +126,73 @@ namespace ASI.Basecode.WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public IActionResult VerifyCode(string email, string code, string newPassword)
+        public IActionResult VerifyCode(string email, string code)
         {
-            if (!_passwordResetService.ResetPassword(email, code, newPassword, UserId))
+            var tokenId = _passwordResetService.VerifyCode(email, code);
+            if (tokenId == null)
             {
                 ViewBag.Email = email;
                 ViewBag.Error = "Invalid or expired code.";
                 return View();
             }
+
+            _session.SetString(ResetEmailKey, email.Trim());
+            _session.SetString(ResetTokenKey, tokenId.Value.ToString());
+            return RedirectToAction("NewPassword");
+        }
+
+        // Step 2: choose the new password
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult NewPassword()
+        {
+            if (string.IsNullOrEmpty(_session.GetString(ResetEmailKey)))
+                return RedirectToAction("ForgotPassword");
+
+            return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public IActionResult NewPassword(string newPassword, string confirmPassword)
+        {
+            var email = _session.GetString(ResetEmailKey);
+            if (string.IsNullOrEmpty(email) || !int.TryParse(_session.GetString(ResetTokenKey), out var tokenId))
+                return RedirectToAction("ForgotPassword");
+
+            if (string.IsNullOrEmpty(newPassword) || newPassword.Length < 8)
+            {
+                ViewBag.Error = "Password must be at least 8 characters.";
+                return View();
+            }
+            if (newPassword != confirmPassword)
+            {
+                ViewBag.Error = "Passwords don't match.";
+                return View();
+            }
+
+            if (!_passwordResetService.SetNewPassword(email, tokenId, newPassword))
+            {
+                _session.Remove(ResetEmailKey);
+                _session.Remove(ResetTokenKey);
+                TempData["Error"] = "Your reset session expired. Please request a new code.";
+                return RedirectToAction("ForgotPassword");
+            }
+
+            _session.Remove(ResetEmailKey);
+            _session.Remove(ResetTokenKey);
             TempData["Success"] = "Password updated. Please sign in.";
+            return RedirectToAction("Login");
+        }
+
+        // Cancel button
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult CancelReset()
+        {
+            _session.Remove(ResetEmailKey);
+            _session.Remove(ResetTokenKey);
             return RedirectToAction("Login");
         }
 
