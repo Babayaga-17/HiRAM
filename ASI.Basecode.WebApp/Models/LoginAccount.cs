@@ -6,7 +6,7 @@ namespace ASI.Basecode.WebApp.Models
     /// <summary>
     /// Login User Model
     /// </summary>
-    public class LoginUser
+    public class LoginAccount
     {
         /// <summary>
         /// Login Result
@@ -27,6 +27,6 @@ namespace ASI.Basecode.WebApp.Models
         /// <summary>
         /// User Data
         /// </summary>
-        public User userData { get; set; }
+        public Account accountData { get; set; }
     }
 }

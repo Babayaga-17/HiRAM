@@ -21,9 +21,9 @@ namespace ASI.Basecode.Data.Repositories
             return this.GetDbSet<User>();
         }
 
-        public bool UserExists(string userId)
+        public bool UserExists(int userId)
         {
-            return this.GetDbSet<User>().Any(x => x.UserId == userId);
+            return this.GetDbSet<Account>().Any(x => x.UserId == userId);
         }
 
         public void AddUser(User user)
@@ -32,5 +32,16 @@ namespace ASI.Basecode.Data.Repositories
             UnitOfWork.SaveChanges();
         }
 
+        public bool UserCodeExists(string userCode, int? excludeUserId = null)
+        {
+            var query = this.GetDbSet<User>().Where(user => user.UserCode == userCode);
+
+            if (excludeUserId.HasValue)
+            {
+                query = query.Where(user => user.UserId != excludeUserId.Value);
+            }
+
+            return query.Any();
+        }
     }
 }

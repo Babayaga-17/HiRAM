@@ -1,0 +1,243 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@model List<EquipmentListItem>
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Browse Equipment";
+    ViewData["TopbarPage"] = "Browse equipment";
+
+    var loadError = TempData["BrowseLoadError"] as string;
+    var categoryOptions = ViewBag.Categories as Microsoft.AspNetCore.Mvc.Rendering.SelectList;
+    var selectedIds = ViewBag.SelectedIds as List<int> ?? new List<int>();
+
+    // Shown until real photos are connected.
+    // Change the file name here if your sample image is not a .jpg.
+    var placeholderUrl = Url.Content("~/images/equipment-placeholder.jpg");
+    const int placeholderPhotoCount = 4;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/browse-equipment.css" asp-append-version="true" />
+}
+
+<div class="page-heading">
+    <div>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>BORROWING</div>
+        <h1>Find the right equipment</h1>
+        <p>Search the school inventory, check availability, and select the items you need.</p>
+    </div>
+</div>
+
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">@loadError</div>
+}
+else if (Model.Count == 0)
+{
+    <section class="content-card">
+        <div class="empty-categories">
+            <span class="empty-icon"><svg class="icon"><use href="#i-box" /></svg></span>
+            <h3>No equipment available yet</h3>
+            <p>Equipment will appear here once the custodian adds it.</p>
+        </div>
+    </section>
+}
+else
+{
+    <div id="browseRoot"
+         data-selected="@string.Join(",", selectedIds)"
+         data-placeholder="@placeholderUrl"
+         data-select-url="@Url.Action("Select", "BrowseEquipment")"
+         data-deselect-url="@Url.Action("Deselect", "BrowseEquipment")"
+         data-clear-url="@Url.Action("Clear", "BrowseEquipment")">
+        @Html.AntiForgeryToken()
+
+        <section class="content-card browse-toolbar-card" aria-label="Search and filter equipment">
+            <div class="list-toolbar">
+                <label class="search-field">
+                    <svg class="icon"><use href="#i-search" /></svg>
+                    <span class="sr-only">Search equipment</span>
+                    <input id="browseSearch" type="search" placeholder="Search code, name, or model..." autocomplete="off" />
+                </label>
+                <label class="filter-field">
+                    <span>Category</span>
+                    <select id="categoryFilter" aria-label="Filter by category">
+                        <option value="all">All categories</option>
+                        @if (categoryOptions != null)
+                        {
+                            @foreach (var option in categoryOptions)
+                            {
+                                <option value="@option.Value">@option.Text</option>
+                            }
+                        }
+                    </select>
+                </label>
+                <label class="filter-field">
+                    <span>Status</span>
+                    <select id="statusFilter" aria-label="Filter by status">
+                        <option value="all">All statuses</option>
+                        <option value="available">Available</option>
+                        <option value="reserved">Reserved</option>
+                        <option value="borrowed">Borrowed</option>
+                        <option value="undermaintenance">Under Maintenance</option>
+                        <option value="unavailable">Unavailable</option>
+                    </select>
+                </label>
+                <div class="view-toggle" role="group" aria-label="Change view">
+                    <button type="button" data-view="grid" class="is-active">Grid</button>
+                    <button type="button" data-view="list">List</button>
+                </div>
+            </div>
+        </section>
+
+        <p class="browse-count" id="browseCount"></p>
+
+        <section class="content-card selection-tray" id="selectionTray" aria-label="Selected equipment" hidden>
+            <div class="selection-tray-head">
+                <h2>Selected equipment (<span id="selectionCount">0</span>)</h2>
+                <button type="button" class="text-button" id="clearSelection">Clear selection</button>
+            </div>
+            <ul class="selection-chips" id="selectionChips"></ul>
+            <p class="selection-tray-note">You will be able to request these items once reservations are available.</p>
+        </section>
+
+        <div class="browse-grid" id="browseGrid">
+            @foreach (var item in Model)
+            {
+                var photos = item.ImageUrls ?? new List<string>();
+                var coverUrl = photos.Count > 0 ? photos[0] : placeholderUrl;
+                var photoCount = photos.Count > 0 ? photos.Count : placeholderPhotoCount;
+                var brandModel = string.Join(" ", new[] { item.Brand, item.Model }.Where(value => !string.IsNullOrWhiteSpace(value)));
+
+                <article class="equipment-card"
+                         data-id="@item.EquipmentId"
+                         data-name="@item.EquipmentName"
+                         data-code="@item.EquipmentCode"
+                         data-category="@item.CategoryId"
+                         data-category-name="@item.CategoryName"
+                         data-brand="@item.Brand"
+                         data-model="@item.Model"
+                         data-serial="@item.SerialNumber"
+                         data-condition="@item.ConditionStatus"
+                         data-status="@item.StatusClass"
+                         data-status-label="@item.StatusLabel"
+                         data-location="@item.StorageLocation"
+                         data-description="@item.Description"
+                         data-next="@(item.NextReservationStart?.ToString("MMM d, yyyy h:mm tt"))"
+                         data-images="@string.Join("|", photos)"
+                         data-selectable="@(item.Status != EquipmentAvailability.Unavailable ? "true" : "false")"
+                         data-availability-url="@Url.Action("Availability", "BrowseEquipment", new { id = item.EquipmentId })">
+                    <div class="equipment-photo">
+                        <span class="photo-fallback"><span class="photo-icon"></span>Photo placeholder</span>
+                        <img class="equipment-photo-img" src="@coverUrl" alt="@(photos.Count > 0 ? "Photo of " + item.EquipmentName : "")" loading="lazy" />
+                        <span class="status-badge status-@item.StatusClass badge-on-photo"><span></span>@item.StatusLabel</span>
+                        <span class="equipment-photo-count">1 / @photoCount</span>
+                    </div>
+
+                    <div class="equipment-card-body">
+                        <div class="equipment-card-main">
+                            <span class="category-tile list-tile"><svg class="icon"><use href="#i-box" /></svg></span>
+                            <span class="equipment-card-title">
+                                <strong>@item.EquipmentName</strong>
+                                <small>@item.EquipmentCode &middot; @item.CategoryName</small>
+                            </span>
+                        </div>
+                        <div class="equipment-card-info">
+                            <span class="status-badge status-@item.StatusClass badge-in-info"><span></span>@item.StatusLabel</span>
+                            <span class="browse-condition browse-condition-@item.ConditionStatus.ToLowerInvariant()">@item.ConditionStatus</span>
+                            <span class="equipment-card-detail">@brandModel</span>
+                            <span class="equipment-card-detail is-location">@item.StorageLocation</span>
+                        </div>
+                    </div>
+
+                    <div class="equipment-card-actions">
+                        <button type="button" class="button button-secondary view-equipment">View details</button>
+                        <button type="button" class="button button-primary select-equipment">Select</button>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <section class="content-card" id="emptyResults" hidden>
+            <div class="empty-categories">
+                <span class="empty-icon"><svg class="icon"><use href="#i-search" /></svg></span>
+                <h3>No equipment found</h3>
+                <p>Try a different search or clear one of the filters.</p>
+                <button type="button" class="text-button" id="clearFilters">Clear filters</button>
+            </div>
+        </section>
+
+        <div class="table-footer">
+            <span></span>
+            <nav class="pager" id="pager" aria-label="Pagination"></nav>
+        </div>
+
+        <dialog class="app-dialog" id="detailsDialog" aria-labelledby="detailsTitle">
+            <div class="details-layout">
+                <div class="details-gallery">
+                    <div class="gallery-main" id="galleryMain">
+                        <span class="photo-fallback"><span class="photo-icon"></span>Main photo placeholder</span>
+                        <img class="gallery-main-img" id="galleryMainImg" alt="" hidden />
+                        <button type="button" class="gallery-arrow gallery-prev" id="galleryPrev" aria-label="Previous photo">&lsaquo;</button>
+                        <button type="button" class="gallery-arrow gallery-next" id="galleryNext" aria-label="Next photo">&rsaquo;</button>
+                        <span class="equipment-photo-count" id="galleryCount"></span>
+                    </div>
+                    <div class="gallery-thumbs" id="galleryThumbs"></div>
+                </div>
+
+                <div class="details-info">
+                    <div class="details-head">
+                        <div>
+                            <span class="dialog-kicker">EQUIPMENT DETAILS</span>
+                            <h2 id="detailsTitle"></h2>
+                            <span class="status-badge" id="detailsStatusBadge"></span>
+                        </div>
+                        <button type="button" class="icon-button dialog-close" aria-label="Close details">
+                            <svg class="icon"><use href="#i-close" /></svg>
+                        </button>
+                    </div>
+
+                    <p class="details-description" id="detailsDescription"></p>
+
+                    <dl class="details-table">
+                        <div><dt>Equipment code</dt><dd id="detailsCode"></dd></div>
+                        <div><dt>Category</dt><dd id="detailsCategory"></dd></div>
+                        <div><dt>Brand / Model</dt><dd id="detailsBrandModel"></dd></div>
+                        <div><dt>Condition</dt><dd id="detailsCondition"></dd></div>
+                        <div><dt>Serial number</dt><dd id="detailsSerial"></dd></div>
+                        <div><dt>Storage location</dt><dd id="detailsLocation"></dd></div>
+                        <div><dt>Next reservation</dt><dd id="detailsNext"></dd></div>
+                    </dl>
+                    <p class="condition-note" id="detailsConditionNote"></p>
+
+                    <div class="dialog-actions">
+                        <button type="button" class="button button-secondary dialog-close">Close</button>
+                        <button type="button" class="button button-primary" id="detailsSelect">Select this item</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="availability-box">
+                <h3>Check availability</h3>
+                <div class="availability-form">
+                    <label>From<input type="datetime-local" id="availabilityFrom" /></label>
+                    <label>To<input type="datetime-local" id="availabilityTo" /></label>
+                    <button type="button" class="button button-secondary" id="checkAvailability">Check availability</button>
+                </div>
+                <p class="availability-result" id="availabilityResult"></p>
+
+                <p class="availability-title">Existing reservations <span id="availabilityRange"></span></p>
+                <ul class="busy-list" id="availabilityPeriods"></ul>
+
+                <p class="availability-title">Available dates and times</p>
+                <ul class="busy-list free-list" id="availabilitySlots"></ul>
+            </div>
+        </dialog>
+    </div>
+}
+
+@section Scripts {
+    @if (loadError == null && Model.Count > 0)
+    {
+        <script src="~/js/browse-equipment.js" asp-append-version="true"></script>
+    }
+}

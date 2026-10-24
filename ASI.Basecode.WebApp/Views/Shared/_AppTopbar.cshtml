@@ -1,0 +1,32 @@
+@{
+    var displayName = User.Identity?.Name;
+    if (string.IsNullOrWhiteSpace(displayName))
+    {
+        displayName = "HiRAM User";
+    }
+
+    var roleName = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Signed in";
+    var initial = displayName.Substring(0, 1).ToUpperInvariant();
+    var topbarPage = ViewData["TopbarPage"]?.ToString() ?? ViewData["Title"]?.ToString() ?? "Workspace";
+}
+
+<header class="app-topbar">
+    <div class="topbar-start">
+        <button class="menu-toggle icon-button" id="menuToggle" type="button" aria-label="Open navigation" aria-controls="appSidebar" aria-expanded="false"><svg class="icon"><use href="#i-menu"/></svg></button>
+        <div class="topbar-location"><span>Workspace</span><svg class="icon"><use href="#i-chevron"/></svg><strong>@topbarPage</strong></div>
+    </div>
+    <div class="topbar-end">
+        <span class="topbar-divider"></span>
+        <details class="profile-menu">
+            <summary>
+                <span class="avatar">@initial</span>
+                <span class="profile-copy">
+                    <strong>@displayName</strong>
+                    <small>@roleName</small>
+                </span>
+                <svg class="icon profile-chevron"><use href="#i-chevron" /></svg>
+            </summary>
+            <div class="profile-dropdown"><div class="profile-dropdown-heading">@displayName</div><a asp-controller="Account" asp-action="SignOutUser"><svg class="icon"><use href="#i-logout"/></svg>Sign out</a></div>
+        </details>
+    </div>
+</header>

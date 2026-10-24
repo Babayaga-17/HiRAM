@@ -1,0 +1,36 @@
+@using ASI.Basecode.Services.ServiceModels
+@model UserAccountFormViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Create User";
+    ViewData["TopbarPage"] = "Create user";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/user-account.css" asp-append-version="true" />
+}
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="UserAccount" asp-action="Index"><svg class="icon"><use href="#i-chevron" /></svg>Back to users</a>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMINISTRATION</div>
+        <h1>Create user</h1>
+        <p>Create an account and assign the user's role.</p>
+    </div>
+</div>
+
+<div class="form-page-grid">
+    <section class="content-card form-card" aria-label="Create user form">
+        <partial name="_UserAccountForm" model="Model" />
+    </section>
+    <aside class="form-side-card">
+        <span class="side-card-icon"><svg class="icon"><use href="#i-shield" /></svg></span>
+        <h2>Roles control access</h2>
+        <p>The role decides which menus and functions the user can open. See Role access for the full list.</p>
+        <div class="side-card-tip"><svg class="icon"><use href="#i-info" /></svg>User ID and email must be unique.</div>
+    </aside>
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/user-account.js" asp-append-version="true"></script>
+}
