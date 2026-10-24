@@ -14,6 +14,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] | HiRAM</title>
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    @if (isBorrower)
+    {
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="~/css/borrower-profile.css" asp-append-version="true" />
+    }
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="app-body">

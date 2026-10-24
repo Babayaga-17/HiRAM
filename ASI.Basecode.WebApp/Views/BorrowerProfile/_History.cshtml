@@ -17,7 +17,7 @@
 <h3>Borrowing history</h3>
 <p class="bp-sub">@Model.FullName · @Model.UserCode</p>
 
-<div class="bp-stats" style="margin:18px 0">
+<div class="bp-stats bp-history-stats">
     <div class="bp-stat"><small>Reservations</small><strong>@total</strong></div>
     <div class="bp-stat"><small>Currently borrowed</small><strong>@current</strong></div>
     <div class="bp-stat"><small>Returned</small><strong>@returned</strong></div>
@@ -29,7 +29,7 @@
 }
 else
 {
-    <div class="bp-table-wrap" style="border:1px solid var(--border);border-radius:12px">
+    <div class="bp-table-wrap bp-history-table">
         <table class="bp-table">
             <thead><tr><th>Reservation</th><th>Equipment</th><th>Schedule</th><th>Borrowed / Returned</th><th>Status</th></tr></thead>
             <tbody>
@@ -60,6 +60,6 @@ else
     </div>
 }
 
-<div class="bp-foot" style="margin-top:18px">
+<div class="bp-foot bp-history-footer">
     <button type="button" class="bp-btn ghost" onclick="bpHistClose()">Close</button>
 </div>
