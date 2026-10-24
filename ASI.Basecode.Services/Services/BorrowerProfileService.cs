@@ -1,6 +1,7 @@
 // ASI.Basecode.Services/Services/BorrowerProfileService.cs
 using ASI.Basecode.Data;
 using ASI.Basecode.Data.Models;
+using ASI.Basecode.Services.ServiceModels;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -8,76 +9,7 @@ using System.Linq;
 
 namespace ASI.Basecode.Services.Services
 {
-    public class BorrowerRowViewModel
-    {
-        public int UserId { get; set; }
-        public string UserCode { get; set; }
-        public string FullName { get; set; }
-        public string ContactNumber { get; set; }
-        public int DepartmentId { get; set; }
-        public string DepartmentName { get; set; }
-        public string Program { get; set; }
-        public byte? YearLevel { get; set; }
-        public string EligibilityStatus { get; set; }
-        public string SuspensionReason { get; set; }
-        public DateTime? SuspendedUntil { get; set; }
-        public DateTime CreatedAt { get; set; }
-    }
-
-    // Admin can only change these fields. Name, contact number and user code are read-only.
-    public class BorrowerFormModel
-    {
-        public int UserId { get; set; }
-        public int DepartmentId { get; set; }
-        public string Program { get; set; }
-        public byte? YearLevel { get; set; }
-        public string EligibilityStatus { get; set; }
-        public string SuspensionReason { get; set; }
-        public DateTime? SuspendedUntil { get; set; }
-    }
-
-    public class BorrowerPageViewModel
-    {
-        public string Search { get; set; }
-        public string Status { get; set; }              // "", "Eligible" or "Suspended"
-        public int Page { get; set; } = 1;
-        public int PageSize { get; set; } = 5;
-        public int TotalPages { get; set; } = 1;
-        public int TotalCount { get; set; }             // rows matching the search/filter
-        public int OverallTotal { get; set; }           // all borrowers (for the stat cards)
-        public int OverallEligible { get; set; }
-        public int OverallSuspended { get; set; }
-        public List<BorrowerRowViewModel> Rows { get; set; } = new();
-        public List<Department> Departments { get; set; } = new();
-    }
-
-    public class HistoryItemViewModel
-    {
-        public string EquipmentName { get; set; }
-        public string EquipmentCode { get; set; }
-        public bool IsReturned { get; set; }
-    }
-
-    public class HistoryRowViewModel
-    {
-        public string ReservationNumber { get; set; }
-        public string Purpose { get; set; }
-        public string Status { get; set; }
-        public DateTime RequestedAt { get; set; }
-        public DateTime StartDateTime { get; set; }
-        public DateTime ExpectedReturnDateTime { get; set; }
-        public DateTime? BorrowedAt { get; set; }
-        public DateTime? ReturnedAt { get; set; }
-        public List<HistoryItemViewModel> Items { get; set; } = new();
-    }
-
-    public class BorrowerHistoryViewModel
-    {
-        public int UserId { get; set; }
-        public string FullName { get; set; }
-        public string UserCode { get; set; }
-        public List<HistoryRowViewModel> Rows { get; set; } = new();
-    }
+   
 
     public interface IBorrowerProfileService
     {

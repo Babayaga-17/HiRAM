@@ -1,4 +1,5 @@
 // ASI.Basecode.WebApp/Controllers/BorrowerProfileController.cs
+using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
