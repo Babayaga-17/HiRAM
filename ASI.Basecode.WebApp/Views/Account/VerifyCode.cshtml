@@ -1,0 +1,106 @@
+@{
+    Layout = null;
+    var error = ViewBag.Error as string;
+    var email = ViewBag.Email as string;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reset password | HiRAM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;650;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/hiram-auth.css" asp-append-version="true" />
+</head>
+<body>
+<main class="auth-shell">
+    <section class="brand-panel">
+        <div class="brand-row">
+            <div class="brand-mark">H</div>
+            <span class="brand-name">HiRAM</span>
+        </div>
+        <div class="brand-copy">
+            <p class="eyebrow">School resource management</p>
+            <h1>Check your email for the code.</h1>
+            <p>The code expires in 10 minutes. Enter it with your new password to finish.</p>
+        </div>
+        <div class="glass-card">
+            <div>
+                <strong>Code sent</strong>
+                <span>@email</span>
+            </div>
+            <span class="badge">Sent</span>
+        </div>
+        <div class="brand-foot">Equipment Borrowing &amp; Reservation System</div>
+    </section>
+
+    <section class="form-panel">
+        <div class="form-box">
+            <div class="form-head">
+                <h2>Reset password</h2>
+                <p>Enter the 6-digit code we sent to your email, then choose a new password.</p>
+            </div>
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <div class="alert" role="alert">@error</div>
+            }
+
+            <form asp-controller="Account" asp-action="VerifyCode" method="post" id="resetForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="email" value="@email" />
+
+                <div class="field">
+                    <label for="code">Verification code</label>
+                    <div class="input-wrap">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.2 7.7 8 9 4.8-1.3 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+                        <input id="code" name="code" class="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="one-time-code" required autofocus />
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="newPassword">New password</label>
+                    <div class="input-wrap">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                        <input id="newPassword" name="newPassword" type="password" placeholder="Enter your new password" minlength="8" autocomplete="new-password" required />
+                        <button type="button" class="toggle-eye" data-target="newPassword" aria-label="Show password">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="confirmPassword">Confirm password</label>
+                    <div class="input-wrap">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                        <input id="confirmPassword" type="password" placeholder="Re-enter your new password" autocomplete="new-password" required />
+                    </div>
+                </div>
+
+                <div id="mismatch" class="alert" role="alert" hidden>Passwords don't match.</div>
+                <button type="submit" class="btn-primary">Reset password</button>
+            </form>
+
+            <p class="form-links">Didn't get a code? <a asp-controller="Account" asp-action="ForgotPassword">Send a new code</a></p>
+        </div>
+        <div class="form-foot">Secure access for the HiRAM school community</div>
+    </section>
+</main>
+
+<script>
+    document.querySelectorAll('.toggle-eye').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var input = document.getElementById(btn.dataset.target);
+            input.type = input.type === 'password' ? 'text' : 'password';
+        });
+    });
+    document.getElementById('resetForm').addEventListener('submit', function (e) {
+        var same = document.getElementById('newPassword').value === document.getElementById('confirmPassword').value;
+        document.getElementById('mismatch').hidden = same;
+        if (!same) e.preventDefault();
+    });
+</script>
+</body>
+</html>

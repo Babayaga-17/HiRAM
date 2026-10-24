@@ -1,0 +1,45 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@model EquipmentFormViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Add Equipment";
+    ViewData["TopbarPage"] = "Add equipment";
+    ViewData["FormMode"] = "create";
+    ViewData["PhotoMode"] = "create";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/equipment.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/equipment-photos.css" asp-append-version="true" />
+}
+
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="Equipment" asp-action="Index">
+            <svg class="icon">
+                <use href="#i-chevron" />
+            </svg>Back to equipment
+        </a>
+
+        <div class="eyebrow-line">
+            <span class="eyebrow-dot"></span>
+            EQUIPMENT MANAGEMENT
+        </div>
+
+        <h1>Add equipment</h1>
+        <p>Register a new item and add photos so borrowers can recognise it.</p>
+    </div>
+</div>
+
+<div class="form-page-grid">
+    <section class="content-card form-card" aria-label="Add equipment form">
+        <partial name="_EquipmentForm" model="Model" />
+    </section>
+    <partial name="_EquipmentPhotosPanel" />
+</div>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/equipment-form.js" asp-append-version="true"></script>
+}

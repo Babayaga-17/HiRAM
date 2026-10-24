@@ -26,21 +26,9 @@ namespace ASI.Basecode.WebApp.Controllers
         private readonly TokenValidationParametersFactory _tokenValidationParametersFactory;
         private readonly TokenProviderOptionsFactory _tokenProviderOptionsFactory;
         private readonly IConfiguration _appConfiguration;
-        //private readonly IUserService _userService;
         private readonly IAccountService _accountService;
+        private readonly IPasswordResetService _passwordResetService;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="AccountController"/> class.
-        /// </summary>
-        /// <param name="signInManager">The sign in manager.</param>
-        /// <param name="localizer">The localizer.</param>
-        /// <param name="userService">The user service.</param>
-        /// <param name="httpContextAccessor">The HTTP context accessor.</param>
-        /// <param name="loggerFactory">The logger factory.</param>
-        /// <param name="configuration">The configuration.</param>
-        /// <param name="mapper">The mapper.</param>
-        /// <param name="tokenValidationParametersFactory">The token validation parameters factory.</param>
-        /// <param name="tokenProviderOptionsFactory">The token provider options factory.</param>
         public AccountController(
                             SignInManager signInManager,
                             IHttpContextAccessor httpContextAccessor,
@@ -48,6 +36,7 @@ namespace ASI.Basecode.WebApp.Controllers
                             IConfiguration configuration,
                             IMapper mapper,
                             IAccountService accountService,
+                            IPasswordResetService passwordResetService,
                             TokenValidationParametersFactory tokenValidationParametersFactory,
                             TokenProviderOptionsFactory tokenProviderOptionsFactory) : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
@@ -56,23 +45,14 @@ namespace ASI.Basecode.WebApp.Controllers
             this._tokenProviderOptionsFactory = tokenProviderOptionsFactory;
             this._tokenValidationParametersFactory = tokenValidationParametersFactory;
             this._appConfiguration = configuration;
-            //this._userService = userService;
             this._accountService = accountService;
+            this._passwordResetService = passwordResetService;
         }
 
-        /// <summary>
-        /// Login Method
-        /// </summary>
-        /// <returns>Created response view</returns>
         [HttpGet]
         [AllowAnonymous]
         public ActionResult Login(string returnUrl)
         {
-            //TempData["returnUrl"] = System.Net.WebUtility.UrlDecode(HttpContext.Request.Query["ReturnUrl"]);
-            //this._sessionManager.Clear();
-            //this._session.SetString("SessionId", System.Guid.NewGuid().ToString());
-            //return this.View();
-
             ViewData["ReturnUrl"] = returnUrl;
 
             this._sessionManager.Clear();
@@ -81,45 +61,10 @@ namespace ASI.Basecode.WebApp.Controllers
             return View();
         }
 
-        /// <summary>
-        /// Authenticate user and signs the user in when successful.
-        /// </summary>
-        /// <param name="model">The model.</param>
-        /// <param name="returnUrl">The return URL.</param>
-        /// <returns> Created response view </returns>
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> Login(LoginViewModel model, string returnUrl)
         {
-            //this._session.SetString("HasSession", "Exist");
-
-            //User user = null;
-
-            //User user = new() { Id = 0, UserId = "0", Name = "Name", Password = "Password" };
-
-            //await this._signInManager.SignInAsync(user);
-            //this._session.SetString("UserName", model.UserId);
-
-            //return RedirectToAction("Index", "Home");
-
-            //var loginResult = _userService.AuthenticateUser(model.UserId, model.Password, ref user);
-            //if (loginResult == LoginResult.Success)
-            //{
-            //    // 認証OK
-            //    await this._signInManager.SignInAsync(user);
-            //    this._session.SetString("UserName", user.Name);
-            //    return RedirectToAction("Index", "Home");
-            //}
-            //else
-            //{
-            //    // 認証NG
-            //    TempData["ErrorMessage"] = "Incorrect UserId or Password";
-            //    return View();
-            //}
-            //return View(); 
-
-            //return null;
-
             ViewData["ReturnUrl"] = returnUrl;
 
             Account account = null;
@@ -135,14 +80,57 @@ namespace ASI.Basecode.WebApp.Controllers
                     return LocalRedirect(returnUrl);
                 }
 
-                return RedirectToAction("Index", "EquipmentCategory");
+                return RedirectToAction("Index", "Dashboard");
             }
 
             ModelState.AddModelError(string.Empty, "Incorrect email or password.");
 
             return View(model);
-
         }
+
+        // ---------- Forgot password ----------
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword() => View();
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForgotPassword(string email)
+        {
+            if (!await _passwordResetService.SendResetCodeAsync(email, UserId))
+            {
+                ViewBag.Error = "Account cannot be found.";
+                return View();
+            }
+            return RedirectToAction("VerifyCode", new { email });
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult VerifyCode(string email)
+        {
+            ViewBag.Email = email;
+            return View();
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public IActionResult VerifyCode(string email, string code, string newPassword)
+        {
+            if (!_passwordResetService.ResetPassword(email, code, newPassword, UserId))
+            {
+                ViewBag.Email = email;
+                ViewBag.Error = "Invalid or expired code.";
+                return View();
+            }
+            TempData["Success"] = "Password updated. Please sign in.";
+            return RedirectToAction("Login");
+        }
+
+        // -------------------------------------
 
         [HttpGet]
         [AllowAnonymous]
@@ -155,30 +143,11 @@ namespace ASI.Basecode.WebApp.Controllers
         [AllowAnonymous]
         public IActionResult Register(UserViewModel model)
         {
-            //try
-            //{
-            //    _userService.AddUser(model);
-            //    return RedirectToAction("Login", "Account");
-            //}
-            //catch (InvalidDataException ex)
-            //{
-            //    TempData["ErrorMessage"] = ex.Message;
-            //}
-            //catch (Exception ex)
-            //{
-            //    TempData["ErrorMessage"] = Resources.Messages.Errors.ServerError;
-            //}
-            //return View();
-
             Debug.WriteLine(PasswordManager.EncryptPassword(model.Password));
 
             return View();
         }
 
-        /// <summary>
-        /// Sign Out current account and return login view.
-        /// </summary>
-        /// <returns>Created response view</returns>
         [AllowAnonymous]
         public async Task<IActionResult> SignOutUser()
         {

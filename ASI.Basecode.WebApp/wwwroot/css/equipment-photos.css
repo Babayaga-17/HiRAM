@@ -1,0 +1,230 @@
+﻿.photo-panel {
+    padding: 20px;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+}
+
+.photo-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+    .photo-panel-head h2 {
+        margin: 0;
+        font-size: 14px;
+    }
+
+.photo-count-pill {
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #f0eeff;
+    color: var(--purple);
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.photo-panel-text {
+    margin: 8px 0 14px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+/* Add: upload box */
+.photo-dropzone {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    padding: 30px 14px;
+    text-align: center;
+    border: 1.5px dashed #c9c4f5;
+    border-radius: 16px;
+    background: #f8f7ff;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+    .photo-dropzone strong {
+        font-size: 13px;
+        color: var(--ink);
+    }
+
+    .photo-dropzone small {
+        font-size: 10px;
+    }
+
+.photo-dropzone-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: #ece9ff;
+    color: var(--purple);
+}
+
+.photo-slots {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.photo-slot {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border: 1.5px dashed #d5d1f7;
+    border-radius: 12px;
+    color: #8b84e8;
+}
+
+    .photo-slot .icon {
+        width: 16px;
+        height: 16px;
+    }
+
+.photo-panel-note {
+    margin: 14px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+/* Edit: main photo, thumbnails, tip */
+.photo-main {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 10px;
+    min-height: 170px;
+    padding: 36px 12px 14px;
+    text-align: center;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #f1efff, #eaf4f6);
+}
+
+.photo-main-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--purple);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.photo-main-icon {
+    color: var(--purple);
+}
+
+    .photo-main-icon .icon {
+        width: 40px;
+        height: 40px;
+    }
+
+.photo-main-label {
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: .08em;
+    color: var(--purple);
+}
+
+.photo-main-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    margin-top: 6px;
+}
+
+.photo-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--white);
+    color: var(--ink);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+    .photo-action .icon {
+        width: 14px;
+        height: 14px;
+    }
+
+.photo-action-danger {
+    color: #c2303b;
+}
+
+.photo-thumbs {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.photo-thumb {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f1efff, #eaf4f6);
+    color: var(--purple);
+}
+
+    .photo-thumb .icon {
+        width: 18px;
+        height: 18px;
+    }
+
+    .photo-thumb.is-active {
+        border-color: var(--purple);
+    }
+
+.photo-thumb-add {
+    background: #f8f7ff;
+    border: 1.5px dashed #c9c4f5;
+}
+
+.photo-tip {
+    display: grid;
+    gap: 4px;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border: 1px solid #e5e6f6;
+    border-radius: 12px;
+    background: #f5f4ff;
+    font-size: 10px;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+    .photo-tip strong {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--purple);
+    }
+
+    .photo-tip .icon {
+        width: 13px;
+        height: 13px;
+    }
