@@ -40,6 +40,7 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IEquipmentService, EquipmentService>();
             this._services.AddScoped<IEquipmentRepository, EquipmentRepository>();
             this._services.AddScoped<IPasswordResetService, PasswordResetService>();
+            this._services.AddScoped<IBorrowerProfileService, BorrowerProfileService>();
 
             // Repositories
             //this._services.AddScoped<IUserRepository, UserRepository>();
