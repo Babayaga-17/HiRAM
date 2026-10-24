@@ -129,4 +129,28 @@
   <data name="UserExists" xml:space="preserve">
     <value>UserId already exists!</value>
   </data>
+  <data name="CannotChangeOwnRole" xml:space="preserve">
+    <value>You cannot change your own role.</value>
+  </data>
+  <data name="CannotDeactivateOwnAccount" xml:space="preserve">
+    <value>You cannot deactivate your own account.</value>
+  </data>
+  <data name="EmailExists" xml:space="preserve">
+    <value>Email already exists!</value>
+  </data>
+  <data name="LastActiveAdmin" xml:space="preserve">
+    <value>This is the last active Admin account. Assign another active Admin first.</value>
+  </data>
+  <data name="RoleInactive" xml:space="preserve">
+    <value>The selected role is inactive and cannot be assigned.</value>
+  </data>
+  <data name="RoleNotFound" xml:space="preserve">
+    <value>Select a valid role.</value>
+  </data>
+  <data name="UserAccountChanged" xml:space="preserve">
+    <value>This account was changed by someone else after you opened it. Reload the page and try again.</value>
+  </data>
+  <data name="UserCodeExists" xml:space="preserve">
+    <value>User ID already exists!</value>
+  </data>
 </root>

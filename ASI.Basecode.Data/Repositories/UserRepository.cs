@@ -32,5 +32,16 @@ namespace ASI.Basecode.Data.Repositories
             UnitOfWork.SaveChanges();
         }
 
+        public bool UserCodeExists(string userCode, int? excludeUserId = null)
+        {
+            var query = this.GetDbSet<User>().Where(user => user.UserCode == userCode);
+
+            if (excludeUserId.HasValue)
+            {
+                query = query.Where(user => user.UserId != excludeUserId.Value);
+            }
+
+            return query.Any();
+        }
     }
 }

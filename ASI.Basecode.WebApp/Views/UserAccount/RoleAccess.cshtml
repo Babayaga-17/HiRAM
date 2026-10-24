@@ -1,0 +1,76 @@
+@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.WebApp.Authorization
+@model List<RoleListItem>
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Role Access";
+    ViewData["TopbarPage"] = "Role access";
+    var loadError = TempData["UserAccountLoadError"] as string;
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/user-account.css" asp-append-version="true" />
+}
+<div class="page-heading">
+    <div>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMINISTRATION</div>
+        <h1>Role access</h1>
+        <p>Menus and functions each role can use. Access is granted by role: change a user's role to change what they can open.</p>
+    </div>
+    <a class="button button-secondary heading-action" asp-controller="UserAccount" asp-action="Index"><svg class="icon"><use href="#i-users" /></svg>Manage users</a>
+</div>
+
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">@loadError</div>
+}
+else
+{
+    <section class="stats-grid" aria-label="Roles">
+        @foreach (var role in Model)
+        {
+            <div class="stat-card">
+                <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-shield" /></svg></span>
+                <span class="stat-copy">
+                    <span>@role.RoleName @(role.IsActive ? "" : "(inactive)")</span>
+                    <strong>@role.ActiveAccountCount</strong>
+                    <small>active of @role.TotalAccountCount accounts · @role.Description</small>
+                </span>
+            </div>
+        }
+    </section>
+
+    <section class="content-card category-list" aria-labelledby="accessHeading">
+        <div class="card-heading">
+            <div><h2 id="accessHeading">Menu and function access</h2><p>Enforced on the server for every page and form, not only by hiding menu items.</p></div>
+        </div>
+        <div class="table-scroll">
+            <table class="category-table access-table">
+                <thead>
+                    <tr>
+                        <th scope="col">MENU / FUNCTION</th>
+                        @foreach (var role in Model)
+                        {
+                            <th scope="col" class="access-cell">@role.RoleName.ToUpperInvariant()</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in MenuAccess.Entries)
+                    {
+                        <tr>
+                            <td><div class="category-name-cell"><span class="category-tile"><svg class="icon"><use href="#i-layers" /></svg></span><span><strong>@entry.Label</strong><small>@entry.Description</small></span></div></td>
+                            @foreach (var role in Model)
+                            {
+                                var allowed = entry.AllowsRole(role.RoleName);
+                                <td class="access-cell">
+                                    <span class="status-badge @(allowed ? "status-active" : "status-inactive")"><span></span>@(allowed ? "Allowed" : "No access")</span>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="table-footer"><span>Menus marked "Soon" in the sidebar are not built yet and are not listed.</span></div>
+    </section>
+}

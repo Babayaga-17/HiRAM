@@ -1,0 +1,135 @@
+@using ASI.Basecode.Resources.Constants
+@using ASI.Basecode.Services.ServiceModels
+@model UserAccountFormViewModel
+@{
+    var roles = ViewData["Roles"] as List<RoleListItem> ?? new List<RoleListItem>();
+    var isSelf = ViewData["IsSelf"] as bool? == true;
+}
+<form class="category-form" id="userAccountForm" asp-controller="UserAccount" asp-action="@(Model.IsEdit ? "Edit" : "Create")" method="post" novalidate>
+    <div asp-validation-summary="ModelOnly"></div>
+    <input asp-for="UserId" type="hidden" />
+    <input asp-for="Version" type="hidden" />
+
+    <div class="form-card-header">
+        <span class="form-section-icon"><svg class="icon"><use href="#i-user" /></svg></span>
+        <div><h2>Personal information</h2><p>Details used to identify this user.</p></div>
+    </div>
+
+    <div class="form-grid">
+        <div class="form-group">
+            <label for="UserCode">User ID <span class="required">*</span></label>
+            <input asp-for="UserCode" type="text" maxlength="30" placeholder="e.g. 2026-10482" required />
+            <span asp-validation-for="UserCode"></span>
+            <small>Student, faculty, or staff ID. Must be unique.</small>
+        </div>
+        <div class="form-group">
+            <label for="ContactNumber">Contact number</label>
+            <input asp-for="ContactNumber" type="text" maxlength="30" placeholder="e.g. 0917 123 4567" />
+            <span asp-validation-for="ContactNumber"></span>
+        </div>
+        <div class="form-group">
+            <label for="FirstName">First name <span class="required">*</span></label>
+            <input asp-for="FirstName" type="text" maxlength="100" required />
+            <span asp-validation-for="FirstName"></span>
+        </div>
+        <div class="form-group">
+            <label for="MiddleName">Middle name</label>
+            <input asp-for="MiddleName" type="text" maxlength="100" />
+            <span asp-validation-for="MiddleName"></span>
+        </div>
+        <div class="form-group">
+            <label for="LastName">Last name <span class="required">*</span></label>
+            <input asp-for="LastName" type="text" maxlength="100" required />
+            <span asp-validation-for="LastName"></span>
+        </div>
+        <div class="form-group">
+            <label for="Suffix">Suffix</label>
+            <input asp-for="Suffix" type="text" maxlength="20" placeholder="e.g. Jr." />
+            <span asp-validation-for="Suffix"></span>
+        </div>
+    </div>
+
+    <div class="form-divider"></div>
+
+    <div class="form-card-header">
+        <span class="form-section-icon"><svg class="icon"><use href="#i-shield" /></svg></span>
+        <div><h2>Account and role</h2><p>Sign-in email, role, and account status.</p></div>
+    </div>
+
+    <div class="form-grid">
+        <div class="form-group form-group-wide">
+            <label for="Email">Email <span class="required">*</span></label>
+            <input asp-for="Email" type="email" maxlength="255" placeholder="name@school.edu" required />
+            <span asp-validation-for="Email"></span>
+            <small>Used to sign in. Must be unique.</small>
+        </div>
+        <div class="form-group">
+            <label for="RoleId">Role <span class="required">*</span></label>
+            @if (isSelf)
+            {
+                <input asp-for="RoleId" type="hidden" />
+                <select id="RoleId" disabled>
+                    @foreach (var role in roles)
+                    {
+                        <option selected="@(Model.RoleId == role.RoleId)">@role.RoleName</option>
+                    }
+                </select>
+                <small>You cannot change your own role.</small>
+            }
+            else
+            {
+                <select asp-for="RoleId" required>
+                    <option value="">Select a role</option>
+                    @foreach (var role in roles)
+                    {
+                        <option value="@role.RoleId">@(role.IsActive ? role.RoleName : role.RoleName + " (inactive)")</option>
+                    }
+                </select>
+                <small>Controls which menus and functions the user can open.</small>
+            }
+            <span asp-validation-for="RoleId"></span>
+        </div>
+        <div class="form-group">
+            <label for="AccountStatus">Status <span class="required">*</span></label>
+            @if (isSelf)
+            {
+                <input asp-for="AccountStatus" type="hidden" />
+                <select id="AccountStatus" disabled><option>@Model.AccountStatus</option></select>
+                <small>You cannot deactivate your own account.</small>
+            }
+            else
+            {
+                <select asp-for="AccountStatus">
+                    @foreach (var status in AccountStatuses.All)
+                    {
+                        <option value="@status">@status</option>
+                    }
+                </select>
+                <small>Only Active accounts can sign in.</small>
+            }
+            <span asp-validation-for="AccountStatus"></span>
+        </div>
+
+        @if (!Model.IsEdit)
+        {
+            <div class="form-group">
+                <label for="Password">Password <span class="required">*</span></label>
+                <input asp-for="Password" type="password" maxlength="64" autocomplete="new-password" required />
+                <span asp-validation-for="Password"></span>
+            </div>
+            <div class="form-group">
+                <label for="ConfirmPassword">Confirm password <span class="required">*</span></label>
+                <input asp-for="ConfirmPassword" type="password" maxlength="64" autocomplete="new-password" required />
+                <span asp-validation-for="ConfirmPassword"></span>
+            </div>
+            <div class="form-group form-group-wide"><small>@UserAccountFormViewModel.PasswordRuleText</small></div>
+        }
+    </div>
+
+    <div class="form-actions">
+        <a class="button button-secondary" asp-controller="UserAccount" asp-action="@(Model.IsEdit ? "Details" : "Index")" asp-route-id="@(Model.IsEdit ? Model.UserId.ToString() : null)">Cancel</a>
+        <button class="button button-primary" type="submit" id="userAccountSubmit">
+            <svg class="icon"><use href="#i-check" /></svg>@(Model.IsEdit ? "Save changes" : "Create user")
+        </button>
+    </div>
+</form>
