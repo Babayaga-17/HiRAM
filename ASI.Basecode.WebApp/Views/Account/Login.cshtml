@@ -107,7 +107,6 @@
                       asp-controller="Account"
                       asp-action="Login"
                       method="post">
-                    @Html.AntiForgeryToken()
 
                     <input type="hidden"
                            name="returnUrl"
@@ -159,7 +158,7 @@
 
                     <div class="form-options">
                         <label class="remember-option">
-                            <input type="checkbox" name="RememberMe" />
+                            <input asp-for="RememberMe" />
                             <span>Remember me</span>
                         </label>
                         <a class="forgot-link" asp-controller="Account" asp-action="ForgotPassword">Forgot password?</a>
