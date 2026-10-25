@@ -18,13 +18,13 @@ namespace ASI.Basecode.Services.Services
         private readonly IPasswordResetRepository _passwordResetRepository;
         private readonly IConfiguration _configuration;
 
-        public PasswordResetService(IPasswordResetRepository repo, IConfiguration config)
+        public PasswordResetService(IPasswordResetRepository passwordResetRepository, IConfiguration configuration)
         {
-            _passwordResetRepository = repo;
-            _configuration = config;
+            _passwordResetRepository = passwordResetRepository;
+            _configuration = configuration;
         }
 
-        public async Task<bool> SendResetCodeAsync(string email, string createdBy)
+        public async Task<bool> SendResetCodeAsync(string email)
         {
             var account = _passwordResetRepository.GetAccountByEmail(email?.Trim());
             if (account == null) return false;
@@ -36,7 +36,7 @@ namespace ASI.Basecode.Services.Services
                 AccountId = account.AccountId,
                 TokenHash = Hash(code),
                 ExpiresAt = DateTime.UtcNow.AddMinutes(10),
-                CreatedBy = "UserId",
+                CreatedBy = "PasswordReset",
                 CreatedAt = DateTime.UtcNow
             });
 
@@ -58,22 +58,35 @@ namespace ASI.Basecode.Services.Services
             return true;
         }
 
-        public bool ResetPassword(string email, string code, string newPassword, string updatedBy)
+        // Step 1: only checks the code. Does NOT use up the token yet.
+        public int? VerifyCode(string email, string code)
+        {
+            var account = _passwordResetRepository.GetAccountByEmail(email?.Trim());
+            if (account == null || string.IsNullOrWhiteSpace(code)) return null;
+
+            var token = _passwordResetRepository.GetLatestActiveToken(account.AccountId);
+            if (token == null || token.TokenHash != Hash(code.Trim())) return null;
+
+            return token.TokenId;
+        }
+
+        // Step 2: saves the new password, then uses up the token.
+        public bool SetNewPassword(string email, int tokenId, string newPassword)
         {
             var account = _passwordResetRepository.GetAccountByEmail(email?.Trim());
             if (account == null) return false;
 
             var token = _passwordResetRepository.GetLatestActiveToken(account.AccountId);
-            if (token == null || token.TokenHash != Hash(code)) return false;
+            if (token == null || token.TokenId != tokenId) return false;
 
             account.PasswordHash = PasswordManager.EncryptPassword(newPassword);
             account.FailedLoginAttempts = 0;
             account.LockoutEndAt = null;
-            account.UpdatedBy = updatedBy;
+            account.UpdatedBy = "PasswordReset";
             account.UpdatedAt = DateTime.UtcNow;
 
             token.UsedAt = DateTime.UtcNow;
-            token.UpdatedBy = updatedBy;
+            token.UpdatedBy = "PasswordReset";
             token.UpdatedAt = DateTime.UtcNow;
 
             _passwordResetRepository.Save();

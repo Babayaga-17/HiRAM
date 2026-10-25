@@ -150,3 +150,41 @@ body {
   .form-head h2 { font-size: 1.7rem; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+/* ADD to the bottom of wwwroot/css/hiram-auth.css */
+.btn-row {
+    display: flex;
+    gap: 12px;
+}
+
+    .btn-row .btn-primary {
+        flex: 1;
+        width: auto;
+    }
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+    padding: 0 24px;
+    border-radius: 14px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    color: var(--text);
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    transition: border-color .15s, color .15s;
+}
+
+    .btn-secondary:hover {
+        border-color: var(--indigo);
+        color: var(--indigo);
+    }
+
+    .btn-secondary:focus-visible {
+        outline: 3px solid var(--focus-ring);
+        outline-offset: 2px;
+    }
