@@ -1,0 +1,65 @@
+/* User and Role Management additions on top of app.css. */
+
+.role-pill {
+    display: inline-flex;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: #efedff;
+    color: var(--purple-dark);
+    font-size: 11px;
+    font-weight: 700
+}
+
+/* Account statuses beyond Active/Inactive (CK_Accounts_status). */
+.status-suspended {
+    color: #b26b00;
+    background: #fff4dc
+}
+
+.status-disabled {
+    color: #c23b4a;
+    background: #ffedef
+}
+
+.account-actions-card .button {
+    width: 100%;
+    justify-content: center;
+    margin-top: 12px
+}
+
+.account-actions-card form {
+    margin: 0
+}
+
+.temp-password-card {
+    max-width: 640px
+}
+
+.temp-password {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 18px 0 12px;
+    padding: 14px 16px;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    background: var(--background)
+}
+
+    .temp-password code {
+        color: var(--ink);
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: .06em;
+        word-break: break-all
+    }
+
+.temp-password-note {
+    color: var(--muted);
+    font-size: 12px
+}
+
+.access-table .access-cell {
+    text-align: center
+}

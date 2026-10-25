@@ -12,5 +12,6 @@ namespace ASI.Basecode.Data.Interfaces
         IQueryable<User> GetUsers();
         bool UserExists(int userId);
         void AddUser(User user);
+        bool UserCodeExists(string userCode, int? excludeUserId = null);
     }
 }

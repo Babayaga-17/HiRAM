@@ -53,6 +53,20 @@ namespace ASI.Basecode.WebApp
                 {
                     policy.RequireAuthenticatedUser();
                 });
+
+                // WBS 5.19 Menu/Function access: one role-based policy per restricted menu (see Authorization/MenuAccess.cs).
+                foreach (var entry in ASI.Basecode.WebApp.Authorization.MenuAccess.Entries)
+                {
+                    if (entry.PolicyName == null || entry.Roles == null || options.GetPolicy(entry.PolicyName) != null)
+                        continue;
+
+                    var roles = System.Linq.Enumerable.ToArray(entry.Roles);
+                    options.AddPolicy(entry.PolicyName, policy =>
+                    {
+                        policy.RequireAuthenticatedUser();
+                        policy.RequireRole(roles);
+                    });
+                }
             });
 
             this._services.AddMvc(options =>

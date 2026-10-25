@@ -8,6 +8,14 @@
 
     var isDashboardPage = currentController == "Dashboard";
     var isCategoriesPage = currentController == "EquipmentCategory";
+    var isEquipmentPage = currentController == "Equipment";
+
+    // WBS 5.1 User and Role Management: same access rules the server enforces (Authorization/MenuAccess.cs).
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var canManageUsers = ASI.Basecode.WebApp.Authorization.MenuAccess.CanAccess(User, "UserAccount");
+    var isUsersPage = currentController == "UserAccount" && currentAction != "RoleAccess";
+    var isRoleAccessPage = currentController == "UserAccount" && currentAction == "RoleAccess";
+    var isBrowsePage = currentController == "BrowseEquipment";
 }
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Main navigation">
@@ -31,9 +39,13 @@
         {
             <span class="nav-caption nav-caption-spaced">BORROWING</span>
 
-            <span class="nav-link nav-link-disabled" aria-disabled="true">
-                Browse Equipment <span class="nav-soon">Soon</span>
-            </span>
+            <a class="@(isBrowsePage ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="BrowseEquipment"
+               asp-action="Index"
+               aria-current="@(isBrowsePage ? "page" : null)">
+                <svg class="icon"><use href="#i-box" /></svg>
+                Browse Equipment
+            </a>
 
             <span class="nav-link nav-link-disabled" aria-disabled="true">
                 My Reservations <span class="nav-soon">Soon</span>
@@ -48,9 +60,13 @@
         {
             <span class="nav-caption nav-caption-spaced">MANAGE</span>
 
-            <span class="nav-link nav-link-disabled" aria-disabled="true">
-                Equipment <span class="nav-soon">Soon</span>
-            </span>
+            <a class="@(isEquipmentPage ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="Equipment"
+               asp-action="Index"
+               aria-current="@(isEquipmentPage ? "page" : null)">
+                <svg class="icon"><use href="#i-box" /></svg>
+                Equipment
+            </a>
 
             <a class="@(isCategoriesPage ? "nav-link nav-link-active" : "nav-link")"
                asp-controller="EquipmentCategory"
@@ -79,9 +95,24 @@
         {
             <span class="nav-caption nav-caption-spaced">ADMINISTRATION</span>
 
-            <span class="nav-link nav-link-disabled" aria-disabled="true">
-                Users &amp; Roles <span class="nav-soon">Soon</span>
-            </span>
+            @if (canManageUsers)
+            {
+                <a class="@(isUsersPage ? "nav-link nav-link-active" : "nav-link")"
+                   asp-controller="UserAccount"
+                   asp-action="Index"
+                   aria-current="@(isUsersPage ? "page" : null)">
+                    <svg class="icon"><use href="#i-users" /></svg>
+                    Users &amp; Roles
+                </a>
+
+                <a class="@(isRoleAccessPage ? "nav-link nav-link-active" : "nav-link")"
+                   asp-controller="UserAccount"
+                   asp-action="RoleAccess"
+                   aria-current="@(isRoleAccessPage ? "page" : null)">
+                    <svg class="icon"><use href="#i-shield" /></svg>
+                    Role Access
+                </a>
+            }
 
             <span class="nav-link nav-link-disabled" aria-disabled="true">
                 Audit Logs <span class="nav-soon">Soon</span>
