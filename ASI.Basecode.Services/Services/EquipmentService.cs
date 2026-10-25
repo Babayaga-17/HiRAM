@@ -14,7 +14,7 @@ namespace ASI.Basecode.Services.Services
 {
     public class EquipmentService : IEquipmentService
     {
-        private static readonly string[] BlockingReservationStatuses = { "Approved", "Borrowed", "Overdue" };
+        private static readonly string[] BlockingReservationStatuses = { "Pending", "Approved", "Borrowed", "Overdue" };
         private static readonly string[] BorrowableConditions = { "Excellent", "Good", "Fair" };
 
         private readonly IEquipmentRepository _equipmentRepository;
@@ -230,7 +230,7 @@ namespace ASI.Basecode.Services.Services
             return _equipmentRepository.GetEquipments();
         }
 
-        // Approved, borrowed and overdue reservations plus scheduled maintenance that overlap [start, end).
+        // Pending, approved, borrowed and overdue reservations plus maintenance that overlap [start, end).
         // Only dates are returned. Borrower names are never exposed.
         private List<EquipmentBusyPeriod> GetBusyPeriods(int equipmentId, DateTime start, DateTime end)
         {
@@ -246,7 +246,8 @@ namespace ASI.Basecode.Services.Services
                     Start = reservationItem.Reservation.StartDateTime,
                     End = reservationItem.Reservation.ExpectedReturnDateTime,
                     Type = "Reservation",
-                    Label = reservationItem.Reservation.Status == "Approved" ? "Reserved" : "In use"
+                    Label = reservationItem.Reservation.Status == "Pending" || reservationItem.Reservation.Status == "Approved"
+                        ? "Reserved" : "In use"
                 })
                 .ToList();
 
@@ -313,7 +314,9 @@ namespace ASI.Basecode.Services.Services
                 AcquisitionCost = equipment.AcquisitionCost,
                 IsActive = equipment.IsActive,
                 NextReservationStart = equipment.ReservationItems
-                    .Where(item => !item.IsReturned && item.Reservation.Status == "Approved" && item.Reservation.StartDateTime > now)
+                    .Where(item => !item.IsReturned
+                        && (item.Reservation.Status == "Pending" || item.Reservation.Status == "Approved")
+                        && item.Reservation.StartDateTime > now)
                     .Min(item => (DateTime?)item.Reservation.StartDateTime),
                 Status =
                     (!equipment.IsActive || equipment.ConditionStatus == "Lost" || equipment.ConditionStatus == "Damaged")
@@ -326,7 +329,7 @@ namespace ASI.Basecode.Services.Services
                     : equipment.ReservationItems.Any(item => !item.IsReturned
                             && (item.Reservation.Status == "Borrowed" || item.Reservation.Status == "Overdue"))
                         ? EquipmentAvailability.Borrowed
-                    : equipment.ReservationItems.Any(item => item.Reservation.Status == "Approved"
+                    : equipment.ReservationItems.Any(item => (item.Reservation.Status == "Pending" || item.Reservation.Status == "Approved")
                             && item.Reservation.StartDateTime <= now
                             && item.Reservation.ExpectedReturnDateTime > now)
                         ? EquipmentAvailability.Reserved

@@ -15,7 +15,8 @@
     var canManageUsers = ASI.Basecode.WebApp.Authorization.MenuAccess.CanAccess(User, "UserAccount");
     var isUsersPage = currentController == "UserAccount" && currentAction != "RoleAccess";
     var isRoleAccessPage = currentController == "UserAccount" && currentAction == "RoleAccess";
-    var isBrowsePage = currentController == "BrowseEquipment";
+    var isBrowsePage = currentController == "BrowseEquipment" || currentController == "EquipmentReservation";
+    var isBorrowerProfilesPage = currentController == "BorrowerProfile";
 }
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Main navigation">
@@ -103,6 +104,14 @@
                    aria-current="@(isUsersPage ? "page" : null)">
                     <svg class="icon"><use href="#i-users" /></svg>
                     Users &amp; Roles
+                </a>
+
+                <a class="@(isBorrowerProfilesPage ? "nav-link nav-link-active" : "nav-link")"
+                   asp-controller="BorrowerProfile"
+                   asp-action="Index"
+                   aria-current="@(isBorrowerProfilesPage ? "page" : null)">
+                    <svg class="icon"><use href="#i-users" /></svg>
+                    Borrowers
                 </a>
 
                 <a class="@(isRoleAccessPage ? "nav-link nav-link-active" : "nav-link")"

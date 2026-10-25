@@ -97,7 +97,17 @@ else
                 <button type="button" class="text-button" id="clearSelection">Clear selection</button>
             </div>
             <ul class="selection-chips" id="selectionChips"></ul>
-            <p class="selection-tray-note">You will be able to request these items once reservations are available.</p>
+            <div class="selection-tray-footer">
+                <p class="selection-tray-note">
+                    Ready to reserve? Choose your pickup and return schedule on the next page.
+                </p>
+
+                <a class="button button-primary"
+                   asp-controller="EquipmentReservation"
+                   asp-action="Create">
+                    Continue to reservation
+                </a>
+            </div>
         </section>
 
         <div class="browse-grid" id="browseGrid">
