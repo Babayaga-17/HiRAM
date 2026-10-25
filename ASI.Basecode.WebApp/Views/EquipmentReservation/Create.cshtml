@@ -1,139 +1,16 @@
-@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Reservation
 @model ReservationFormModel
 
 @{
     Layout = "_AppLayout";
     ViewData["Title"] = "Equipment Reservation";
     ViewData["TopbarPage"] = "Equipment reservation";
-
-    var selectionError = ViewData["SelectionError"] as string;
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/equipment-reservation.css" asp-append-version="true" />
+    <link rel="stylesheet"
+          href="~/css/equipment-reservation.css"
+          asp-append-version="true" />
 }
 
-<div class="page-heading form-page-heading">
-    <div>
-        <a class="back-link" asp-controller="BrowseEquipment" asp-action="Index">
-            <svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg>Back to equipment
-        </a>
-        <h1>Reserve equipment</h1>
-        <p>Check your selected items and tell us when you need them.</p>
-    </div>
-</div>
-
-<ol class="reservation-steps" aria-label="Reservation steps">
-    <li><span aria-hidden="true">1</span>Select equipment</li>
-    <li class="is-current" aria-current="step"><span aria-hidden="true">2</span>Reservation details</li>
-</ol>
-
-@if (selectionError != null)
-{
-    <section class="content-card reservation-empty" role="alert">
-        <h2>Review your selection</h2>
-        <p>@selectionError</p>
-        <a class="button button-primary"
-           asp-controller="BrowseEquipment"
-           asp-action="Index">
-            Back to equipment
-        </a>
-    </section>
-}
-else if (Model.Equipment.Count == 0)
-{
-    <section class="content-card reservation-empty">
-        <h2>Select equipment first</h2>
-        <p>Choose the equipment you want to reserve.</p>
-        <a class="button button-primary"
-           asp-controller="BrowseEquipment"
-           asp-action="Index">
-            Browse equipment
-        </a>
-    </section>
-}
-else
-{
-    <div class="reservation-layout">
-        <section class="content-card form-card" aria-labelledby="reservationDetailsHeading">
-            <div class="form-card-header">
-                <span class="form-section-icon"><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg></span>
-                <div>
-                    <h2 id="reservationDetailsHeading">Reservation details</h2>
-                    <p>Choose your borrowing schedule and describe how you will use the equipment.</p>
-                </div>
-            </div>
-
-            <form asp-action="Create" asp-controller="EquipmentReservation" method="post">
-            @Html.AntiForgeryToken()
-            <div asp-validation-summary="All" class="reservation-errors" role="alert"></div>
-            @foreach (var item in Model.Equipment)
-            {
-                <input type="hidden" name="EquipmentIds" value="@item.EquipmentId" />
-            }
-            <div class="form-grid">
-                <div class="form-group form-group-wide">
-                    <label for="reservationBorrower">Borrower</label>
-                    <input id="reservationBorrower" type="text" value="@User.Identity?.Name" readonly />
-                    <small>This reservation is for your signed-in account.</small>
-                </div>
-                <div class="form-group">
-                    <label asp-for="Pickup">Pickup date and time <span class="required" aria-hidden="true">*</span></label>
-                    <input asp-for="Pickup" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" required />
-                </div>
-                <div class="form-group">
-                    <label asp-for="ExpectedReturn">Expected return date and time <span class="required" aria-hidden="true">*</span></label>
-                    <input asp-for="ExpectedReturn" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" required aria-describedby="returnHint" />
-                    <small id="returnHint">Choose a time after your pickup.</small>
-                </div>
-                <div class="form-group form-group-wide">
-                    <label asp-for="Purpose">Purpose of borrowing <span class="required" aria-hidden="true">*</span></label>
-                    <textarea asp-for="Purpose" rows="5" maxlength="500" required placeholder="For example: A projector for our class presentation. Include the activity and where the equipment will be used."></textarea>
-                </div>
-            </div>
-
-            <div class="reservation-preview-note">
-                <svg class="icon" aria-hidden="true"><use href="#i-info" /></svg>
-                <p>Times are in Philippine time. Availability is checked when you submit. Your request will be sent to the custodian for approval.</p>
-            </div>
-            <div class="form-actions">
-                <a class="button button-secondary" asp-controller="BrowseEquipment" asp-action="Index">Back to equipment</a>
-                <button class="button button-primary" type="submit">Submit reservation</button>
-            </div>
-            </form>
-        </section>
-
-        <aside class="reservation-summary" aria-labelledby="selectedEquipmentHeading">
-            <section class="content-card reservation-summary-card">
-                <div class="reservation-summary-heading">
-                    <h2 id="selectedEquipmentHeading">Selected equipment</h2>
-                    <span class="reservation-item-count">
-                        @Model.Equipment.Count @(Model.Equipment.Count == 1 ? "item" : "items")
-                    </span>
-                </div>
-                <ul class="reservation-items">
-                    @foreach (var item in Model.Equipment)
-                    {
-                        <li>
-                            <span class="form-section-icon">
-                                <svg class="icon" aria-hidden="true">
-                                    <use href="#i-box" />
-                                </svg>
-                            </span>
-                            <div>
-                                <strong>@item.EquipmentName</strong>
-                                <small>@item.EquipmentCode</small>
-                            </div>
-                        </li>
-                    }
-                </ul>
-                <a class="reservation-change-link" asp-controller="BrowseEquipment" asp-action="Index">Change selected equipment</a>
-            </section>
-            <section class="reservation-reminder">
-                <h2>Before you reserve</h2>
-                <p>The same pickup and return schedule applies to all selected items.</p>
-                <p>A reservation request will need approval before you can collect the equipment.</p>
-            </section>
-        </aside>
-    </div>
-}
+<partial name="_ReservationPage" model="Model" />

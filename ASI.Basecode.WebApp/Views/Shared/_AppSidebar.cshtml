@@ -15,7 +15,8 @@
     var canManageUsers = ASI.Basecode.WebApp.Authorization.MenuAccess.CanAccess(User, "UserAccount");
     var isUsersPage = currentController == "UserAccount" && currentAction != "RoleAccess";
     var isRoleAccessPage = currentController == "UserAccount" && currentAction == "RoleAccess";
-    var isBrowsePage = currentController == "BrowseEquipment" || currentController == "EquipmentReservation";
+    var isMyReservationsPage = currentController == "EquipmentReservation" && (currentAction == "Index" || currentAction == "Details");
+    var isBrowsePage = currentController == "BrowseEquipment" || (currentController == "EquipmentReservation" && !isMyReservationsPage);
     var isBorrowerProfilesPage = currentController == "BorrowerProfile";
 }
 
@@ -48,9 +49,13 @@
                 Browse Equipment
             </a>
 
-            <span class="nav-link nav-link-disabled" aria-disabled="true">
-                My Reservations <span class="nav-soon">Soon</span>
-            </span>
+            <a class="@(isMyReservationsPage ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="EquipmentReservation"
+               asp-action="Index"
+               aria-current="@(isMyReservationsPage ? "page" : null)">
+                <svg class="icon"><use href="#i-calendar" /></svg>
+                My Reservations
+            </a>
 
             <span class="nav-link nav-link-disabled" aria-disabled="true">
                 My Borrowing History <span class="nav-soon">Soon</span>

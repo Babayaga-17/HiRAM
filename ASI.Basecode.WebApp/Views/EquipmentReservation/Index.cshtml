@@ -1,0 +1,193 @@
+@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Reservation
+@model List<ReservationViewModel>
+
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "My Reservations";
+    ViewData["TopbarPage"] = "My reservations";
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/my-reservations.css"
+          asp-append-version="true" />
+}
+
+<div class="page-heading reservations-page-heading">
+    <div>
+        <h1>My reservations</h1>
+        <p>Keep track of your equipment requests and borrowing schedule.</p>
+    </div>
+
+    <a class="button button-primary"
+       asp-controller="BrowseEquipment"
+       asp-action="Index">
+        <svg class="icon" aria-hidden="true">
+            <use href="#i-box" />
+        </svg>
+        Browse equipment
+    </a>
+</div>
+
+<section class="reservations-list"
+         aria-labelledby="pendingReservationsHeading">
+
+    <div class="reservations-list-heading">
+        <h2 id="pendingReservationsHeading">
+            Pending reservations
+            <span class="reservations-count">@Model.Count</span>
+        </h2>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <section class="content-card reservation-detail-card">
+            <h2>No pending reservations</h2>
+            <p>Your requests awaiting approval will appear here.</p>
+        </section>
+    }
+    else
+    {
+        <div class="reservations-guidance">
+            <span class="reservations-guidance-icon">
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-info" />
+                </svg>
+            </span>
+            <div>
+                <strong>Waiting for the custodian's approval</strong>
+                <p>
+                    A pending request is not yet approved for pickup.
+                    Wait for approval before collecting your equipment.
+                </p>
+            </div>
+        </div>
+
+        @foreach (var reservation in Model)
+        {
+            <article class="content-card reservation-request"
+                     aria-labelledby="reservation-@reservation.ReservationId">
+
+                <header class="reservation-request-header">
+                    <div>
+                        <div class="reservation-reference-row">
+                            <h3 id="reservation-@reservation.ReservationId">
+                                @reservation.ReservationNumber
+                            </h3>
+
+                            <a class="reservation-view-button"
+                               asp-controller="EquipmentReservation"
+                               asp-action="Details"
+                               asp-route-id="@reservation.ReservationId"
+                               aria-label="View reservation @reservation.ReservationNumber"
+                               title="View reservation">
+                                <svg class="icon" aria-hidden="true">
+                                    <use href="#i-eye" />
+                                </svg>
+                            </a>
+                        </div>
+
+                        <p>
+                            Requested
+                            <time datetime="@reservation.RequestedAt.ToString("s")">
+                                @reservation.RequestedAt.ToString("MMM d, yyyy 'at' h:mm tt")
+                            </time>
+                        </p>
+                    </div>
+
+                    <div class="reservation-header-actions">
+                        <span class="reservation-pending-badge">
+                            <span aria-hidden="true"></span>
+                            Pending approval
+                        </span>
+                    </div>
+                </header>
+
+                <div class="reservation-request-body">
+                    <div class="reservation-equipment">
+                        <span class="reservation-equipment-icon">
+                            <svg class="icon" aria-hidden="true">
+                                <use href="#i-box" />
+                            </svg>
+                        </span>
+
+                        <div>
+                            <span class="reservation-field-label">
+                                Equipment · @reservation.Equipment.Count
+                                @(reservation.Equipment.Count == 1 ? "item" : "items")
+                            </span>
+
+                            <ul>
+                                @foreach (var item in reservation.Equipment)
+                                {
+                                    <li>
+                                        @item.EquipmentName
+                                        <small>@item.EquipmentCode</small>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </div>
+
+                    <dl class="reservation-request-schedule">
+                        <div>
+                            <dt>Pickup</dt>
+                            <dd>
+                                <time datetime="@reservation.StartDateTime.ToString("s")">
+                                    @reservation.StartDateTime.ToString("MMM d, yyyy")
+                                    <span>
+                                        @reservation.StartDateTime.ToString("h:mm tt")
+                                    </span>
+                                </time>
+                            </dd>
+                        </div>
+
+                        <div>
+                            <dt>Expected return</dt>
+                            <dd>
+                                <time datetime="@reservation.ExpectedReturnDateTime.ToString("s")">
+                                    @reservation.ExpectedReturnDateTime.ToString("MMM d, yyyy")
+                                    <span>
+                                        @reservation.ExpectedReturnDateTime.ToString("h:mm tt")
+                                    </span>
+                                </time>
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div class="reservation-action-links">
+                    <a class="button button-secondary"
+                       asp-controller="EquipmentReservation"
+                       asp-action="Edit"
+                       asp-route-id="@reservation.ReservationId">
+                        Edit reservation
+                    </a>
+
+                    <a class="button reservation-cancel-link"
+                       asp-controller="EquipmentReservation"
+                       asp-action="Cancel"
+                       asp-route-id="@reservation.ReservationId">
+                        Cancel reservation
+                    </a>
+                </div>
+
+                <details class="reservation-request-details">
+                    <summary>Reservation details</summary>
+
+                    <div class="reservation-request-details-body">
+                        <h4>Purpose of borrowing</h4>
+                        <p>@reservation.Purpose</p>
+
+                        <h4>Request status</h4>
+                        <p>
+                            Submitted and waiting for review.
+                            All items use the pickup and return schedule above.
+                        </p>
+                    </div>
+                </details>
+            </article>
+        }
+    }
+</section>

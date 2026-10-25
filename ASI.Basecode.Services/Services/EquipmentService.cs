@@ -173,7 +173,7 @@ namespace ASI.Basecode.Services.Services
                 .SingleOrDefault();
         }
 
-        public EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end)
+        public EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null)
         {
             var result = new EquipmentAvailabilityResult();
 
@@ -212,7 +212,7 @@ namespace ASI.Basecode.Services.Services
                 return result;
             }
 
-            result.Periods = GetBusyPeriods(equipmentId, start, end);
+            result.Periods = GetBusyPeriods(equipmentId, start, end, excludeReservationId);
             result.Slots = GetFreeSlots(result.Periods, start, end);
 
             if (result.Periods.Any(period => period.Type == "Maintenance"))
@@ -232,15 +232,19 @@ namespace ASI.Basecode.Services.Services
 
         // Pending, approved, borrowed and overdue reservations plus maintenance that overlap [start, end).
         // Only dates are returned. Borrower names are never exposed.
-        private List<EquipmentBusyPeriod> GetBusyPeriods(int equipmentId, DateTime start, DateTime end)
+        private List<EquipmentBusyPeriod> GetBusyPeriods(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null)
         {
             var reservations = _equipmentRepository.GetEquipments()
                 .Where(item => item.EquipmentId == equipmentId)
                 .SelectMany(item => item.ReservationItems)
-                .Where(reservationItem => !reservationItem.IsReturned
-                    && BlockingReservationStatuses.Contains(reservationItem.Reservation.Status)
+                .Where(reservationItem =>
+                    !reservationItem.IsReturned
+                    && BlockingReservationStatuses.Contains(
+                    reservationItem.Reservation.Status)
                     && reservationItem.Reservation.StartDateTime < end
-                    && reservationItem.Reservation.ExpectedReturnDateTime > start)
+                    && reservationItem.Reservation.ExpectedReturnDateTime > start
+                    && (!excludeReservationId.HasValue
+                    || reservationItem.ReservationId != excludeReservationId.Value))
                 .Select(reservationItem => new EquipmentBusyPeriod
                 {
                     Start = reservationItem.Reservation.StartDateTime,

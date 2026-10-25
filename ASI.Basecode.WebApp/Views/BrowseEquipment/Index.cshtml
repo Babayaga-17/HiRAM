@@ -13,6 +13,8 @@
     // Change the file name here if your sample image is not a .jpg.
     var placeholderUrl = Url.Content("~/images/equipment-placeholder.jpg");
     const int placeholderPhotoCount = 4;
+
+    var reservationId = (int?)ViewData["EditingReservationId"];
 }
 
 @section Styles {
@@ -46,9 +48,9 @@ else
     <div id="browseRoot"
          data-selected="@string.Join(",", selectedIds)"
          data-placeholder="@placeholderUrl"
-         data-select-url="@Url.Action("Select", "BrowseEquipment")"
-         data-deselect-url="@Url.Action("Deselect", "BrowseEquipment")"
-         data-clear-url="@Url.Action("Clear", "BrowseEquipment")">
+         data-select-url="@Url.Action("Select", "BrowseEquipment", new { reservationId })"
+         data-deselect-url="@Url.Action("Deselect", "BrowseEquipment", new { reservationId })"
+         data-clear-url="@Url.Action("Clear", "BrowseEquipment", new { reservationId })">
         @Html.AntiForgeryToken()
 
         <section class="content-card browse-toolbar-card" aria-label="Search and filter equipment">
@@ -104,7 +106,8 @@ else
 
                 <a class="button button-primary"
                    asp-controller="EquipmentReservation"
-                   asp-action="Create">
+                   asp-action="@(reservationId.HasValue ? "Edit" : "Create")"
+                   asp-route-id="@reservationId">
                     Continue to reservation
                 </a>
             </div>
@@ -135,7 +138,7 @@ else
                          data-next="@(item.NextReservationStart?.ToString("MMM d, yyyy h:mm tt"))"
                          data-images="@string.Join("|", photos)"
                          data-selectable="@(item.Status != EquipmentAvailability.Unavailable ? "true" : "false")"
-                         data-availability-url="@Url.Action("Availability", "BrowseEquipment", new { id = item.EquipmentId })">
+                         data-availability-url="@Url.Action("Availability", "BrowseEquipment", new { id = item.EquipmentId, reservationId })">
                     <div class="equipment-photo">
                         <span class="photo-fallback"><span class="photo-icon"></span>Photo placeholder</span>
                         <img class="equipment-photo-img" src="@coverUrl" alt="@(photos.Count > 0 ? "Photo of " + item.EquipmentName : "")" loading="lazy" />

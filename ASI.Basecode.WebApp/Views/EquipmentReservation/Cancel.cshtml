@@ -1,0 +1,65 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Reservation
+@model ReservationCancelFormModel
+
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Cancel Reservation";
+    ViewData["TopbarPage"] = "My reservations";
+
+    var reservation =
+        (ReservationViewModel)ViewData["Reservation"];
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/equipment-reservation.css"
+          asp-append-version="true" />
+}
+
+<div class="page-heading">
+    <div>
+        <h1>Cancel reservation?</h1>
+        <p>@reservation.ReservationNumber</p>
+    </div>
+</div>
+
+<section class="content-card form-card">
+    <p>
+        This will cancel the entire request and release its reserved
+        equipment. You will need a new reservation if you change your mind.
+    </p>
+
+    <form asp-controller="EquipmentReservation"
+          asp-action="Cancel"
+          asp-route-id="@reservation.ReservationId"
+          method="post">
+
+        <input asp-for="RowVersion" type="hidden" />
+
+        <div asp-validation-summary="All"
+             class="reservation-errors"
+             role="alert"></div>
+
+        <div class="form-group">
+            <label asp-for="Reason">
+                Cancellation reason (optional)
+            </label>
+            <textarea asp-for="Reason"
+                      rows="4"
+                      maxlength="500"></textarea>
+        </div>
+
+        <div class="form-actions">
+            <a class="button button-secondary"
+               asp-action="Details"
+               asp-route-id="@reservation.ReservationId">
+                Keep reservation
+            </a>
+            <button class="button reservation-cancel-button"
+                    type="submit">
+                Cancel reservation
+            </button>
+        </div>
+    </form>
+</section>

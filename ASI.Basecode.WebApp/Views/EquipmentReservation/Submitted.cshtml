@@ -12,5 +12,9 @@
     <h1>Reservation submitted</h1>
     <p>Your request is pending approval. Wait for approval before collecting the equipment.</p>
     <p>Reservation number: <strong>@Model</strong></p>
-    <a class="button button-primary" asp-controller="BrowseEquipment" asp-action="Index">Browse equipment</a>
+    <a class="button button-primary"
+       asp-controller="EquipmentReservation"
+       asp-action="Index">
+        My Reservations
+    </a>
 </section>
