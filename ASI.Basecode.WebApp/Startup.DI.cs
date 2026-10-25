@@ -48,6 +48,7 @@ namespace ASI.Basecode.WebApp
 
 
             // Repositories
+            this._services.AddScoped<IEquipmentReservationRepository, EquipmentReservationRepository>();
             this._services.AddScoped<IUserRepository, UserRepository>();
             this._services.AddScoped<IAccountRepository, AccountRepository>();
             this._services.AddScoped<IEquipmentCategoryRepository, EquipmentCategoryRepository>();

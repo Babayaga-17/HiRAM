@@ -3,6 +3,7 @@ using ASI.Basecode.Data;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Reservation;
 using ASI.Basecode.Services.Services;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -93,6 +94,68 @@ try
     Check(Submit(Form(start.AddDays(1), start.AddDays(1).AddHours(1))).Error != null, "Suspended borrower is rejected");
     user.BorrowerProfileUser.EligibilityStatus = "Eligible"; db.SaveChanges();
 
+    var editStart = start.AddDays(3);
+    var editable = Submit(Form(editStart, editStart.AddHours(2), first.EquipmentId, second.EquipmentId));
+    Check(editable.Error == null, "Editable reservation is created through repository");
+    var editableId = db.Reservations.Single(r => r.ReservationNumber == editable.ReservationNumber).ReservationId;
+    var reservationService = Service(db);
+    var details = reservationService.GetReservationDetails(editableId, userId);
+    Check(details.Equipment.Count == 2 && details.ReservationNumber == editable.ReservationNumber,
+        "Details map equipment and reservation fields from repository");
+    Check(reservationService.GetPendingReservations(userId).Any(r => r.ReservationId == editableId),
+        "Pending list includes borrower's request");
+    Check(reservationService.GetReservationDetails(editableId, userId + 10000) == null
+        && reservationService.GetPendingReservations(userId + 10000).Count == 0,
+        "Reads do not expose another borrower's reservations");
+
+    var originalVersion = Convert.ToBase64String(details.RowVersion);
+    ReservationEditFormModel EditForm(string version) => new()
+    {
+        EquipmentIds = new() { second.EquipmentId },
+        Pickup = editStart,
+        ExpectedReturn = editStart.AddHours(3),
+        Purpose = "Updated presentation",
+        RowVersion = version
+    };
+    Check(reservationService.Edit(editableId, EditForm(originalVersion), userId + 10000) != null,
+        "Another borrower cannot edit the reservation");
+    Check(reservationService.Edit(editableId, EditForm(originalVersion), userId) == null,
+        "Editing excludes the reservation's own slot");
+    var edited = reservationService.GetReservationDetails(editableId, userId);
+    Check(edited.Equipment.Count == 1 && edited.Equipment[0].EquipmentId == second.EquipmentId
+        && edited.ExpectedReturnDateTime == editStart.AddHours(3) && edited.Purpose == "Updated presentation",
+        "Edited schedule, purpose and equipment selection are saved together");
+    Check(reservationService.Edit(editableId, EditForm(originalVersion), userId) != null,
+        "Stale edit version is rejected");
+
+    var currentVersion = Convert.ToBase64String(edited.RowVersion);
+    var conflictingEdit = EditForm(currentVersion);
+    conflictingEdit.EquipmentIds = new() { first.EquipmentId, second.EquipmentId };
+    conflictingEdit.Pickup = start.AddHours(2);
+    conflictingEdit.ExpectedReturn = start.AddHours(3);
+    Check(reservationService.Edit(editableId, conflictingEdit, userId) != null,
+        "Edit rejects another reservation's conflicting period");
+    var unchanged = reservationService.GetReservationDetails(editableId, userId);
+    Check(unchanged.StartDateTime == editStart && unchanged.Equipment.Count == 1,
+        "Rejected edit leaves stored schedule and equipment unchanged");
+
+    Check(reservationService.Cancel(editableId, new ReservationCancelFormModel
+        { RowVersion = currentVersion }, userId + 10000) != null,
+        "Another borrower cannot cancel the reservation");
+    Check(reservationService.Cancel(editableId, new ReservationCancelFormModel
+        { RowVersion = originalVersion }, userId) != null,
+        "Stale cancellation version is rejected");
+    Check(reservationService.Cancel(editableId, new ReservationCancelFormModel
+        { RowVersion = currentVersion, Reason = "Activity postponed" }, userId) == null,
+        "Pending cancellation saves through repository");
+    var cancelled = reservationService.GetReservationDetails(editableId, userId);
+    Check(cancelled.Status == "Cancelled" && cancelled.CancelledAt.HasValue
+        && cancelled.CancellationReason == "Activity postponed"
+        && !reservationService.GetPendingReservations(userId).Any(r => r.ReservationId == editableId),
+        "Cancelled record remains in details and leaves the pending list");
+    Check(Submit(Form(editStart, editStart.AddHours(3), second.EquipmentId)).Error == null,
+        "Cancellation releases the equipment's reserved period");
+
     using var gate = new Barrier(2);
     var concurrent = await Task.WhenAll(Enumerable.Range(0, 2).Select(_ => Task.Run(() =>
     {
@@ -118,7 +181,7 @@ finally
 TestDb Open() => new(new DbContextOptionsBuilder<HiramDbContext>().UseSqlServer(connection).Options);
 Equipment NewEquipment(string code) => new() { EquipmentCode = code, EquipmentName = "Test " + code,
     ConditionStatus = "Good", IsActive = true, CreatedBy = "test" };
-EquipmentReservationService Service(HiramDbContext context) => new(context,
+EquipmentReservationService Service(HiramDbContext context) => new(new EquipmentReservationRepository(new UnitOfWork(context)),
     new EquipmentService(new EquipmentRepository(new UnitOfWork(context)), null));
 
 sealed class TestDb(DbContextOptions<HiramDbContext> options) : HiramDbContext(options)
