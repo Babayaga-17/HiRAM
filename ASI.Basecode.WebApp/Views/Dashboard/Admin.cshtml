@@ -28,7 +28,7 @@
     </article>
     <article class="stat-card">
         <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-calendar" /></svg></span>
-        <span class="stat-copy"><span>Pending requests</span><strong>&mdash;</strong><small>Reservations awaiting custodian review</small></span>
+        <span class="stat-copy"><span>Pending requests</span><strong>@(ViewBag.PendingCount is int pendingCount ? pendingCount.ToString() : "—")</strong><small>Reservations awaiting custodian review</small></span>
     </article>
 </section>
 
@@ -64,6 +64,10 @@
         <a class="button button-primary" asp-controller="EquipmentCategory" asp-action="Index">
             <svg class="icon"><use href="#i-layers" /></svg>
             Manage categories
+        </a>
+        <a class="button button-primary" asp-controller="Reservation" asp-action="Pending">
+            <svg class="icon"><use href="#i-calendar" /></svg>
+            Pending requests
         </a>
     </div>
 </section>

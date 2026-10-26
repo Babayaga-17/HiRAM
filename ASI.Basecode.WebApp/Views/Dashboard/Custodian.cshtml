@@ -1,7 +1,11 @@
+@using System.Linq
+@using ASI.Basecode.Services.ServiceModels
+@model List<PendingReservationListItem>
 @{
     Layout = "_AppLayout";
     ViewData["Title"] = "Custodian Dashboard";
     ViewData["TopbarPage"] = "Dashboard";
+    var pending = Model ?? new List<PendingReservationListItem>();
 }
 
 <div class="page-heading">
@@ -12,11 +16,10 @@
     </div>
 </div>
 
-@* UI placeholders only. Operational data will be connected when transactions are implemented. *@
 <section class="custodian-stats" aria-label="Equipment borrowing overview">
     <article class="stat-card">
         <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-calendar" /></svg></span>
-        <span class="stat-copy"><span>Pending approvals</span><strong>&mdash;</strong><small>Requests waiting for review</small></span>
+        <span class="stat-copy"><span>Pending approvals</span><strong>@pending.Count</strong><small>Requests waiting for review</small></span>
     </article>
     <article class="stat-card">
         <span class="stat-icon stat-icon-teal"><svg class="icon"><use href="#i-box" /></svg></span>
@@ -33,9 +36,57 @@
 </section>
 
 <section class="content-card custodian-list" aria-labelledby="approvalsHeading">
-    <h2 id="approvalsHeading">Pending approval queue</h2>
-    <p class="custodian-description">Reservation requests awaiting your review.</p>
-    <p class="custodian-empty">Requests with borrower details, equipment, and requested dates will appear here.</p>
+    <div class="card-heading">
+        <div>
+            <h2 id="approvalsHeading">Pending approval queue</h2>
+            <p class="custodian-description">Reservation requests awaiting your review.</p>
+        </div>
+        <a class="button button-primary" asp-controller="Reservation" asp-action="Pending">View all</a>
+    </div>
+    @if (pending.Count == 0)
+    {
+        <p class="custodian-empty">There are no pending requests right now.</p>
+    }
+    else
+    {
+        <div class="table-scroll">
+            <table class="category-table">
+                <thead>
+                    <tr>
+                        <th scope="col">REQUEST</th>
+                        <th scope="col">BORROWER</th>
+                        <th scope="col">EQUIPMENT</th>
+                        <th scope="col">SCHEDULE</th>
+                        <th scope="col" class="actions-column">ACTIONS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in pending.Take(5))
+                    {
+                        <tr>
+                            <td>
+                                <strong>@request.ReservationNumber</strong>
+                                <div class="pending-muted">@request.Purpose</div>
+                            </td>
+                            <td>@request.BorrowerName</td>
+                            <td>@request.EquipmentSummary</td>
+                            <td>@request.StartDateTime.ToString("MMM d, yyyy h:mm tt")</td>
+                            <td class="actions-column">
+                                <a class="icon-button"
+                                   asp-controller="Reservation"
+                                   asp-action="Details"
+                                   asp-route-id="@request.ReservationId"
+                                   aria-label="View @request.ReservationNumber"
+                                   title="View request">
+                                    <svg class="icon"><use href="#i-eye" /></svg>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </section>
 
 <div class="custodian-lists">

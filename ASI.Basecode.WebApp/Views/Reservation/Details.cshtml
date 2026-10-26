@@ -1,0 +1,96 @@
+@using ASI.Basecode.Services.ServiceModels
+@model PendingReservationDetailsViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = Model.ReservationNumber;
+    ViewData["TopbarPage"] = "Pending request";
+}
+
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="Reservation" asp-action="Pending"><svg class="icon"><use href="#i-chevron" /></svg>Back to pending requests</a>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>APPROVAL AND RELEASE</div>
+        <h1>@Model.ReservationNumber</h1>
+        <p>Pending reservation submitted @Model.RequestedAt.ToString("MMM d, yyyy h:mm tt")</p>
+    </div>
+    <span class="status-badge status-pending heading-status"><span></span>@Model.Status</span>
+</div>
+
+<div class="form-page-grid">
+    <section class="content-card form-card" aria-label="Borrower information">
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-user" /></svg></span>
+            <div><h2>Borrower</h2><p>Who submitted this request.</p></div>
+        </div>
+        <dl class="details-list">
+            <div><dt>Name</dt><dd>@Model.BorrowerName</dd></div>
+            <div><dt>User ID</dt><dd>@(string.IsNullOrWhiteSpace(Model.BorrowerUserCode) ? "—" : Model.BorrowerUserCode)</dd></div>
+            <div><dt>Department</dt><dd>@(string.IsNullOrWhiteSpace(Model.DepartmentName) ? "—" : Model.DepartmentName)</dd></div>
+            <div><dt>Program</dt><dd>@(string.IsNullOrWhiteSpace(Model.Program) ? "—" : Model.Program)</dd></div>
+            <div><dt>Year level</dt><dd>@(Model.YearLevel.HasValue ? Model.YearLevel.Value.ToString() : "—")</dd></div>
+            <div><dt>Contact</dt><dd>@(string.IsNullOrWhiteSpace(Model.ContactNumber) ? "—" : Model.ContactNumber)</dd></div>
+            <div><dt>Eligibility</dt><dd>@(string.IsNullOrWhiteSpace(Model.EligibilityStatus) ? "—" : Model.EligibilityStatus)</dd></div>
+        </dl>
+    </section>
+
+    <section class="content-card form-card" aria-label="Reservation details">
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
+            <div><h2>Reservation</h2><p>Purpose and requested schedule.</p></div>
+        </div>
+        <dl class="details-list">
+            <div><dt>Purpose</dt><dd>@Model.Purpose</dd></div>
+            <div><dt>Start</dt><dd>@Model.StartDateTime.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            <div><dt>Expected return</dt><dd>@Model.ExpectedReturnDateTime.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            <div><dt>Requested at</dt><dd>@Model.RequestedAt.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            <div><dt>Items</dt><dd>@Model.ItemCount</dd></div>
+        </dl>
+    </section>
+</div>
+
+<section class="content-card category-list" aria-labelledby="itemsHeading">
+    <div class="card-heading">
+        <div>
+            <h2 id="itemsHeading">Requested equipment</h2>
+            <p>Assets included in this pending reservation.</p>
+        </div>
+        <span class="count-pill">@Model.Items.Count @(Model.Items.Count == 1 ? "item" : "items")</span>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <p class="custodian-empty">This request does not list any equipment.</p>
+    }
+    else
+    {
+        <div class="table-scroll">
+            <table class="category-table">
+                <thead>
+                    <tr>
+                        <th scope="col">EQUIPMENT</th>
+                        <th scope="col">CONDITION</th>
+                        <th scope="col">LOCATION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="category-name-cell">
+                                    <span class="category-tile"><svg class="icon"><use href="#i-box" /></svg></span>
+                                    <span>
+                                        <strong>@item.EquipmentName</strong>
+                                        <small>@item.EquipmentCode</small>
+                                    </span>
+                                </div>
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(item.ConditionStatus) ? "—" : item.ConditionStatus)</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.StorageLocation) ? "—" : item.StorageLocation)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

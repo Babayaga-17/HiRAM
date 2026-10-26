@@ -9,6 +9,8 @@
     var isDashboardPage = currentController == "Dashboard";
     var isCategoriesPage = currentController == "EquipmentCategory";
     var isEquipmentPage = currentController == "Equipment";
+    var isBorrowersPage = currentController == "BorrowerProfile";
+    var isReservationsPage = currentController == "Reservation";
 
     // WBS 5.1 User and Role Management: same access rules the server enforces (Authorization/MenuAccess.cs).
     var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
@@ -76,9 +78,21 @@
                 Categories
             </a>
 
-            <span class="nav-link nav-link-disabled" aria-disabled="true">
-                Reservations <span class="nav-soon">Soon</span>
-            </span>
+            <a class="@(isBorrowersPage ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="BorrowerProfile"
+               asp-action="Index"
+               aria-current="@(isBorrowersPage ? "page" : null)">
+                <svg class="icon"><use href="#i-users" /></svg>
+                Borrowers
+            </a>
+
+            <a class="@(isReservationsPage ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="Reservation"
+               asp-action="Pending"
+               aria-current="@(isReservationsPage ? "page" : null)">
+                <svg class="icon"><use href="#i-calendar" /></svg>
+                Pending Requests
+            </a>
 
             <span class="nav-link nav-link-disabled" aria-disabled="true">
                 Maintenance <span class="nav-soon">Soon</span>

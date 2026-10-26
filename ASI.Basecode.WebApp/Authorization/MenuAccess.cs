@@ -52,6 +52,12 @@ namespace ASI.Basecode.WebApp.Authorization
                 "Equipment category management.",
                 null,
                 new[] { RoleNames.Custodian, RoleNames.Admin }),
+            new MenuAccessEntry(
+                "Reservation",
+                "Pending requests",
+                "View reservation requests waiting for approval.",
+                null,
+                new[] { RoleNames.Custodian, RoleNames.Admin }),
         };
 
         public static MenuAccessEntry Find(string key)
