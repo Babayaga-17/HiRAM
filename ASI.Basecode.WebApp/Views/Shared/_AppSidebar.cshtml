@@ -15,7 +15,9 @@
     var canManageUsers = ASI.Basecode.WebApp.Authorization.MenuAccess.CanAccess(User, "UserAccount");
     var isUsersPage = currentController == "UserAccount" && currentAction != "RoleAccess";
     var isRoleAccessPage = currentController == "UserAccount" && currentAction == "RoleAccess";
-    var isBrowsePage = currentController == "BrowseEquipment";
+    var isMyReservationsPage = currentController == "EquipmentReservation" && (currentAction == "Index" || currentAction == "Details");
+    var isBrowsePage = currentController == "BrowseEquipment" || (currentController == "EquipmentReservation" && !isMyReservationsPage);
+    var isBorrowerProfilesPage = currentController == "BorrowerProfile";
 }
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Main navigation">
@@ -47,9 +49,13 @@
                 Browse Equipment
             </a>
 
-            <span class="nav-link nav-link-disabled" aria-disabled="true">
-                My Reservations <span class="nav-soon">Soon</span>
-            </span>
+            <a class="@(isMyReservationsPage ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="EquipmentReservation"
+               asp-action="Index"
+               aria-current="@(isMyReservationsPage ? "page" : null)">
+                <svg class="icon"><use href="#i-calendar" /></svg>
+                My Reservations
+            </a>
 
             <span class="nav-link nav-link-disabled" aria-disabled="true">
                 My Borrowing History <span class="nav-soon">Soon</span>
@@ -103,6 +109,14 @@
                    aria-current="@(isUsersPage ? "page" : null)">
                     <svg class="icon"><use href="#i-users" /></svg>
                     Users &amp; Roles
+                </a>
+
+                <a class="@(isBorrowerProfilesPage ? "nav-link nav-link-active" : "nav-link")"
+                   asp-controller="BorrowerProfile"
+                   asp-action="Index"
+                   aria-current="@(isBorrowerProfilesPage ? "page" : null)">
+                    <svg class="icon"><use href="#i-users" /></svg>
+                    Borrowers
                 </a>
 
                 <a class="@(isRoleAccessPage ? "nav-link nav-link-active" : "nav-link")"

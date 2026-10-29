@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
@@ -21,6 +22,7 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
 
     private readonly IEquipmentService _equipmentService;
     private readonly IEquipmentCategoryService _equipmentCategoryService;
+    private readonly IEquipmentReservationService _reservationService;
 
     public BrowseEquipmentController(
         IHttpContextAccessor httpContextAccessor,
@@ -28,15 +30,21 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         IConfiguration configuration,
         IEquipmentService equipmentService,
         IEquipmentCategoryService equipmentCategoryService,
+        IEquipmentReservationService reservationService,
         IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
         _equipmentService = equipmentService;
         _equipmentCategoryService = equipmentCategoryService;
+        _reservationService = reservationService;
     }
 
     [HttpGet]
-    public IActionResult Index()
+    public IActionResult Index(int? reservationId)
     {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
+        ViewData["EditingReservationId"] = reservationId;
         ViewBag.Categories = new SelectList(new List<EquipmentCategoryListItem>(), "CategoryId", "CategoryName");
         ViewBag.SelectedIds = new List<int>();
 
@@ -52,8 +60,8 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
                 .Select(item => item.EquipmentId)
                 .ToList();
 
-            var selected = GetSelectedIds().Where(selectableIds.Contains).ToList();
-            SaveSelectedIds(selected);
+            var selected = GetSelectedIds(reservationId).Where(selectableIds.Contains).ToList();
+            SaveSelectedIds(selected, reservationId);
             ViewBag.SelectedIds = selected;
 
             return View(equipments);
@@ -67,13 +75,16 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
     }
 
     [HttpGet]
-    public IActionResult Availability(int id, DateTime? from, DateTime? to)
+    public IActionResult Availability(int id, DateTime? from, DateTime? to, int? reservationId)
     {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
         try
         {
             var start = from ?? DateTime.Now;
             var end = to ?? start.AddDays(14);
-            var result = _equipmentService.GetAvailability(id, start, end);
+            var result = _equipmentService.GetAvailability(id, start, end, reservationId);
 
             return Json(new
             {
@@ -103,8 +114,11 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
     // Select equipment (kept in the session until reservations are built)
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Select(int id)
+    public IActionResult Select(int id, int? reservationId)
     {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
         try
         {
             var equipment = _equipmentService.GetBorrowableEquipmentById(id);
@@ -118,12 +132,12 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
             if (equipment.Status == EquipmentAvailability.Unavailable)
                 return BadRequest(new { message = "Equipment in " + equipment.ConditionStatus + " condition cannot be selected." });
 
-            var selected = GetSelectedIds();
+            var selected = GetSelectedIds(reservationId);
 
             if (!selected.Contains(id))
             {
                 selected.Add(id);
-                SaveSelectedIds(selected);
+                SaveSelectedIds(selected, reservationId);
             }
 
             return Json(new { ids = selected });
@@ -137,20 +151,26 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Deselect(int id)
+    public IActionResult Deselect(int id, int? reservationId)
     {
-        var selected = GetSelectedIds();
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
+        var selected = GetSelectedIds(reservationId);
         selected.Remove(id);
-        SaveSelectedIds(selected);
+        SaveSelectedIds(selected, reservationId);
 
         return Json(new { ids = selected });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Clear()
+    public IActionResult Clear(int? reservationId)
     {
-        SaveSelectedIds(new List<int>());
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
+        SaveSelectedIds(new List<int>(), reservationId);
 
         return Json(new { ids = new List<int>() });
     }
@@ -164,9 +184,13 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         ViewBag.Categories = new SelectList(categories, "CategoryId", "CategoryName");
     }
 
-    private List<int> GetSelectedIds()
+    private List<int> GetSelectedIds(int? reservationId)
     {
-        var value = _session.GetString(SelectionKey);
+        var key = reservationId.HasValue
+            ? $"SelectedEquipmentIds:Edit:{reservationId.Value}"
+            : SelectionKey;
+
+        var value = _session.GetString(key);
 
         if (string.IsNullOrEmpty(value))
             return new List<int>();
@@ -177,13 +201,34 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
             .ToList();
     }
 
-    private void SaveSelectedIds(List<int> ids)
+    private void SaveSelectedIds(List<int> ids, int? reservationId)
     {
-        _session.SetString(SelectionKey, string.Join(",", ids));
+        var key = reservationId.HasValue
+            ? $"SelectedEquipmentIds:Edit:{reservationId.Value}"
+            : SelectionKey;
+
+        _session.SetString(key, string.Join(",", ids));
     }
 
     private static string FormatDate(DateTime value)
     {
         return value.ToString("MMM d, yyyy h:mm tt");
+    }
+
+    private bool CanEditSelection(int? reservationId)
+    {
+        if (!reservationId.HasValue)
+            return true;
+
+        if (!int.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier),
+            out var borrowerUserId))
+            return false;
+
+        var reservation = _reservationService.GetReservationDetails(
+            reservationId.Value,
+            borrowerUserId);
+
+        return reservation?.Status == "Pending";
     }
 }

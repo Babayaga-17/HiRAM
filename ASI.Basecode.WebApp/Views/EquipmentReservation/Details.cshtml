@@ -1,0 +1,290 @@
+@using System
+@using System.Collections.Generic
+@using System.Linq
+@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Reservation
+@model ReservationViewModel
+
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Reservation Details";
+    ViewData["TopbarPage"] = "My reservations";
+
+    var statusLabel = Model.Status switch
+    {
+        "Pending" => "Pending approval",
+        "Borrowed" => "Currently borrowed",
+        _ => Model.Status
+    };
+
+    var nextStep = Model.Status switch
+    {
+        "Pending" =>
+            "The custodian will review your request. Wait for approval before collecting your equipment.",
+        "Approved" =>
+            "Your request is approved. Collect your equipment at the scheduled pickup time.",
+        "Borrowed" =>
+            "Return your equipment by the expected return date and time.",
+        "Overdue" =>
+            "Your equipment is overdue. Return it and contact the custodian.",
+        "Returned" =>
+            "Your equipment has been returned.",
+        "Rejected" =>
+            "Your request was rejected. Review the reason below before making another request.",
+        "Cancelled" =>
+            "This reservation has been cancelled.",
+        _ =>
+            "Contact the custodian if you need help with this reservation."
+    };
+
+    var events = new List<(DateTime At, string Title, string Note, string Status)>
+    {
+        (
+            Model.RequestedAt,
+            "Request submitted",
+            "Your equipment request was sent to the custodian.",
+            "submitted"
+        )
+    };
+
+    if (Model.ApprovedAt.HasValue)
+        events.Add((
+            Model.ApprovedAt.Value,
+            "Request approved",
+            null,
+            "approved"
+        ));
+
+    if (Model.RejectedAt.HasValue)
+        events.Add((
+            Model.RejectedAt.Value,
+            "Request rejected",
+            Model.RejectionReason,
+            "rejected"
+        ));
+
+    if (Model.BorrowedAt.HasValue)
+        events.Add((
+            Model.BorrowedAt.Value,
+            "Equipment collected",
+            null,
+            "borrowed"
+        ));
+
+    if (Model.ReturnedAt.HasValue)
+        events.Add((
+            Model.ReturnedAt.Value,
+            "Equipment returned",
+            null,
+            "returned"
+        ));
+
+    if (Model.CancelledAt.HasValue)
+        events.Add((
+            Model.CancelledAt.Value,
+            "Reservation cancelled",
+            Model.CancellationReason,
+            "cancelled"
+        ));
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/my-reservations.css"
+          asp-append-version="true" />
+}
+
+<a class="back-link"
+   asp-controller="EquipmentReservation"
+   asp-action="Index">
+    <svg class="icon" aria-hidden="true">
+        <use href="#i-chevron" />
+    </svg>
+    Back to My Reservations
+</a>
+
+<div class="page-heading reservations-page-heading">
+    <div>
+        <h1>Reservation details</h1>
+        <p>@Model.ReservationNumber</p>
+    </div>
+
+    <span class="reservation-status-badge reservation-status-@Model.Status.ToLowerInvariant()">
+        @statusLabel
+    </span>
+</div>
+
+@if (TempData["ReservationSuccess"] is string success)
+{
+    <p class="category-notice" role="status">@success</p>
+}
+
+@if (TempData["ReservationError"] is string error)
+{
+    <p class="category-notice category-notice-error"
+       role="alert">@error</p>
+}
+
+<div class="reservation-detail-layout">
+    <section class="content-card reservation-detail-card"
+             aria-labelledby="requestDetailsHeading">
+
+        <h2 id="requestDetailsHeading">Your request</h2>
+
+        <dl class="reservation-detail-schedule">
+            <div>
+                <dt>Requested on</dt>
+                <dd>
+                    <time datetime="@Model.RequestedAt.ToString("s")">
+                        @Model.RequestedAt.ToString("MMM d, yyyy 'at' h:mm tt")
+                    </time>
+                </dd>
+            </div>
+
+            <div>
+                <dt>Time zone</dt>
+                <dd>Philippine time (UTC+8)</dd>
+            </div>
+
+            <div>
+                <dt>Pickup</dt>
+                <dd>
+                    <time datetime="@Model.StartDateTime.ToString("s")">
+                        @Model.StartDateTime.ToString("MMM d, yyyy 'at' h:mm tt")
+                    </time>
+                </dd>
+            </div>
+
+            <div>
+                <dt>Expected return</dt>
+                <dd>
+                    <time datetime="@Model.ExpectedReturnDateTime.ToString("s")">
+                        @Model.ExpectedReturnDateTime.ToString("MMM d, yyyy 'at' h:mm tt")
+                    </time>
+                </dd>
+            </div>
+        </dl>
+
+        <h3>
+            Selected equipment
+            <span class="reservations-count">
+                @Model.Equipment.Count
+            </span>
+        </h3>
+
+        <ul class="reservation-detail-equipment">
+            @foreach (var item in Model.Equipment)
+            {
+                <li>
+                    <span class="reservation-equipment-icon">
+                        <svg class="icon" aria-hidden="true">
+                            <use href="#i-box" />
+                        </svg>
+                    </span>
+
+                    <div>
+                        <strong>@item.EquipmentName</strong>
+                        <small>@item.EquipmentCode</small>
+                    </div>
+                </li>
+            }
+        </ul>
+
+        <h3>Purpose of borrowing</h3>
+        <p class="reservation-detail-purpose">
+            @Model.Purpose
+        </p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.RejectionReason))
+        {
+            <h3>Rejection reason</h3>
+            <p class="reservation-detail-purpose">
+                @Model.RejectionReason
+            </p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.CancellationReason))
+        {
+            <h3>Cancellation reason</h3>
+            <p class="reservation-detail-purpose">
+                @Model.CancellationReason
+            </p>
+        }
+
+        @if (Model.Status == "Pending")
+        {
+            <div class="reservation-action-links reservation-detail-actions">
+                <a class="button button-secondary"
+                   asp-controller="EquipmentReservation"
+                   asp-action="Edit"
+                   asp-route-id="@Model.ReservationId">
+                    Edit reservation
+                </a>
+
+                <a class="button reservation-cancel-link"
+                   asp-controller="EquipmentReservation"
+                   asp-action="Cancel"
+                   asp-route-id="@Model.ReservationId">
+                    Cancel reservation
+                </a>
+            </div>
+        }
+    </section>
+
+    <aside class="content-card reservation-detail-card"
+           aria-labelledby="statusTimelineHeading">
+
+        <h2 id="statusTimelineHeading">Status timeline</h2>
+
+        <ol class="reservation-timeline">
+            @foreach (var entry in events.OrderBy(entry => entry.At))
+            {
+                <li>
+                    <span class="reservation-timeline-marker reservation-status-@entry.Status"
+                          aria-hidden="true">
+                        <svg class="icon">
+                            <use href="#i-calendar" />
+                        </svg>
+                    </span>
+
+                    <div>
+                        <h3>@entry.Title</h3>
+
+                        <time datetime="@entry.At.ToString("s")">
+                            @entry.At.ToString("MMM d, yyyy 'at' h:mm tt")
+                        </time>
+
+                        @if (!string.IsNullOrWhiteSpace(entry.Note))
+                        {
+                            <p>@entry.Note</p>
+                        }
+                    </div>
+                </li>
+            }
+
+            @if (Model.Status == "Pending")
+            {
+                <li class="reservation-timeline-current"
+                    aria-current="step">
+                    <span class="reservation-timeline-marker"
+                          aria-hidden="true"></span>
+
+                    <div>
+                        <span class="reservation-current-label">
+                            Current stage
+                        </span>
+                        <h3>Awaiting custodian review</h3>
+                        <p>
+                            Your request has not been approved for pickup yet.
+                        </p>
+                    </div>
+                </li>
+            }
+        </ol>
+
+        <div class="reservation-next-step">
+            <h3>What happens next?</h3>
+            <p>@nextStep</p>
+        </div>
+    </aside>
+</div>
