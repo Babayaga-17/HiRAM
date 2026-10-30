@@ -1,10 +1,5 @@
 @{
-    var displayName = User.Identity?.Name;
-    if (string.IsNullOrWhiteSpace(displayName)) displayName = "HiRAM User";
-    var initial = displayName.Substring(0, 1).ToUpperInvariant();
-    var topbarPage = ViewData["TopbarPage"]?.ToString() ?? "Equipment categories";
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-    var isCategories = currentController == "EquipmentCategory";
     var isBorrower = currentController == "BorrowerProfile";
 }
 <!DOCTYPE html>
@@ -27,7 +22,7 @@
     <div class="app-shell">
         <div class="sidebar-scrim" id="sidebarScrim"></div>
         
-            <partial name="_AppSidebar" />
+        <partial name="_AppSidebar" />
 
         <div class="app-main">
             <partial name="_AppTopbar" />
