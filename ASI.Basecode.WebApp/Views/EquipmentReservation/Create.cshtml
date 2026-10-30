@@ -1,0 +1,16 @@
+@using ASI.Basecode.Services.ServiceModels.Reservation
+@model ReservationFormModel
+
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Equipment Reservation";
+    ViewData["TopbarPage"] = "Equipment reservation";
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/equipment-reservation.css"
+          asp-append-version="true" />
+}
+
+<partial name="_ReservationPage" model="Model" />
