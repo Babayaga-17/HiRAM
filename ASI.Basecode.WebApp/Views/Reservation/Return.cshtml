@@ -1,0 +1,168 @@
+﻿@using System.Linq
+@using ASI.Basecode.Services.ServiceModels
+@model ReservationDetailsViewModel
+
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Return and condition check";
+    ViewData["TopbarPage"] = "Reservations";
+
+    var previous = ViewData["ReturnInput"] as ReturnReservationRequest;
+    var conditions = EquipmentFormViewModel.Conditions
+        .Where(condition => condition != "Lost");
+
+    var outstanding = Model.Items.Where(item => !item.IsReturned).ToList();
+}
+
+@section Styles {
+    <link rel="stylesheet"
+          href="~/css/approval-release.css"
+          asp-append-version="true" />
+}
+
+<div class="page-heading">
+    <div>
+        <a class="back-link"
+           asp-action="Details"
+           asp-route-id="@Model.ReservationId">
+            Back to reservation
+        </a>
+
+        <h1>Return and condition check</h1>
+        <p>@Model.ReservationNumber · @Model.BorrowerName</p>
+        <p>
+            Expected return:
+            @Model.ExpectedReturnDateTime.ToString("MMM d, yyyy h:mm tt")
+        </p>
+    </div>
+</div>
+
+@if (ViewData["ReturnError"] is string error)
+{
+    <div class="category-notice category-notice-error" role="alert">
+        @error
+    </div>
+}
+
+<div class="rs-warn">
+    Select only items physically received and inspected.
+    Items left unchecked will remain borrowed.
+    Record missing parts as damaged pending review.
+</div>
+
+<form asp-controller="Reservation" asp-action="Return" method="post">
+    <input type="hidden"
+           name="ReservationId"
+           value="@Model.ReservationId" />
+
+    <input type="hidden"
+           name="RowVersion"
+           value="@(previous?.RowVersion ?? Model.RowVersion)" />
+
+    @for (var i = 0; i < outstanding.Count; i++)
+    {
+        var item = outstanding[i];
+        var input = previous?.Items?.FirstOrDefault(
+        entry => entry.ReservationItemId == item.ReservationItemId);
+
+        <section class="content-card form-card rs-panel"
+                 aria-labelledby="item-heading-@i">
+            <div class="form-card-header">
+                <span class="form-section-icon">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-box" />
+                    </svg>
+                </span>
+                <div>
+                    <h2 id="item-heading-@i">@item.EquipmentName</h2>
+                    <p>@item.EquipmentCode</p>
+                </div>
+            </div>
+
+            <dl class="details-list">
+                <div>
+                    <dt>Condition at release</dt>
+                    <dd>@(item.ConditionAtBorrowing ?? "Not recorded")</dd>
+                </div>
+                <div>
+                    <dt>Release notes</dt>
+                    <dd>@(item.BorrowingRemarks ?? "None")</dd>
+                </div>
+            </dl>
+
+            <input type="hidden"
+                   name="Items[@i].ReservationItemId"
+                   value="@item.ReservationItemId" />
+
+            <p>
+                <label for="receive-@i">
+                    <input id="receive-@i"
+                           type="checkbox"
+                           name="Items[@i].Receive"
+                           value="true"
+                           checked="@(input?.Receive == true)" />
+                    Received and inspected
+                </label>
+            </p>
+
+            <p>
+                <label class="rs-label" for="condition-@i">
+                    Condition on return
+                </label>
+                <select class="rs-input"
+                        id="condition-@i"
+                        name="Items[@i].ConditionAtReturn">
+                    <option value="">Select inspected condition</option>
+                    @foreach (var condition in conditions)
+                    {
+                        <option value="@condition"
+                                selected="@(input?.ConditionAtReturn == condition)">
+                            @condition
+                        </option>
+                    }
+                </select>
+            </p>
+
+            <p>
+                <label class="rs-label" for="damage-@i">
+                    Damage notes
+                </label>
+                <textarea class="rs-input"
+                      id="damage-@i"
+                      name="Items[@i].DamageNotes"
+                      rows="3"
+                      maxlength="500">@input?.DamageNotes</textarea>
+            </p>
+
+            <p>
+                <label class="rs-label" for="missing-@i">
+                    Missing parts
+                </label>
+                <textarea class="rs-input"
+                      id="missing-@i"
+                      name="Items[@i].MissingPartsNotes"
+                      rows="3"
+                      maxlength="500">@input?.MissingPartsNotes</textarea>
+            </p>
+
+            <p>
+                <label class="rs-label" for="remarks-@i">
+                    Return remarks
+                </label>
+                <textarea class="rs-input"
+                      id="remarks-@i"
+                      name="Items[@i].ReturnRemarks"
+                      rows="3"
+                      maxlength="500">@input?.ReturnRemarks</textarea>
+            </p>
+        </section>
+    }
+
+    @if (outstanding.Count > 0)
+    {
+        <p>Saving records the selected items as returned and updates their condition.</p>
+        <button type="submit" class="button button-primary">
+            Confirm selected returns
+        </button>
+    }
+</form>

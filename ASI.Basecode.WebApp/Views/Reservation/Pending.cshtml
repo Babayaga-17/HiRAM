@@ -71,11 +71,6 @@ else
         @foreach (var tab in new[] { "Pending", "Approved", "Borrowed", "Returned", "Rejected", "All" })
         {
             var n = tab == "All" ? Model.TotalCount : CountOf(tab);
-            if (tab == "Returned")
-            {
-                <span class="rs-tab" aria-disabled="true" title="Completed returns will be available when return processing is connected.">Returned <span class="rs-count">Soon</span></span>
-                continue;
-            }
             <a class="rs-tab @(tab == active ? "active" : "")" asp-controller="Reservation" asp-action="Pending" asp-route-status="@tab" aria-current="@(tab == active ? "page" : null)">@tab <span class="rs-count">@n</span></a>
         }
     </nav>

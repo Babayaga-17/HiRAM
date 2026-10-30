@@ -33,6 +33,16 @@
     <span class="status-badge @BadgeClass(Model.Status) heading-status"><span></span>@Model.Status</span>
 </div>
 
+@if (Model.Status == "Borrowed")
+{
+    <a class="button button-primary"
+       asp-controller="Reservation"
+       asp-action="Return"
+       asp-route-id="@Model.ReservationId">
+        Process Return
+    </a>
+}
+
 @if (TempData["ReservationSuccess"] is string successMessage)
 {
     <div class="category-notice rs-notice-success" role="status">@successMessage</div>

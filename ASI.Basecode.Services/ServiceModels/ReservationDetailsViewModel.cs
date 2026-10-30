@@ -18,6 +18,7 @@ namespace ASI.Basecode.Services.ServiceModels
         public string RejectionReason { get; set; }
         public DateTime? BorrowedAt { get; set; }
         public DateTime? ReturnedAt { get; set; }
+        public string RowVersion { get; set; }
         public List<ReservationItemViewModel> Items { get; set; } = new();
     }
 

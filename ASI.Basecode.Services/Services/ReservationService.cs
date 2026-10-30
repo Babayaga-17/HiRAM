@@ -12,7 +12,7 @@ namespace ASI.Basecode.Services.Services
 {
     public class ReservationService : IReservationService
     {
-        private static readonly string[] Tabs = { "Pending", "Approved", "Borrowed", "Rejected", "All" };
+        private static readonly string[] Tabs = { "Pending", "Approved", "Borrowed", "Returned", "Rejected", "All" };
 
         private readonly IReservationRepository _reservationRepository;
 
@@ -126,6 +126,7 @@ namespace ASI.Basecode.Services.Services
                 RejectionReason = reservation.RejectionReason,
                 BorrowedAt = reservation.BorrowedAt,
                 ReturnedAt = reservation.ReturnedAt,
+                RowVersion = Convert.ToBase64String(reservation.RowVersion),
                 Items = reservation.ReservationItems
                     .OrderBy(item => item.Equipment?.EquipmentName)
                     .Select(item => new ReservationItemViewModel
@@ -279,6 +280,141 @@ namespace ASI.Basecode.Services.Services
 
             return string.Join(" ", new[] { user.FirstName, user.MiddleName, user.LastName, user.Suffix }
                 .Where(part => !string.IsNullOrWhiteSpace(part)));
+        }
+
+        public (bool ok, string message) Return(ReturnReservationRequest request, int? actorUserId, string actorName)
+        {
+            if (request == null)
+                return (false, "The return form was empty.");
+
+            var reservation =
+                _reservationRepository.GetReservationForUpdate(request.ReservationId);
+
+            if (reservation == null)
+                return (false, "Reservation not found.");
+
+            if (reservation.Status != ReservationRepository.BorrowedStatus)
+                return (false, "Only borrowed reservations can be returned.");
+
+            if (string.IsNullOrWhiteSpace(request.RowVersion)
+                || request.RowVersion !=
+                    Convert.ToBase64String(reservation.RowVersion))
+            {
+                return (false,
+                    "This reservation has changed. Reload it before recording the return.");
+            }
+
+            var receiverId = ResolveUser(actorUserId);
+
+            if (!receiverId.HasValue)
+                return (false, "Your user account could not be verified. Sign in again.");
+
+            var selected = (request.Items ?? new List<ReturnItemRequest>())
+                .Where(item => item != null && item.Receive)
+                .ToList();
+
+            if (selected.Count == 0)
+                return (false, "Select at least one item you have received.");
+
+            if (selected.Select(item => item.ReservationItemId)
+                .Distinct().Count() != selected.Count)
+            {
+                return (false, "An item was submitted more than once. Reload the form.");
+            }
+
+            // Validate the entire selection before changing any records.
+            foreach (var input in selected)
+            {
+                var item = reservation.ReservationItems.SingleOrDefault(
+                    item => item.ReservationItemId == input.ReservationItemId);
+
+                if (item == null)
+                    return (false, "A selected item does not belong to this reservation.");
+
+                if (item.IsReturned)
+                    return (false, "A selected item has already been returned.");
+
+                if (item.Equipment == null)
+                    return (false, "The equipment record could not be found.");
+
+                if (!EquipmentFormViewModel.Conditions.Contains(input.ConditionAtReturn)
+                    || input.ConditionAtReturn == "Lost")
+                {
+                    return (false,
+                        "Select a valid condition for each received item.");
+                }
+
+                var notes = new[]
+                {
+            input.ReturnRemarks,
+            input.DamageNotes,
+            input.MissingPartsNotes
+        };
+
+                if (notes.Any(note => note?.Length > 500))
+                    return (false, "Each inspection note must be 500 characters or fewer.");
+
+                if (input.ConditionAtReturn == "Damaged"
+                    && string.IsNullOrWhiteSpace(input.DamageNotes)
+                    && string.IsNullOrWhiteSpace(input.MissingPartsNotes))
+                {
+                    return (false, "Describe the damage or missing parts.");
+                }
+
+                if (!string.IsNullOrWhiteSpace(input.MissingPartsNotes)
+                    && input.ConditionAtReturn != "Damaged")
+                {
+                    return (false,
+                        "Mark equipment with missing parts as damaged pending review.");
+                }
+            }
+
+            var now = TimeZoneInfo.ConvertTimeFromUtc(
+                DateTime.UtcNow,
+                TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"));
+
+            foreach (var input in selected)
+            {
+                var item = reservation.ReservationItems.Single(
+                    item => item.ReservationItemId == input.ReservationItemId);
+
+                item.IsReturned = true;
+                item.ReturnedAt = now;
+                item.ConditionAtReturn = input.ConditionAtReturn;
+                item.ReturnRemarks = CleanReturnNote(input.ReturnRemarks);
+                item.DamageNotes = CleanReturnNote(input.DamageNotes);
+                item.MissingPartsNotes = CleanReturnNote(input.MissingPartsNotes);
+                item.UpdatedBy = actorName;
+                item.UpdatedAt = now;
+
+                item.Equipment.ConditionStatus = input.ConditionAtReturn;
+                item.Equipment.UpdatedBy = actorName;
+                item.Equipment.UpdatedAt = now;
+            }
+
+            var allReturned = reservation.ReservationItems.All(item => item.IsReturned);
+
+            if (allReturned)
+            {
+                reservation.Status = "Returned";
+                reservation.ReturnedAt = now;
+                reservation.ReceivedByUserId = receiverId;
+            }
+
+            // Updating the parent also activates its row-version concurrency check.
+            reservation.UpdatedBy = actorName;
+            reservation.UpdatedAt = now;
+
+            _reservationRepository.SaveChanges();
+
+            return (true, allReturned
+                ? "All items returned. Reservation completed."
+                : "Selected items returned. Other items are still awaiting return.");
+        }
+
+        private static string CleanReturnNote(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
     }
 }
