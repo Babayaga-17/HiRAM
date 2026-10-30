@@ -120,3 +120,5 @@ COMMIT;
 -- Check the result
 SELECT status, COUNT(*) AS reservations FROM Reservations GROUP BY status;
 SELECT COUNT(*) AS equipment_items FROM Equipments;
+
+ALTER TABLE Reservations ADD approval_remarks VARCHAR(500) NULL;
