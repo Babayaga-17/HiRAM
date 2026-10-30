@@ -6,7 +6,17 @@
     var loadError = TempData["ReservationLoadError"] as string;
     var items = Model.Items;
     var active = Model.Status;
-    var heading = active == "Pending" ? "Pending requests" : active == "All" ? "All requests" : active + " requests";
+    var heading = "Reservations";
+    var queueHeading = active switch
+    {
+        "Pending" => "Pending requests",
+        "Approved" => "Ready for release",
+        "Borrowed" => "Awaiting return",
+        "Returned" => "Returned reservations",
+        "Rejected" => "Rejected requests",
+        _ => "All reservations"
+    };
+    var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"));
     ViewData["Title"] = heading;
     ViewData["TopbarPage"] = heading;
 
@@ -15,6 +25,7 @@
         "Pending" => "Review reservation requests that are waiting for custodian approval.",
         "Approved" => "Approved requests that are waiting for the equipment to be released.",
         "Borrowed" => "Equipment that has been released and is currently with borrowers.",
+        "Returned" => "Completed reservations whose equipment has been returned.",
         "Rejected" => "Requests that were declined, with the reason given.",
         _ => "Every reservation request, in all stages."
     };
@@ -36,7 +47,7 @@
 
 <div class="page-heading">
     <div>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>APPROVAL AND RELEASE</div>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>RESERVATIONS</div>
         <h1>@heading</h1>
         <p>@subtitle</p>
     </div>
@@ -56,19 +67,24 @@
 }
 else
 {
-    <nav class="rs-tabs" aria-label="Request status">
-        @foreach (var tab in new[] { "Pending", "Approved", "Borrowed", "Rejected", "All" })
+    <nav class="rs-tabs" aria-label="Reservation status">
+        @foreach (var tab in new[] { "Pending", "Approved", "Borrowed", "Returned", "Rejected", "All" })
         {
             var n = tab == "All" ? Model.TotalCount : CountOf(tab);
-            <a class="rs-tab @(tab == active ? "active" : "")" asp-controller="Reservation" asp-action="Pending" asp-route-status="@tab">@tab <span class="rs-count">@n</span></a>
+            if (tab == "Returned")
+            {
+                <span class="rs-tab" aria-disabled="true" title="Completed returns will be available when return processing is connected.">Returned <span class="rs-count">Soon</span></span>
+                continue;
+            }
+            <a class="rs-tab @(tab == active ? "active" : "")" asp-controller="Reservation" asp-action="Pending" asp-route-status="@tab" aria-current="@(tab == active ? "page" : null)">@tab <span class="rs-count">@n</span></a>
         }
     </nav>
 
     <section class="content-card category-list" aria-labelledby="pendingListHeading">
         <div class="card-heading">
             <div>
-                <h2 id="pendingListHeading">@(active == "Pending" ? "Approval queue" : heading)</h2>
-                <p>@(active == "Pending" ? "Oldest requests appear first so they can be reviewed in the order they were submitted." : "Open a request to see its full details.")</p>
+                <h2 id="pendingListHeading">@queueHeading</h2>
+                <p>@(active == "Pending" ? "Oldest requests appear first so they can be reviewed in the order they were submitted." : active == "Borrowed" ? "Earliest expected returns appear first. Open a reservation to review its borrowing details." : "Open a reservation to see its full details.")</p>
             </div>
             <span class="count-pill">@items.Count @(items.Count == 1 ? "request" : "requests")</span>
         </div>
@@ -77,8 +93,8 @@ else
         {
             <div class="empty-categories">
                 <span class="empty-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
-                <h3>No @active.ToLowerInvariant() requests</h3>
-                <p>Requests in this stage will appear here.</p>
+                <h3>@(active == "All" ? "No reservations yet" : active == "Borrowed" ? "No equipment awaiting return" : "No " + active.ToLowerInvariant() + " reservations")</h3>
+                <p>Reservations in this stage will appear here.</p>
             </div>
         }
         else
@@ -90,7 +106,7 @@ else
                     <input id="pendingSearch" type="search" placeholder="Search request, borrower, or equipment…" autocomplete="off" />
                 </label>
             </div>
-            <div class="table-scroll">
+            <div class="table-scroll" role="region" aria-label="Reservations" tabindex="0">
                 <table class="category-table">
                     <thead>
                         <tr>
@@ -128,7 +144,7 @@ else
                                 <td>
                                     @request.StartDateTime.ToString("MMM d, yyyy h:mm tt")
                                     <div class="pending-muted">to @request.ExpectedReturnDateTime.ToString("MMM d, yyyy h:mm tt")</div>
-                                    @if (request.Status == "Borrowed" && request.ExpectedReturnDateTime < DateTime.Now)
+                                    @if (request.Status == "Borrowed" && request.ExpectedReturnDateTime < now)
                                     {
                                         <div class="rs-overdue">Overdue</div>
                                     }

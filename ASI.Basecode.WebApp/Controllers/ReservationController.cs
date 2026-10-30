@@ -121,6 +121,32 @@ public class ReservationController : ControllerBase<ReservationController>
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [HttpGet]
+    public IActionResult Returns()
+    {
+        var model = _reservationService.GetReservations("Borrowed");
+        return View(model);
+    }
+
+    [HttpGet]
+    public IActionResult Return(int id)
+    {
+        var reservation = _reservationService.GetReservationDetails(id);
+
+        if (reservation == null)
+            return NotFound();
+
+        if (reservation.Status != "Borrowed")
+        {
+            TempData["ReservationError"] =
+                "Only borrowed reservations can be processed for return.";
+
+            return RedirectToAction(nameof(Returns));
+        }
+
+        return View(reservation);
+    }
+
     private int? CurrentUserId()
     {
         return int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : (int?)null;

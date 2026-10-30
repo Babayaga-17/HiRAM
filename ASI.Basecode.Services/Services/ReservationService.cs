@@ -122,7 +122,6 @@ namespace ASI.Basecode.Services.Services
                 YearLevel = borrower?.YearLevel,
                 ApprovedAt = reservation.ApprovedAt,
                 ApprovedByName = reservation.ApprovedByUser == null ? null : FullName(reservation.ApprovedByUser),
-                ApprovalRemarks = reservation.ApprovalRemarks,
                 RejectedAt = reservation.RejectedAt,
                 RejectionReason = reservation.RejectionReason,
                 BorrowedAt = reservation.BorrowedAt,
@@ -137,9 +136,16 @@ namespace ASI.Basecode.Services.Services
                         ConditionStatus = item.Equipment?.ConditionStatus,
                         StorageLocation = item.Equipment?.StorageLocation,
                         ConditionAtBorrowing = item.ConditionAtBorrowing,
-                        BorrowingRemarks = item.BorrowingRemarks
+                        BorrowingRemarks = item.BorrowingRemarks,
+                        IsReturned = item.IsReturned,
+                        ReturnedAt = item.ReturnedAt,
+                        ConditionAtReturn = item.ConditionAtReturn,
+                        ReturnRemarks = item.ReturnRemarks,
+                        DamageNotes = item.DamageNotes,
+                        MissingPartsNotes = item.MissingPartsNotes
                     })
                     .ToList()
+
             };
         }
 
@@ -159,7 +165,6 @@ namespace ASI.Basecode.Services.Services
             reservation.Status = ReservationRepository.ApprovedStatus;
             reservation.ApprovedByUserId = ResolveUser(actorUserId);
             reservation.ApprovedAt = now;
-            reservation.ApprovalRemarks = string.IsNullOrWhiteSpace(remarks) ? null : remarks.Trim();
             reservation.UpdatedBy = actorName;
             reservation.UpdatedAt = now;
 
