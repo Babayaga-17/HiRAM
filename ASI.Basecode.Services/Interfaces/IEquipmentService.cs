@@ -17,6 +17,6 @@ namespace ASI.Basecode.Services.Interfaces
         bool SetEquipmentStatus(int equipmentId, bool isActive, string updatedBy);
         List<EquipmentListItem> GetBorrowableEquipments();
         EquipmentListItem GetBorrowableEquipmentById(int id);
-        EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end);
+        EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null);
     }
 }
