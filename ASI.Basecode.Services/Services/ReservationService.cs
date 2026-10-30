@@ -1,7 +1,10 @@
+// ASI.Basecode.Services/Services/ReservationService.cs
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
+using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,12 +12,16 @@ namespace ASI.Basecode.Services.Services
 {
     public class ReservationService : IReservationService
     {
+        private static readonly string[] Tabs = { "Pending", "Approved", "Borrowed", "Rejected", "All" };
+
         private readonly IReservationRepository _reservationRepository;
 
         public ReservationService(IReservationRepository reservationRepository)
         {
             _reservationRepository = reservationRepository;
         }
+
+        // ---------------------------------------------------------------- existing (pending only)
 
         public List<PendingReservationListItem> GetPendingReservations()
         {
@@ -68,6 +75,167 @@ namespace ASI.Basecode.Services.Services
         public int CountPendingReservations()
         {
             return _reservationRepository.CountPendingReservations();
+        }
+
+        // ---------------------------------------------------------------- tabs + details (any status)
+
+        public ReservationListViewModel GetReservations(string status)
+        {
+            status = Tabs.FirstOrDefault(tab => string.Equals(tab, status, StringComparison.OrdinalIgnoreCase)) ?? "Pending";
+
+            var counts = _reservationRepository.CountByStatus();
+            return new ReservationListViewModel
+            {
+                Status = status,
+                Items = _reservationRepository.GetReservationsByStatus(status).ToList().Select(ToListItem).ToList(),
+                Counts = counts,
+                TotalCount = counts.Values.Sum()
+            };
+        }
+
+        public ReservationDetailsViewModel GetReservationDetails(int reservationId)
+        {
+            var reservation = _reservationRepository.GetReservationById(reservationId);
+            if (reservation == null)
+                return null;
+
+            var listItem = ToListItem(reservation);
+            var borrower = reservation.BorrowerUser;
+
+            return new ReservationDetailsViewModel
+            {
+                ReservationId = listItem.ReservationId,
+                ReservationNumber = listItem.ReservationNumber,
+                BorrowerName = listItem.BorrowerName,
+                BorrowerUserCode = listItem.BorrowerUserCode,
+                DepartmentName = listItem.DepartmentName,
+                EligibilityStatus = listItem.EligibilityStatus,
+                Purpose = listItem.Purpose,
+                RequestedAt = listItem.RequestedAt,
+                StartDateTime = listItem.StartDateTime,
+                ExpectedReturnDateTime = listItem.ExpectedReturnDateTime,
+                ItemCount = listItem.ItemCount,
+                EquipmentSummary = listItem.EquipmentSummary,
+                Status = listItem.Status,
+                ContactNumber = borrower?.User?.ContactNumber,
+                Program = borrower?.Program,
+                YearLevel = borrower?.YearLevel,
+                ApprovedAt = reservation.ApprovedAt,
+                ApprovedByName = reservation.ApprovedByUser == null ? null : FullName(reservation.ApprovedByUser),
+                ApprovalRemarks = reservation.ApprovalRemarks,
+                RejectedAt = reservation.RejectedAt,
+                RejectionReason = reservation.RejectionReason,
+                BorrowedAt = reservation.BorrowedAt,
+                ReturnedAt = reservation.ReturnedAt,
+                Items = reservation.ReservationItems
+                    .OrderBy(item => item.Equipment?.EquipmentName)
+                    .Select(item => new ReservationItemViewModel
+                    {
+                        ReservationItemId = item.ReservationItemId,
+                        EquipmentName = item.Equipment?.EquipmentName ?? "Unknown equipment",
+                        EquipmentCode = item.Equipment?.EquipmentCode,
+                        ConditionStatus = item.Equipment?.ConditionStatus,
+                        StorageLocation = item.Equipment?.StorageLocation,
+                        ConditionAtBorrowing = item.ConditionAtBorrowing,
+                        BorrowingRemarks = item.BorrowingRemarks
+                    })
+                    .ToList()
+            };
+        }
+
+        // ---------------------------------------------------------------- approve / reject / release
+
+        public (bool ok, string message) Approve(int reservationId, int? actorUserId, string actorName, string remarks)
+        {
+            var reservation = _reservationRepository.GetReservationForUpdate(reservationId);
+            if (reservation == null)
+                return (false, "That request was not found.");
+            if (reservation.Status != ReservationRepository.PendingStatus)
+                return (false, "Only pending requests can be approved. This one was already reviewed.");
+            if (reservation.BorrowerUser?.EligibilityStatus != "Eligible")
+                return (false, "This borrower is not eligible to borrow, so the request can't be approved.");
+
+            var now = DateTime.Now;
+            reservation.Status = ReservationRepository.ApprovedStatus;
+            reservation.ApprovedByUserId = ResolveUser(actorUserId);
+            reservation.ApprovedAt = now;
+            reservation.ApprovalRemarks = string.IsNullOrWhiteSpace(remarks) ? null : remarks.Trim();
+            reservation.UpdatedBy = actorName;
+            reservation.UpdatedAt = now;
+
+            _reservationRepository.SaveChanges();
+            return (true, $"{reservation.ReservationNumber} was approved. It is now ready for release.");
+        }
+
+        public (bool ok, string message) Reject(int reservationId, int? actorUserId, string actorName, string reason)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+                return (false, "Enter a reason for rejecting this request.");
+
+            var reservation = _reservationRepository.GetReservationForUpdate(reservationId);
+            if (reservation == null)
+                return (false, "That request was not found.");
+            if (reservation.Status != ReservationRepository.PendingStatus)
+                return (false, "Only pending requests can be rejected. This one was already reviewed.");
+
+            var now = DateTime.Now;
+            reservation.Status = ReservationRepository.RejectedStatus;
+            reservation.RejectedByUserId = ResolveUser(actorUserId);
+            reservation.RejectedAt = now;
+            reservation.RejectionReason = reason.Trim();
+            reservation.UpdatedBy = actorName;
+            reservation.UpdatedAt = now;
+
+            _reservationRepository.SaveChanges();
+            return (true, $"{reservation.ReservationNumber} was rejected.");
+        }
+
+        public (bool ok, string message) Release(ReleaseReservationRequest request, string actorName)
+        {
+            if (request == null)
+                return (false, "The release form was empty.");
+
+            var reservation = _reservationRepository.GetReservationForUpdate(request.ReservationId);
+            if (reservation == null)
+                return (false, "That request was not found.");
+            if (reservation.Status != ReservationRepository.ApprovedStatus)
+                return (false, "Only approved requests can be released.");
+            if (reservation.ReservationItems.Count == 0)
+                return (false, "This request has no equipment to release.");
+
+            var inputs = request.Items ?? new List<ReleaseItemRequest>();
+            foreach (var item in reservation.ReservationItems)
+            {
+                var input = inputs.FirstOrDefault(i => i.ReservationItemId == item.ReservationItemId);
+                if (input == null || string.IsNullOrWhiteSpace(input.ConditionAtBorrowing))
+                    return (false, "Record the condition of every item before releasing.");
+            }
+
+            var now = DateTime.Now;
+            foreach (var item in reservation.ReservationItems)
+            {
+                var input = inputs.First(i => i.ReservationItemId == item.ReservationItemId);
+                item.ConditionAtBorrowing = input.ConditionAtBorrowing.Trim();
+                item.BorrowingRemarks = string.IsNullOrWhiteSpace(input.BorrowingRemarks) ? null : input.BorrowingRemarks.Trim();
+                item.UpdatedBy = actorName;
+                item.UpdatedAt = now;
+            }
+
+            reservation.Status = ReservationRepository.BorrowedStatus;
+            reservation.BorrowedAt = request.ReleasedAt ?? now;
+            reservation.UpdatedBy = actorName;
+            reservation.UpdatedAt = now;
+
+            _reservationRepository.SaveChanges();
+            return (true, $"{reservation.ReservationNumber} was released and marked as borrowed.");
+        }
+
+        // ---------------------------------------------------------------- helpers
+
+        // Only keep the approver's id when it really is a row in Users (avoids a foreign key error).
+        private int? ResolveUser(int? userId)
+        {
+            return userId.HasValue && _reservationRepository.UserExists(userId.Value) ? userId : null;
         }
 
         private static PendingReservationListItem ToListItem(Reservation reservation)
