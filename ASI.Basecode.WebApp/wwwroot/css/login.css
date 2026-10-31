@@ -17,23 +17,23 @@ body {
     background: var(--login-bg);
 }
 
-body.login-dark-mode {
-    background: #0a1220;
-}
+    body.login-dark-mode {
+        background: #0a1220;
+    }
 
-body > .container {
-    width: 100%;
-    max-width: none;
-    padding: 0;
-}
+    body > .container {
+        width: 100%;
+        max-width: none;
+        padding: 0;
+    }
 
-body > .container > main {
-    width: 100%;
-}
+        body > .container > main {
+            width: 100%;
+        }
 
-body > .footer {
-    display: none;
-}
+    body > .footer {
+        display: none;
+    }
 
 .login-page,
 .login-page * {
@@ -58,25 +58,22 @@ body > .footer {
     position: relative;
     overflow: hidden;
     color: var(--text);
-    background:
-        radial-gradient(circle at 8% 88%, rgba(32, 184, 166, 0.09), transparent 25%),
-        radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.08), transparent 26%),
-        var(--page-bg);
+    background: radial-gradient(circle at 8% 88%, rgba(32, 184, 166, 0.09), transparent 25%), radial-gradient(circle at 90% 10%, rgba(139, 92, 246, 0.08), transparent 26%), var(--page-bg);
     transition: color 180ms ease, background-color 180ms ease;
 }
 
-.login-page[data-theme="dark"] {
-    --page-bg: #0a1220;
-    --surface: #111d2f;
-    --text: #edf2f8;
-    --muted: #9ca9bb;
-    --border: #2a3a50;
-    --input-bg: #152337;
-    --input-icon: #8999ae;
-    --toggle-bg: rgba(17, 29, 47, 0.92);
-    --toggle-text: #dce5f0;
-    --shadow: 0 30px 80px rgba(0, 0, 0, 0.34);
-}
+    .login-page[data-theme="dark"] {
+        --page-bg: #0a1220;
+        --surface: #111d2f;
+        --text: #edf2f8;
+        --muted: #9ca9bb;
+        --border: #2a3a50;
+        --input-bg: #152337;
+        --input-icon: #8999ae;
+        --toggle-bg: rgba(17, 29, 47, 0.92);
+        --toggle-text: #dce5f0;
+        --shadow: 0 30px 80px rgba(0, 0, 0, 0.34);
+    }
 
 .theme-toggle {
     position: absolute;
@@ -100,19 +97,18 @@ body > .footer {
     transition: border-color 160ms ease, transform 160ms ease, background-color 160ms ease;
 }
 
-.theme-toggle:hover {
-    transform: translateY(-1px);
-    border-color: #9ba8ba;
-}
+    .theme-toggle:hover {
+        transform: translateY(-1px);
+        border-color: #9ba8ba;
+    }
 
-.theme-toggle:focus-visible,
-.password-toggle:focus-visible,
-.forgot-link:focus-visible,
-.sign-in-button:focus-visible,
-.brand:focus-visible {
-    outline: 3px solid rgba(32, 184, 166, 0.42);
-    outline-offset: 3px;
-}
+    .theme-toggle:focus-visible,
+    .forgot-link:focus-visible,
+    .sign-in-button:focus-visible,
+    .brand:focus-visible {
+        outline: 3px solid rgba(32, 184, 166, 0.42);
+        outline-offset: 3px;
+    }
 
 .theme-icon {
     width: 17px;
@@ -158,34 +154,32 @@ body > .footer {
     position: relative;
     overflow: hidden;
     color: #f8fbff;
-    background:
-        radial-gradient(circle at 84% 18%, rgba(139, 92, 246, 0.34), transparent 30%),
-        linear-gradient(145deg, var(--login-navy), #12294d 65%, #123c54);
+    background: radial-gradient(circle at 84% 18%, rgba(139, 92, 246, 0.34), transparent 30%), linear-gradient(145deg, var(--login-navy), #12294d 65%, #123c54);
 }
 
-.brand-panel::before,
-.brand-panel::after {
-    content: "";
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-}
+    .brand-panel::before,
+    .brand-panel::after {
+        content: "";
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+    }
 
-.brand-panel::before {
-    width: 260px;
-    height: 260px;
-    left: -145px;
-    bottom: 80px;
-    border: 1px solid rgba(73, 211, 194, 0.2);
-}
+    .brand-panel::before {
+        width: 260px;
+        height: 260px;
+        left: -145px;
+        bottom: 80px;
+        border: 1px solid rgba(73, 211, 194, 0.2);
+    }
 
-.brand-panel::after {
-    width: 160px;
-    height: 160px;
-    right: -80px;
-    top: -65px;
-    background: rgba(139, 92, 246, 0.12);
-}
+    .brand-panel::after {
+        width: 160px;
+        height: 160px;
+        right: -80px;
+        top: -65px;
+        background: rgba(139, 92, 246, 0.12);
+    }
 
 .brand-content,
 .brand-footer {
@@ -205,9 +199,9 @@ body > .footer {
     text-decoration: none;
 }
 
-.brand:hover {
-    color: #ffffff;
-}
+    .brand:hover {
+        color: #ffffff;
+    }
 
 .brand-mark {
     width: 38px;
@@ -221,14 +215,14 @@ body > .footer {
     box-shadow: 0 8px 22px rgba(32, 184, 166, 0.25);
 }
 
-.brand-mark svg {
-    width: 24px;
-    height: 24px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2.4;
-    stroke-linecap: round;
-}
+    .brand-mark svg {
+        width: 24px;
+        height: 24px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2.4;
+        stroke-linecap: round;
+    }
 
 .brand-message {
     margin-top: 72px;
@@ -245,13 +239,13 @@ body > .footer {
     text-transform: uppercase;
 }
 
-.eyebrow::before {
-    content: "";
-    width: 22px;
-    height: 2px;
-    border-radius: 2px;
-    background: currentColor;
-}
+    .eyebrow::before {
+        content: "";
+        width: 22px;
+        height: 2px;
+        border-radius: 2px;
+        background: currentColor;
+    }
 
 .brand-message h1 {
     max-width: 470px;
@@ -350,16 +344,16 @@ body > .footer {
     background: rgba(139, 92, 246, 0.15);
 }
 
-.visual-icon svg,
-.calendar-icon svg {
-    width: 25px;
-    height: 25px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.7;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
+    .visual-icon svg,
+    .calendar-icon svg {
+        width: 25px;
+        height: 25px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
 
 .visual-card strong,
 .visual-card small {
@@ -443,15 +437,15 @@ body > .footer {
     background: rgba(79, 70, 229, 0.09);
 }
 
-.welcome-icon svg {
-    width: 23px;
-    height: 23px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.7;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
+    .welcome-icon svg {
+        width: 23px;
+        height: 23px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
 
 .form-heading h2 {
     margin: 0 0 7px;
@@ -478,15 +472,15 @@ body > .footer {
     font-size: 0.75rem;
 }
 
-.validation-summary:empty,
-.field-validation-error:empty {
-    display: none;
-}
+    .validation-summary:empty,
+    .field-validation-error:empty {
+        display: none;
+    }
 
-.validation-summary ul {
-    margin: 0 0 18px;
-    padding-left: 18px;
-}
+    .validation-summary ul {
+        margin: 0 0 18px;
+        padding-left: 18px;
+    }
 
 .field-validation-error {
     display: block;
@@ -505,32 +499,32 @@ body > .footer {
     position: relative;
 }
 
-.input-wrap input {
-    width: 100%;
-    height: 50px;
-    padding: 0 47px;
-    border: 1px solid var(--border);
-    border-radius: 11px;
-    outline: none;
-    color: var(--text);
-    background: var(--input-bg);
-    font-size: 0.86rem;
-    transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
-}
+    .input-wrap input {
+        width: 100%;
+        height: 50px;
+        padding: 0 47px;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        outline: none;
+        color: var(--text);
+        background: var(--input-bg);
+        font-size: 0.86rem;
+        transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+    }
 
-.input-wrap input::placeholder {
-    color: #99a3b3;
-}
+        .input-wrap input::placeholder {
+            color: #99a3b3;
+        }
 
-.input-wrap input:hover {
-    border-color: #aeb8c8;
-}
+        .input-wrap input:hover {
+            border-color: #aeb8c8;
+        }
 
-.input-wrap input:focus {
-    border-color: var(--login-indigo);
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
-    background: var(--surface);
-}
+        .input-wrap input:focus {
+            border-color: var(--login-indigo);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+            background: var(--surface);
+        }
 
 .input-icon {
     width: 19px;
@@ -546,40 +540,6 @@ body > .footer {
     stroke-linecap: round;
     stroke-linejoin: round;
     pointer-events: none;
-}
-
-.password-toggle {
-    width: 42px;
-    height: 42px;
-    position: absolute;
-    right: 4px;
-    top: 4px;
-    display: grid;
-    place-items: center;
-    border: 0;
-    border-radius: 8px;
-    color: var(--input-icon);
-    background: transparent;
-    cursor: pointer;
-}
-
-.password-toggle:hover {
-    color: var(--login-indigo);
-    background: rgba(79, 70, 229, 0.07);
-}
-
-.eye-icon {
-    width: 19px;
-    height: 19px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
-
-.js-password-toggle svg[hidden] {
-    display: none;
 }
 
 .form-options {
@@ -600,14 +560,14 @@ body > .footer {
     cursor: pointer;
 }
 
-.remember-option input {
-    width: 16px;
-    height: 16px;
-    margin: 0;
-    border-radius: 4px;
-    accent-color: var(--login-indigo);
-    cursor: pointer;
-}
+    .remember-option input {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        border-radius: 4px;
+        accent-color: var(--login-indigo);
+        cursor: pointer;
+    }
 
 .forgot-link {
     padding: 2px;
@@ -619,10 +579,10 @@ body > .footer {
     cursor: pointer;
 }
 
-.forgot-link:hover {
-    color: var(--login-indigo-dark);
-    text-decoration: underline;
-}
+    .forgot-link:hover {
+        color: var(--login-indigo-dark);
+        text-decoration: underline;
+    }
 
 .sign-in-button {
     width: 100%;
@@ -643,25 +603,25 @@ body > .footer {
     transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
-.sign-in-button:hover {
-    transform: translateY(-1px);
-    background: linear-gradient(100deg, var(--login-indigo-dark), #5048df);
-    box-shadow: 0 14px 28px rgba(79, 70, 229, 0.3);
-}
+    .sign-in-button:hover {
+        transform: translateY(-1px);
+        background: linear-gradient(100deg, var(--login-indigo-dark), #5048df);
+        box-shadow: 0 14px 28px rgba(79, 70, 229, 0.3);
+    }
 
-.sign-in-button:active {
-    transform: translateY(0);
-}
+    .sign-in-button:active {
+        transform: translateY(0);
+    }
 
-.sign-in-button svg {
-    width: 17px;
-    height: 17px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
+    .sign-in-button svg {
+        width: 17px;
+        height: 17px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
 
 .ui-note {
     margin: 18px 0 0;
@@ -674,15 +634,15 @@ body > .footer {
     text-align: center;
 }
 
-.ui-note svg {
-    width: 14px;
-    height: 14px;
-    flex: 0 0 auto;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-}
+    .ui-note svg {
+        width: 14px;
+        height: 14px;
+        flex: 0 0 auto;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+    }
 
 .form-footer {
     color: var(--muted);
@@ -708,9 +668,9 @@ body > .footer {
         margin-top: 66px;
     }
 
-    .brand-message h1 {
-        font-size: 2.25rem;
-    }
+        .brand-message h1 {
+            font-size: 2.25rem;
+        }
 
     .equipment-visual {
         height: 170px;
@@ -765,19 +725,19 @@ body > .footer {
         letter-spacing: -0.03em;
     }
 
-    .mobile-brand .brand-mark {
-        width: 35px;
-        height: 35px;
-        color: #ffffff;
-    }
+        .mobile-brand .brand-mark {
+            width: 35px;
+            height: 35px;
+            color: #ffffff;
+        }
 
     .form-heading {
         margin-bottom: 30px;
     }
 
-    .form-heading h2 {
-        font-size: 1.7rem;
-    }
+        .form-heading h2 {
+            font-size: 1.7rem;
+        }
 
     .form-footer {
         margin-top: 36px;
@@ -821,3 +781,9 @@ body > .footer {
     }
 }
 
+.icon-library {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
