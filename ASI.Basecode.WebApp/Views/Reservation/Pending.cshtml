@@ -1,0 +1,188 @@
+@* ASI.Basecode.WebApp/Views/Reservation/Pending.cshtml *@
+@using ASI.Basecode.Services.ServiceModels
+@model ReservationListViewModel
+@{
+    Layout = "_AppLayout";
+    var loadError = TempData["ReservationLoadError"] as string;
+    var items = Model.Items;
+    var active = Model.Status;
+    var heading = "Reservations";
+    var queueHeading = active switch
+    {
+        "Pending" => "Pending requests",
+        "Approved" => "Ready for release",
+        "Borrowed" => "Awaiting return",
+        "Returned" => "Returned reservations",
+        "Rejected" => "Rejected requests",
+        _ => "All reservations"
+    };
+    var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"));
+    ViewData["Title"] = heading;
+    ViewData["TopbarPage"] = heading;
+
+    var subtitle = active switch
+    {
+        "Pending" => "Review reservation requests that are waiting for custodian approval.",
+        "Approved" => "Approved requests that are waiting for the equipment to be released.",
+        "Borrowed" => "Equipment that has been released and is currently with borrowers.",
+        "Returned" => "Completed reservations whose equipment has been returned.",
+        "Rejected" => "Requests that were declined, with the reason given.",
+        _ => "Every reservation request, in all stages."
+    };
+    int CountOf(string s) => Model.Counts.TryGetValue(s, out var c) ? c : 0;
+    string BadgeClass(string s) => s switch
+    {
+        "Pending" => "status-pending",
+        "Approved" => "rs-approved",
+        "Borrowed" => "rs-borrowed",
+        "Rejected" => "rs-rejected",
+        "Returned" => "rs-returned",
+        _ => "rs-neutral"
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/approval-release.css" asp-append-version="true" />
+}
+
+<div class="page-heading">
+    <div>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>RESERVATIONS</div>
+        <h1>@heading</h1>
+        <p>@subtitle</p>
+    </div>
+</div>
+
+@if (TempData["ReservationSuccess"] is string successMessage)
+{
+    <div class="category-notice rs-notice-success" role="status">@successMessage</div>
+}
+@if (TempData["ReservationError"] is string errorMessage)
+{
+    <div class="category-notice category-notice-error" role="alert">@errorMessage</div>
+}
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">@loadError</div>
+}
+else
+{
+    <nav class="rs-tabs" aria-label="Reservation status">
+        @foreach (var tab in new[] { "Pending", "Approved", "Borrowed", "Returned", "Rejected", "All" })
+        {
+            var n = tab == "All" ? Model.TotalCount : CountOf(tab);
+            <a class="rs-tab @(tab == active ? "active" : "")" asp-controller="Reservation" asp-action="Pending" asp-route-status="@tab" aria-current="@(tab == active ? "page" : null)">@tab <span class="rs-count">@n</span></a>
+        }
+    </nav>
+
+    <section class="content-card category-list" aria-labelledby="pendingListHeading">
+        <div class="card-heading">
+            <div>
+                <h2 id="pendingListHeading">@queueHeading</h2>
+                <p>@(active == "Pending" ? "Oldest requests appear first so they can be reviewed in the order they were submitted." : active == "Borrowed" ? "Earliest expected returns appear first. Open a reservation to review its borrowing details." : "Open a reservation to see its full details.")</p>
+            </div>
+            <span class="count-pill">@items.Count @(items.Count == 1 ? "request" : "requests")</span>
+        </div>
+
+        @if (items.Count == 0)
+        {
+            <div class="empty-categories">
+                <span class="empty-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
+                <h3>@(active == "All" ? "No reservations yet" : active == "Borrowed" ? "No equipment awaiting return" : "No " + active.ToLowerInvariant() + " reservations")</h3>
+                <p>Reservations in this stage will appear here.</p>
+            </div>
+        }
+        else
+        {
+            <div class="list-toolbar">
+                <label class="search-field">
+                    <svg class="icon"><use href="#i-search" /></svg>
+                    <span class="sr-only">Search requests</span>
+                    <input id="pendingSearch" type="search" placeholder="Search request, borrower, or equipment…" autocomplete="off" />
+                </label>
+            </div>
+            <div class="table-scroll" role="region" aria-label="Reservations" tabindex="0">
+                <table class="category-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">REQUEST</th>
+                            <th scope="col">BORROWER</th>
+                            <th scope="col">EQUIPMENT</th>
+                            <th scope="col">SCHEDULE</th>
+                            <th scope="col">REQUESTED</th>
+                            <th scope="col">STATUS</th>
+                            <th scope="col" class="actions-column">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pendingRows">
+                        @foreach (var request in items)
+                        {
+                            var search = $"{request.ReservationNumber} {request.BorrowerName} {request.BorrowerUserCode} {request.DepartmentName} {request.Purpose} {request.EquipmentSummary}".ToLowerInvariant();
+                            <tr data-search="@search">
+                                <td>
+                                    <div class="category-name-cell">
+                                        <span class="category-tile"><svg class="icon"><use href="#i-calendar" /></svg></span>
+                                        <span>
+                                            <strong>@request.ReservationNumber</strong>
+                                            <small>@request.Purpose</small>
+                                        </span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>@request.BorrowerName</strong>
+                                    <div class="pending-muted">@request.BorrowerUserCode@(string.IsNullOrWhiteSpace(request.DepartmentName) ? "" : " · " + request.DepartmentName)</div>
+                                </td>
+                                <td>
+                                    @request.EquipmentSummary
+                                    <div class="pending-muted">@request.ItemCount @(request.ItemCount == 1 ? "item" : "items")</div>
+                                </td>
+                                <td>
+                                    @request.StartDateTime.ToString("MMM d, yyyy h:mm tt")
+                                    <div class="pending-muted">to @request.ExpectedReturnDateTime.ToString("MMM d, yyyy h:mm tt")</div>
+                                    @if (request.Status == "Borrowed" && request.ExpectedReturnDateTime < now)
+                                    {
+                                        <div class="rs-overdue">Overdue</div>
+                                    }
+                                </td>
+                                <td>@request.RequestedAt.ToString("MMM d, yyyy h:mm tt")</td>
+                                <td>
+                                    <span class="status-badge @BadgeClass(request.Status)"><span></span>@request.Status</span>
+                                </td>
+                                <td class="actions-column">
+                                    <div class="row-actions">
+                                        @if (request.Status == "Approved")
+                                        {
+                                            <a class="button button-primary rs-small" asp-controller="Reservation" asp-action="Details" asp-route-id="@request.ReservationId">Release</a>
+                                        }
+                                        <a class="icon-button"
+                                           asp-controller="Reservation"
+                                           asp-action="Details"
+                                           asp-route-id="@request.ReservationId"
+                                           aria-label="View @request.ReservationNumber"
+                                           title="View request">
+                                            <svg class="icon"><use href="#i-eye" /></svg>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="empty-results" id="emptyResults" hidden>
+                <span class="empty-icon"><svg class="icon"><use href="#i-search" /></svg></span>
+                <h3>No matching requests</h3>
+                <p>Try a different reservation number, borrower name, or equipment name.</p>
+                <button type="button" class="text-button" id="clearPendingSearch">Clear search</button>
+            </div>
+            <div class="table-footer"><span id="resultCount">Showing @items.Count of @items.Count requests</span></div>
+        }
+    </section>
+}
+
+@section Scripts {
+    @if (items.Count > 0 && loadError == null)
+    {
+        <script src="~/js/pending-requests.js" asp-append-version="true"></script>
+    }
+}

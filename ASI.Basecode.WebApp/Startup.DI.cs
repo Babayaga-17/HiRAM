@@ -45,6 +45,7 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IBorrowerProfileService, BorrowerProfileService>();
 
             this._services.AddScoped<IUserAccountService, UserAccountService>();
+            this._services.AddScoped<IReservationService, ReservationService>();
 
 
             // Repositories
@@ -53,6 +54,7 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IAccountRepository, AccountRepository>();
             this._services.AddScoped<IEquipmentCategoryRepository, EquipmentCategoryRepository>();
             this._services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+            this._services.AddScoped<IReservationRepository, ReservationRepository>();
             this._services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
             this._services.AddScoped<IRoleRepository, RoleRepository>();
             this._services.AddScoped<IAuditLogRepository, AuditLogRepository>();

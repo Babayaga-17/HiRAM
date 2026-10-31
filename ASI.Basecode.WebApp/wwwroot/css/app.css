@@ -1648,9 +1648,20 @@ h1, h2, h3, p {
     background: #e7f7f1;
 }
 
+.status-badge.status-pending,
 .status-badge.status-reserved {
     color: #2f6fdb;
     background: #e8f0fe;
+}
+
+.pending-muted {
+    margin-top: 3px;
+    color: #8a96a8;
+    font-size: 10px;
+}
+
+.heading-status {
+    align-self: center;
 }
 
 .status-badge.status-borrowed {
