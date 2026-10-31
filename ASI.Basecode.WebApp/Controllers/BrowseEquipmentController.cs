@@ -75,6 +75,53 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
     }
 
     [HttpGet]
+    public IActionResult Details(int id, int? reservationId)
+    {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
+        var equipment = _equipmentService.GetBorrowableEquipmentById(id);
+        if (equipment == null)
+            return NotFound();
+
+        ViewData["EditingReservationId"] = reservationId;
+        ViewBag.IsSelected = GetSelectedIds(reservationId).Contains(id);
+        return View(equipment);
+    }
+
+    [HttpGet]
+    public IActionResult Schedule(int id, DateTime? from, DateTime? to, int? reservationId)
+    {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+        if (!from.HasValue || !to.HasValue || to <= from || (to.Value - from.Value).TotalDays > 62)
+            return BadRequest(new { message = "Choose a calendar range of up to 62 days." });
+
+        try
+        {
+            if (_equipmentService.GetBorrowableEquipmentById(id) == null)
+                return NotFound();
+
+            var periods = _equipmentService.GetSchedule(id, from.Value, to.Value, reservationId);
+            return Json(new
+            {
+                periods = periods.Select(period => new
+                {
+                    type = period.Type,
+                    label = period.Label,
+                    startIso = period.Start.ToString("yyyy-MM-dd'T'HH:mm:ss"),
+                    endIso = period.End.ToString("yyyy-MM-dd'T'HH:mm:ss")
+                })
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to load equipment schedule.");
+            return StatusCode(500, new { message = "Unable to load the calendar. Please try again." });
+        }
+    }
+
+    [HttpGet]
     public IActionResult Availability(int id, DateTime? from, DateTime? to, int? reservationId)
     {
         if (!CanEditSelection(reservationId))

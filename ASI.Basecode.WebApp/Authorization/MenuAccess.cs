@@ -53,11 +53,11 @@ namespace ASI.Basecode.WebApp.Authorization
                 null,
                 new[] { RoleNames.Custodian, RoleNames.Admin }),
             new MenuAccessEntry(
-                "Reservation",
-                "Pending requests",
-                "View reservation requests waiting for approval.",
+                "AvailabilityCalendar",
+                "Availability calendar",
+                "View equipment availability by day, week, or month.",
                 null,
-                new[] { RoleNames.Custodian, RoleNames.Admin }),
+                new[] { RoleNames.Borrower, RoleNames.Custodian, RoleNames.Admin }),
         };
 
         public static MenuAccessEntry Find(string key)

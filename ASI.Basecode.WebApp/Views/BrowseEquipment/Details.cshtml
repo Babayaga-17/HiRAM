@@ -1,0 +1,147 @@
+@using ASI.Basecode.Services.ServiceModels
+@model EquipmentListItem
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = Model.EquipmentName;
+    ViewData["TopbarPage"] = "Browse equipment › " + Model.EquipmentName;
+    var reservationId = (int?)ViewData["EditingReservationId"];
+    var backUrl = Url.Action("Index", "BrowseEquipment", new { reservationId });
+    var selected = ViewBag.IsSelected is bool value && value;
+    var selectable = Model.Status != EquipmentAvailability.Unavailable;
+    var brandModel = string.Join(" ", new[] { Model.Brand, Model.Model }.Where(value => !string.IsNullOrWhiteSpace(value)));
+    var photos = Model.ImageUrls ?? new List<string>();
+    var placeholder = Url.Content("~/images/equipment-placeholder.jpg");
+    var galleryPhotos = photos.Count > 0 ? photos : Enumerable.Repeat(placeholder, 4).ToList();
+    var note = !Model.IsActive ? "This equipment is inactive and cannot be borrowed right now." : Model.ConditionStatus switch
+    {
+        "Excellent" => "In excellent working order.",
+        "Good" => "In good working order.",
+        "Fair" => "Usable, with some signs of wear.",
+        "Damaged" => "Damaged. It cannot be borrowed.",
+        "Lost" => "Reported lost. It cannot be borrowed.",
+        _ => string.Empty
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/browse-equipment.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/equipment-details.css" asp-append-version="true" />
+}
+
+<div class="equipment-details-page" id="equipmentDetailsRoot"
+     data-id="@Model.EquipmentId"
+     data-selected="@(selected ? "true" : "false")"
+     data-selectable="@(selectable ? "true" : "false")"
+     data-select-url="@Url.Action("Select", "BrowseEquipment", new { reservationId })"
+     data-deselect-url="@Url.Action("Deselect", "BrowseEquipment", new { reservationId })"
+     data-availability-url="@Url.Action("Availability", "BrowseEquipment", new { id = Model.EquipmentId, reservationId })"
+     data-schedule-url="@Url.Action("Schedule", "BrowseEquipment", new { id = Model.EquipmentId, reservationId })">
+    @Html.AntiForgeryToken()
+    <a class="details-back" href="@backUrl">‹ Back to browse equipment</a>
+
+    <section class="content-card details-summary" aria-labelledby="detailsTitle">
+        <div class="details-layout">
+            <div class="details-gallery">
+                <div class="gallery-main">
+                    <span class="photo-fallback"><span class="photo-icon"></span>Main photo placeholder</span>
+                    <img class="gallery-main-img" id="galleryMainImg" src="@galleryPhotos[0]" alt="@Model.EquipmentName" />
+                    <button type="button" class="gallery-arrow gallery-prev" id="galleryPrev" aria-label="Previous photo">‹</button>
+                    <button type="button" class="gallery-arrow gallery-next" id="galleryNext" aria-label="Next photo">›</button>
+                    <span class="equipment-photo-count" id="galleryCount" aria-live="polite">1 / @galleryPhotos.Count</span>
+                </div>
+                <div class="gallery-thumbs" id="galleryThumbs" aria-label="Equipment photos">
+                    @for (var index = 0; index < galleryPhotos.Count; index++)
+                    {
+                        <button type="button" class="gallery-thumb @(index == 0 ? "is-active" : "")"
+                                data-photo="@galleryPhotos[index]" aria-label="Show photo @(index + 1)"
+                                aria-pressed="@(index == 0 ? "true" : "false")">
+                            <span class="photo-icon"></span><img src="@galleryPhotos[index]" alt="" loading="lazy" />
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <div class="details-info">
+                <span class="dialog-kicker">EQUIPMENT DETAILS</span>
+                <h1 id="detailsTitle">@Model.EquipmentName</h1>
+                <span class="status-badge status-@Model.StatusClass"><span></span>@Model.StatusLabel</span>
+                <p class="details-description">@(string.IsNullOrWhiteSpace(Model.Description) ? "No description provided." : Model.Description)</p>
+                <dl class="details-table">
+                    <div><dt>Equipment code</dt><dd>@Model.EquipmentCode</dd></div>
+                    <div><dt>Category</dt><dd>@(string.IsNullOrWhiteSpace(Model.CategoryName) ? "—" : Model.CategoryName)</dd></div>
+                    <div><dt>Brand / Model</dt><dd>@(string.IsNullOrWhiteSpace(brandModel) ? "—" : brandModel)</dd></div>
+                    <div><dt>Condition</dt><dd>@Model.ConditionStatus</dd></div>
+                    <div><dt>Serial number</dt><dd>@(string.IsNullOrWhiteSpace(Model.SerialNumber) ? "—" : Model.SerialNumber)</dd></div>
+                    <div><dt>Storage location</dt><dd>@(string.IsNullOrWhiteSpace(Model.StorageLocation) ? "—" : Model.StorageLocation)</dd></div>
+                    <div><dt>Next reservation</dt><dd>@(Model.NextReservationStart?.ToString("MMM d, yyyy h:mm tt") ?? "None scheduled")</dd></div>
+                </dl>
+                <p class="condition-note">@note</p>
+                <div class="details-page-actions">
+                    <a class="button button-secondary" href="@backUrl">Back</a>
+                    <button type="button" class="button button-primary" id="detailsSelect" disabled="@(!selectable)">
+                        @(!selectable ? "Not available" : selected ? "Remove from selection" : "Select this item")
+                    </button>
+                </div>
+                <p id="selectionMessage" class="details-feedback" role="status"></p>
+            </div>
+        </div>
+    </section>
+
+    <div class="details-availability-layout">
+        <section class="content-card calendar-card" aria-labelledby="calendarHeading">
+            <div class="calendar-header">
+                <h2 id="calendarHeading">Availability calendar</h2>
+                <p>See reservations, borrowing and maintenance. Select a date to check a time range.</p>
+                <div class="calendar-toolbar">
+                    <div class="calendar-navigation">
+                        <button class="calendar-control" type="button" id="calendarPrev" aria-label="Previous period">‹</button>
+                        <strong id="calendarTitle" aria-live="polite"></strong>
+                        <button class="calendar-control" type="button" id="calendarNext" aria-label="Next period">›</button>
+                        <button class="calendar-control" type="button" id="calendarToday">Today</button>
+                    </div>
+                    <div class="view-toggle" role="group" aria-label="Calendar view">
+                        <button type="button" data-calendar-view="day" aria-pressed="false">Day</button>
+                        <button type="button" data-calendar-view="week" aria-pressed="false">Week</button>
+                        <button type="button" data-calendar-view="month" class="is-active" aria-pressed="true">Month</button>
+                    </div>
+                </div>
+                <ul class="calendar-legend" aria-label="Calendar legend">
+                    <li><i class="legend-reserved"></i>Reserved</li>
+                    <li><i class="legend-borrowed"></i>Borrowed</li>
+                    <li><i class="legend-maintenance"></i>Maintenance</li>
+                    <li><i class="legend-free"></i>No scheduled conflict</li>
+                </ul>
+                <p id="calendarMessage" class="details-feedback" role="status"></p>
+            </div>
+            <div class="calendar-weekdays" id="calendarWeekdays" aria-hidden="true">
+                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+            </div>
+            <div class="availability-calendar" id="availabilityCalendar" aria-label="Equipment schedule" aria-busy="true"></div>
+            <p class="calendar-help">Times use the same local time as the existing HiRAM availability form. Empty dates do not guarantee eligibility; use Check availability.</p>
+        </section>
+
+        <aside class="details-availability-sidebar">
+            <section class="content-card availability-check" aria-labelledby="checkHeading">
+                <h2 id="checkHeading">Check availability</h2>
+                <form id="availabilityForm" class="availability-form">
+                    <label>From<input type="datetime-local" id="availabilityFrom" required /></label>
+                    <label>To<input type="datetime-local" id="availabilityTo" required /></label>
+                    <button type="submit" class="button button-primary" id="checkAvailability">Check availability</button>
+                </form>
+                <p class="availability-result" id="availabilityResult" role="status" aria-live="polite"></p>
+                <h3 class="availability-title">Available dates and times</h3>
+                <ul class="busy-list free-list" id="availabilitySlots"></ul>
+                <h3 class="availability-title">Conflicts in selected period</h3>
+                <ul class="busy-list" id="availabilityPeriods"></ul>
+            </section>
+            <section class="content-card upcoming-card" aria-labelledby="upcomingHeading">
+                <h2 id="upcomingHeading">Upcoming (next 14 days)</h2>
+                <ul class="busy-list" id="upcomingPeriods" aria-live="polite"></ul>
+            </section>
+        </aside>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/equipment-details.js" asp-append-version="true"></script>
+}

@@ -225,6 +225,89 @@ namespace ASI.Basecode.Services.Services
             return result;
         }
 
+        // Calendar reads may include past days; booking validation remains in GetAvailability.
+        public List<EquipmentBusyPeriod> GetSchedule(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null)
+        {
+            if (end <= start || (end - start).TotalDays > 62)
+                throw new ArgumentException("Choose a calendar range of up to 62 days.");
+
+            return GetBusyPeriods(equipmentId, start, end, excludeReservationId);
+        }
+
+        // Reservations and maintenance of active equipment that overlap.
+        // Only dates are returned. Borrower names are never exposed.
+        public List<EquipmentCalendarEvent> GetCalendarEvents(DateTime start, DateTime end)
+        {
+            if (end <= start || (end - start).TotalDays > 62)
+                throw new ArgumentException("Choose a calendar range of up to 62 days.");
+
+            var reservations = _equipmentRepository.GetEquipments()
+                .Where(equipment => equipment.IsActive)
+                .SelectMany(equipment => equipment.ReservationItems)
+                .Where(reservationItem => !reservationItem.IsReturned
+                    && BlockingReservationStatuses.Contains(reservationItem.Reservation.Status)
+                    && reservationItem.Reservation.StartDateTime < end
+                    && reservationItem.Reservation.ExpectedReturnDateTime > start)
+                .Select(reservationItem => new
+                {
+                    reservationItem.EquipmentId,
+                    reservationItem.Equipment.EquipmentCode,
+                    reservationItem.Equipment.EquipmentName,
+                    reservationItem.Equipment.CategoryId,
+                    reservationItem.Reservation.Status,
+                    reservationItem.Reservation.StartDateTime,
+                    reservationItem.Reservation.ExpectedReturnDateTime
+                })
+                .ToList()
+                .Select(row => new EquipmentCalendarEvent
+                {
+                    EquipmentId = row.EquipmentId,
+                    EquipmentCode = row.EquipmentCode,
+                    EquipmentName = row.EquipmentName,
+                    CategoryId = row.CategoryId,
+                    Type = row.Status == "Borrowed" || row.Status == "Overdue" ? "Borrowed" : "Reserved",
+                    Status = row.Status,
+                    Start = row.StartDateTime,
+                    End = row.ExpectedReturnDateTime
+                })
+                .ToList();
+
+            var maintenance = _equipmentRepository.GetEquipments()
+                .Where(equipment => equipment.IsActive)
+                .SelectMany(equipment => equipment.MaintenanceRecords)
+                .Where(record => (record.Status == "Scheduled" || record.Status == "InProgress")
+                    && record.StartDateTime < end
+                    && (record.EndDateTime == null || record.EndDateTime > start))
+                .Select(record => new
+                {
+                    record.EquipmentId,
+                    record.Equipment.EquipmentCode,
+                    record.Equipment.EquipmentName,
+                    record.Equipment.CategoryId,
+                    record.Status,
+                    record.StartDateTime,
+                    record.EndDateTime
+                })
+                .ToList()
+                .Select(row => new EquipmentCalendarEvent
+                {
+                    EquipmentId = row.EquipmentId,
+                    EquipmentCode = row.EquipmentCode,
+                    EquipmentName = row.EquipmentName,
+                    CategoryId = row.CategoryId,
+                    Type = "Maintenance",
+                    Status = row.Status,
+                    Start = row.StartDateTime,
+                    End = row.EndDateTime ?? end
+                })
+                .ToList();
+
+            return reservations.Concat(maintenance)
+                .OrderBy(item => item.Start)
+                .ThenBy(item => item.EquipmentCode)
+                .ToList();
+        }
+
         private IQueryable<Equipment> GetBorrowerVisibleEquipments()
         {
             return _equipmentRepository.GetEquipments();

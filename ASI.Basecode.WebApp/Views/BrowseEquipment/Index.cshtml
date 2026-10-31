@@ -46,6 +46,7 @@ else if (Model.Count == 0)
 else
 {
     <div id="browseRoot"
+         data-state-key="hiram.browse.@(reservationId?.ToString() ?? "new")"
          data-selected="@string.Join(",", selectedIds)"
          data-placeholder="@placeholderUrl"
          data-select-url="@Url.Action("Select", "BrowseEquipment", new { reservationId })"
@@ -163,7 +164,9 @@ else
                     </div>
 
                     <div class="equipment-card-actions">
-                        <button type="button" class="button button-secondary view-equipment">View details</button>
+                        <a class="button button-secondary view-equipment"
+                           asp-controller="BrowseEquipment" asp-action="Details"
+                           asp-route-id="@item.EquipmentId" asp-route-reservationId="@reservationId">View details</a>
                         <button type="button" class="button button-primary select-equipment">Select</button>
                     </div>
                 </article>
@@ -184,67 +187,7 @@ else
             <nav class="pager" id="pager" aria-label="Pagination"></nav>
         </div>
 
-        <dialog class="app-dialog" id="detailsDialog" aria-labelledby="detailsTitle">
-            <div class="details-layout">
-                <div class="details-gallery">
-                    <div class="gallery-main" id="galleryMain">
-                        <span class="photo-fallback"><span class="photo-icon"></span>Main photo placeholder</span>
-                        <img class="gallery-main-img" id="galleryMainImg" alt="" hidden />
-                        <button type="button" class="gallery-arrow gallery-prev" id="galleryPrev" aria-label="Previous photo">&lsaquo;</button>
-                        <button type="button" class="gallery-arrow gallery-next" id="galleryNext" aria-label="Next photo">&rsaquo;</button>
-                        <span class="equipment-photo-count" id="galleryCount"></span>
-                    </div>
-                    <div class="gallery-thumbs" id="galleryThumbs"></div>
-                </div>
 
-                <div class="details-info">
-                    <div class="details-head">
-                        <div>
-                            <span class="dialog-kicker">EQUIPMENT DETAILS</span>
-                            <h2 id="detailsTitle"></h2>
-                            <span class="status-badge" id="detailsStatusBadge"></span>
-                        </div>
-                        <button type="button" class="icon-button dialog-close" aria-label="Close details">
-                            <svg class="icon"><use href="#i-close" /></svg>
-                        </button>
-                    </div>
-
-                    <p class="details-description" id="detailsDescription"></p>
-
-                    <dl class="details-table">
-                        <div><dt>Equipment code</dt><dd id="detailsCode"></dd></div>
-                        <div><dt>Category</dt><dd id="detailsCategory"></dd></div>
-                        <div><dt>Brand / Model</dt><dd id="detailsBrandModel"></dd></div>
-                        <div><dt>Condition</dt><dd id="detailsCondition"></dd></div>
-                        <div><dt>Serial number</dt><dd id="detailsSerial"></dd></div>
-                        <div><dt>Storage location</dt><dd id="detailsLocation"></dd></div>
-                        <div><dt>Next reservation</dt><dd id="detailsNext"></dd></div>
-                    </dl>
-                    <p class="condition-note" id="detailsConditionNote"></p>
-
-                    <div class="dialog-actions">
-                        <button type="button" class="button button-secondary dialog-close">Close</button>
-                        <button type="button" class="button button-primary" id="detailsSelect">Select this item</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="availability-box">
-                <h3>Check availability</h3>
-                <div class="availability-form">
-                    <label>From<input type="datetime-local" id="availabilityFrom" /></label>
-                    <label>To<input type="datetime-local" id="availabilityTo" /></label>
-                    <button type="button" class="button button-secondary" id="checkAvailability">Check availability</button>
-                </div>
-                <p class="availability-result" id="availabilityResult"></p>
-
-                <p class="availability-title">Existing reservations <span id="availabilityRange"></span></p>
-                <ul class="busy-list" id="availabilityPeriods"></ul>
-
-                <p class="availability-title">Available dates and times</p>
-                <ul class="busy-list free-list" id="availabilitySlots"></ul>
-            </div>
-        </dialog>
     </div>
 }
 

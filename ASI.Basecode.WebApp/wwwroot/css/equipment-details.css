@@ -1,0 +1,549 @@
+.equipment-details-page {
+    container-type: inline-size;
+    width: 100%;
+    min-width: 0;
+}
+
+.details-back {
+    display: inline-block;
+    margin-bottom: 18px;
+    color: var(--muted);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+    .details-back:hover {
+        color: var(--purple);
+    }
+
+.details-summary {
+    padding: 24px;
+}
+
+.details-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+}
+
+    .details-layout > *, .details-availability-layout > * {
+        min-width: 0;
+    }
+
+.details-info h1 {
+    margin: 8px 0 12px;
+    font-size: clamp(24px, 2.4vw, 32px);
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.details-description {
+    margin: 16px 0;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.details-table {
+    margin: 0;
+    border-top: 1px solid var(--line);
+}
+
+    .details-table div {
+        display: grid;
+        grid-template-columns: minmax(100px, .8fr) minmax(0, 1.2fr);
+        gap: 16px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 13px;
+    }
+
+    .details-table dt {
+        color: var(--muted);
+    }
+
+    .details-table dd {
+        margin: 0;
+        font-weight: 700;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+
+.condition-note, .details-feedback {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+    .details-feedback:empty {
+        display: none;
+    }
+
+.details-page-actions {
+    display: grid;
+    grid-template-columns: minmax(80px, .65fr) minmax(0, 1.35fr);
+    gap: 12px;
+    margin-top: 20px;
+}
+
+    .details-page-actions .button {
+        width: 100%;
+        justify-content: center;
+    }
+
+#detailsSelect:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+/* The calendar gets the full row on ordinary laptops. A side panel fits only
+   when the actual content area (after sidebar and padding) is at least 1120px. */
+.details-availability-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    margin-top: 24px;
+    align-items: start;
+}
+
+.details-availability-sidebar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    align-items: start;
+}
+
+.calendar-card {
+    overflow: hidden;
+}
+
+.calendar-header, .availability-check, .upcoming-card {
+    padding: 20px;
+}
+
+.equipment-details-page h2 {
+    margin: 0 0 6px;
+    font-size: 16px;
+}
+
+.calendar-header > p, .calendar-help {
+    margin: 0;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.calendar-toolbar, .calendar-navigation {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.calendar-toolbar {
+    justify-content: space-between;
+    margin-top: 16px;
+    gap: 12px;
+}
+
+.calendar-navigation strong {
+    min-width: 130px;
+    text-align: center;
+    font-size: 13px;
+}
+
+.calendar-control {
+    min-width: 34px;
+    min-height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 5px 10px;
+}
+
+.calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    list-style: none;
+    padding: 0;
+    margin: 16px 0 0;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+    .calendar-legend li {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .calendar-legend i {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+.legend-reserved {
+    background: #657bd4;
+}
+
+.legend-borrowed {
+    background: #8b62cb;
+}
+
+.legend-maintenance {
+    background: #bb832f;
+}
+
+.calendar-legend .legend-free {
+    border: 1px solid #c1e7dc;
+    border-radius: 2px;
+    background: #eef9f5;
+}
+
+.calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    background: #f7f8fc;
+    border-top: 1px solid var(--line);
+}
+
+    .calendar-weekdays span {
+        padding: 10px 2px;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+    }
+
+.availability-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-day {
+    min-width: 0;
+    min-height: 72px;
+    padding: 8px 5px;
+    border-top: 1px solid var(--line);
+    border-right: 1px solid var(--line);
+    background: #fff;
+}
+
+    .calendar-day:nth-child(7n) {
+        border-right: 0;
+    }
+
+    .calendar-day.is-free {
+        background: #f2faf7;
+    }
+
+    .calendar-day.is-outside {
+        background: #fafbfe;
+        color: #8a93a5;
+    }
+
+    .calendar-day.is-selected {
+        box-shadow: inset 0 0 0 2px var(--purple);
+    }
+
+.calendar-date {
+    display: block;
+    width: 28px;
+    height: 26px;
+    padding: 0;
+    margin: 0 0 5px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    font-size: 11px;
+}
+
+    .calendar-date[aria-current="date"] {
+        background: var(--purple);
+        color: #fff;
+    }
+
+.calendar-event {
+    display: block;
+    margin-top: 4px;
+    padding: 5px;
+    border-left: 3px solid #657bd4;
+    border-radius: 4px;
+    background: #edf0fc;
+    color: #354577;
+    font-size: 10px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+}
+
+    .calendar-event.is-borrowed {
+        border-color: #8b62cb;
+        background: #f0eafb;
+        color: #65428e;
+    }
+
+    .calendar-event.is-maintenance {
+        border-color: #bb832f;
+        background: #fbf2e5;
+        color: #825c21;
+    }
+
+    .calendar-event time {
+        display: block;
+    }
+
+.calendar-help {
+    padding: 12px 20px 16px;
+    border-top: 1px solid var(--line);
+}
+
+.calendar-agenda {
+    grid-column: 1 / -1;
+    padding: 16px 20px;
+    border-top: 1px solid var(--line);
+}
+
+    .calendar-agenda h3 {
+        margin: 0 0 12px;
+        font-size: 14px;
+    }
+
+    .calendar-agenda .calendar-date {
+        width: auto;
+        height: auto;
+        font-weight: 700;
+        text-align: left;
+    }
+
+    .calendar-agenda .calendar-event {
+        padding: 9px 12px;
+        font-size: 12px;
+    }
+
+.calendar-empty {
+    margin: 0;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.availability-check .availability-form {
+    display: grid;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.availability-form label {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.availability-form input {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12px;
+}
+
+.availability-result {
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.availability-ok {
+    padding: 12px;
+    border: 1px solid #c1e7dc;
+    border-radius: 8px;
+    background: #eef9f5;
+    color: #16795e;
+}
+
+.availability-no {
+    color: #bd3343;
+}
+
+.availability-title {
+    margin: 18px 0 8px;
+    font-size: 12px;
+}
+
+.busy-list {
+    display: grid;
+    gap: 10px;
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+}
+
+    .busy-list li {
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 10px;
+        font-size: 12px;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+.busy-tag {
+    display: block;
+    font-weight: 700;
+    color: var(--purple);
+}
+
+.busy-empty {
+    color: var(--muted);
+}
+
+.free-list li {
+    color: #16795e;
+}
+
+.calendar-control:focus-visible, .calendar-date:focus-visible, .gallery-thumb:focus-visible {
+    outline: 3px solid var(--purple);
+    outline-offset: 2px;
+}
+
+@container (min-width: 1120px) {
+    .details-availability-layout {
+        grid-template-columns: minmax(0, 1fr) 280px;
+    }
+
+    .details-availability-sidebar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@container (max-width: 680px) {
+    .details-layout, .details-availability-sidebar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .details-summary {
+        padding: 18px;
+    }
+
+    .calendar-header {
+        padding: 16px;
+    }
+}
+
+@container (max-width: 460px) {
+    .calendar-day {
+        padding: 5px 2px;
+        min-height: 60px;
+    }
+
+    .calendar-event {
+        padding: 3px;
+        font-size: 9px;
+    }
+
+        .calendar-event time {
+            display: none;
+        }
+}
+
+.gallery-main {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #f1efff, #eaf4f6);
+}
+
+    .gallery-main .photo-icon {
+        width: 56px;
+        height: 56px;
+    }
+
+.gallery-main-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.gallery-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    width: 38px;
+    height: 38px;
+    margin-top: -19px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--ink, #1f2937);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(31, 41, 55, .18);
+}
+
+.gallery-prev {
+    left: 12px;
+}
+
+.gallery-next {
+    right: 12px;
+}
+
+.gallery-thumbs {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    overflow-x: auto;
+}
+
+.gallery-thumb {
+    position: relative;
+    flex: 0 0 calc(25% - 8px);
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 2px solid transparent;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f1efff, #eaf4f6);
+    cursor: pointer;
+    padding: 0;
+}
+
+    .gallery-thumb .photo-icon {
+        width: 22px;
+        height: 22px;
+    }
+
+    .gallery-thumb img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .gallery-thumb.is-active {
+        border-color: var(--purple, #5b4ee8);
+    }

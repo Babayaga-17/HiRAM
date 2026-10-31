@@ -20,6 +20,7 @@
     var isMyReservationsPage = currentController == "EquipmentReservation" && (currentAction == "Index" || currentAction == "Details");
     var isBrowsePage = currentController == "BrowseEquipment" || (currentController == "EquipmentReservation" && !isMyReservationsPage);
     var isBorrowerProfilesPage = currentController == "BorrowerProfile";
+    var isCalendarPage = currentController == "AvailabilityCalendar";
 }
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Main navigation">
@@ -57,6 +58,14 @@
                aria-current="@(isMyReservationsPage ? "page" : null)">
                 <svg class="icon"><use href="#i-calendar" /></svg>
                 My Reservations
+            </a>
+
+            <a class="@(isCalendarPage ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="AvailabilityCalendar"
+               asp-action="Index"
+               aria-current="@(isCalendarPage ? "page" : null)">
+                <svg class="icon"><use href="#i-eye" /></svg>
+                Calendar
             </a>
 
             <span class="nav-link nav-link-disabled" aria-disabled="true">
@@ -104,6 +113,14 @@
             <span class="nav-link nav-link-disabled" aria-disabled="true">
                 Maintenance <span class="nav-soon">Soon</span>
             </span>
+
+            <a class="@(isCalendarPage ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="AvailabilityCalendar"
+               asp-action="Index"
+               aria-current="@(isCalendarPage ? "page" : null)">
+                <svg class="icon"><use href="#i-eye" /></svg>
+                Calendar 
+            </a>
 
             <span class="nav-caption nav-caption-spaced">INSIGHTS</span>
 
