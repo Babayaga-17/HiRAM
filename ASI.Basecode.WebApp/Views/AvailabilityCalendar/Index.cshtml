@@ -1,0 +1,152 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@model List<EquipmentListItem>
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Availability Calendar";
+    ViewData["TopbarPage"] = "Availability calendar";
+
+    var loadError = TempData["CalendarLoadError"] as string;
+    var categoryOptions = ViewBag.Categories as Microsoft.AspNetCore.Mvc.Rendering.SelectList;
+    var isBorrower = User.IsInRole("Borrower");
+    var borrowableConditions = new[] { "Excellent", "Good", "Fair" };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/availability-calendar.css" asp-append-version="true" />
+}
+
+<div class="page-heading">
+    <div>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>REPORTS AND MONITORING</div>
+        <h1>Availability calendar</h1>
+        <p>See occupied periods at a glance and find an open borrowing window.</p>
+    </div>
+    @if (isBorrower)
+    {
+        <a class="button button-primary heading-action" asp-controller="EquipmentReservation" asp-action="Create">
+            <svg class="icon"><use href="#i-plus" /></svg>Reserve equipment
+        </a>
+    }
+</div>
+
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">@loadError</div>
+}
+else
+{
+    <div id="calendarRoot"
+         data-events-url="@Url.Action("Events", "AvailabilityCalendar")"
+         data-details-url="@(isBorrower ? Url.Action("Details", "BrowseEquipment") : "")">
+
+        <ul id="calendarEquipment" hidden>
+            @foreach (var item in Model)
+            {
+                var borrowable = item.IsActive && borrowableConditions.Contains(item.ConditionStatus);
+                <li data-id="@item.EquipmentId"
+                    data-code="@item.EquipmentCode"
+                    data-name="@item.EquipmentName"
+                    data-category="@item.CategoryId"
+                    data-category-name="@item.CategoryName"
+                    data-borrowable="@(borrowable ? "true" : "false")"></li>
+            }
+        </ul>
+
+        <section class="content-card calendar-filter-card" aria-label="Filter the calendar">
+            <div class="list-toolbar">
+                <label class="search-field">
+                    <svg class="icon"><use href="#i-search" /></svg>
+                    <span class="sr-only">Search equipment</span>
+                    <input id="calendarSearch" type="search" placeholder="Search equipment..." autocomplete="off" />
+                </label>
+                <select id="equipmentFilter" class="calendar-select" aria-label="Filter by equipment">
+                    <option value="all">All equipment</option>
+                    @foreach (var item in Model.OrderBy(equipment => equipment.EquipmentName))
+                    {
+                        <option value="@item.EquipmentId">@item.EquipmentCode · @item.EquipmentName</option>
+                    }
+                </select>
+                <select id="categoryFilter" class="calendar-select" aria-label="Filter by category">
+                    <option value="all">All categories</option>
+                    @if (categoryOptions != null)
+                    {
+                        @foreach (var option in categoryOptions)
+                        {
+                            <option value="@option.Value">@option.Text</option>
+                        }
+                    }
+                </select>
+            </div>
+        </section>
+
+        <section class="content-card calendar-card" aria-label="Availability calendar">
+            <div class="calendar-toolbar">
+                <div class="calendar-nav">
+                    <button type="button" class="calendar-nav-button" id="calendarPrev" aria-label="Previous">&lsaquo;</button>
+                    <h2 class="calendar-title" id="calendarTitle"></h2>
+                    <button type="button" class="calendar-nav-button" id="calendarNext" aria-label="Next">&rsaquo;</button>
+                    <button type="button" class="calendar-today-button" id="calendarToday">Today</button>
+                </div>
+                <div class="calendar-views" role="group" aria-label="Change view">
+                    <button type="button" data-view="day">Day</button>
+                    <button type="button" data-view="week">Week</button>
+                    <button type="button" data-view="month" class="is-active">Month</button>
+                </div>
+            </div>
+
+            <div class="calendar-legend" role="group" aria-label="Show or hide entry types">
+                <button type="button" data-type="Reserved" aria-pressed="true"><span class="legend-dot legend-reserved"></span>Reserved</button>
+                <button type="button" data-type="Borrowed" aria-pressed="true"><span class="legend-dot legend-borrowed"></span>Borrowed</button>
+                <button type="button" data-type="Maintenance" aria-pressed="true"><span class="legend-dot legend-maintenance"></span>Maintenance</button>
+                <span class="calendar-legend-hint">Click a legend item to show or hide it</span>
+            </div>
+
+            <p class="calendar-status" id="calendarStatus"></p>
+            <div id="calendarBody"></div>
+        </section>
+
+        <section class="content-card available-panel" aria-labelledby="availableHeading">
+            <div class="available-head">
+                <h2 id="availableHeading">Available equipment &middot; <span id="availableDate"></span></h2>
+                <span class="count-pill" id="availableCount"></span>
+            </div>
+            <p class="available-note" id="availableNote"></p>
+            <ul class="available-grid" id="availableList"></ul>
+        </section>
+
+        <dialog class="app-dialog" id="eventDialog" aria-labelledby="eventTitle">
+            <div class="dialog-top">
+                <span class="dialog-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
+                <button type="button" class="icon-button dialog-close" aria-label="Close">
+                    <svg class="icon"><use href="#i-close" /></svg>
+                </button>
+            </div>
+            <span class="dialog-kicker">RESERVATION SCHEDULE</span>
+            <h2 id="eventTitle"></h2>
+            <p id="eventSubtitle"></p>
+
+            <dl class="details-list">
+                <div><dt>Type</dt><dd id="eventType"></dd></div>
+                <div><dt>Status</dt><dd id="eventStatus"></dd></div>
+                <div><dt>Category</dt><dd id="eventCategory"></dd></div>
+                <div><dt>Starts</dt><dd id="eventStart"></dd></div>
+                <div><dt>Ends</dt><dd id="eventEnd"></dd></div>
+            </dl>
+
+            <p class="calendar-schedule-title">All scheduled periods for this equipment in view</p>
+            <ul class="calendar-schedule-list" id="eventSchedule"></ul>
+
+            <div class="dialog-actions">
+                <button type="button" class="button button-secondary dialog-close">Close</button>
+                <a class="button button-primary" id="eventDetailsLink" href="#" hidden>View equipment</a>
+            </div>
+        </dialog>
+    </div>
+}
+
+@section Scripts {
+    @if (loadError == null)
+    {
+        <script src="~/js/availability-calendar.js" asp-append-version="true"></script>
+    }
+}

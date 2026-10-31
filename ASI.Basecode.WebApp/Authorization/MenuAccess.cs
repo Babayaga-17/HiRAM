@@ -52,6 +52,12 @@ namespace ASI.Basecode.WebApp.Authorization
                 "Equipment category management.",
                 null,
                 new[] { RoleNames.Custodian, RoleNames.Admin }),
+            new MenuAccessEntry(
+                "AvailabilityCalendar",
+                "Availability calendar",
+                "View equipment availability by day, week, or month.",
+                null,
+                new[] { RoleNames.Borrower, RoleNames.Custodian, RoleNames.Admin }),
         };
 
         public static MenuAccessEntry Find(string key)
