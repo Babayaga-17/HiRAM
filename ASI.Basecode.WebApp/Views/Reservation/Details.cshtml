@@ -16,7 +16,7 @@
         _ => "rs-neutral"
     };
     var conditions = new[] { "Good", "Fair", "Damaged" };
-    var backStatus = Model.Status is "Pending" or "Approved" or "Borrowed" or "Rejected" ? Model.Status : "All";
+    var backStatus = Model.Status is "Pending" or "Approved" or "Borrowed" or "Returned" or "Rejected" ? Model.Status : "All";
 }
 
 @section Styles {
@@ -25,13 +25,23 @@
 
 <div class="page-heading form-page-heading">
     <div>
-        <a class="back-link" asp-controller="Reservation" asp-action="Pending" asp-route-status="@backStatus"><svg class="icon"><use href="#i-chevron" /></svg>Back to @backStatus.ToLowerInvariant() requests</a>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>APPROVAL AND RELEASE</div>
+        <a class="back-link" asp-controller="Reservation" asp-action="Pending" asp-route-status="@backStatus"><svg class="icon"><use href="#i-chevron" /></svg>Back to @backStatus.ToLowerInvariant() reservations</a>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>RESERVATIONS</div>
         <h1>@Model.ReservationNumber</h1>
         <p>Reservation submitted @Model.RequestedAt.ToString("MMM d, yyyy h:mm tt")</p>
     </div>
     <span class="status-badge @BadgeClass(Model.Status) heading-status"><span></span>@Model.Status</span>
 </div>
+
+@if (Model.Status == "Borrowed")
+{
+    <a class="button button-primary"
+       asp-controller="Reservation"
+       asp-action="Return"
+       asp-route-id="@Model.ReservationId">
+        Process Return
+    </a>
+}
 
 @if (TempData["ReservationSuccess"] is string successMessage)
 {

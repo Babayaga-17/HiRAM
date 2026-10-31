@@ -121,6 +121,102 @@ public class ReservationController : ControllerBase<ReservationController>
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [HttpGet]
+    public IActionResult Returns()
+    {
+        var model = _reservationService.GetReservations("Borrowed");
+        return View(model);
+    }
+
+    [HttpGet]
+    public IActionResult Return(int id)
+    {
+        var reservation = _reservationService.GetReservationDetails(id);
+
+        if (reservation == null)
+            return NotFound();
+
+        if (reservation.Status != "Borrowed")
+        {
+            TempData["ReservationError"] =
+                "Only borrowed reservations can be processed for return.";
+
+            return RedirectToAction(nameof(Returns));
+        }
+
+        return View(reservation);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Return(ReturnReservationRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return ShowReturnForm(
+                request,
+                "Check the form. Inspection notes must be 500 characters or fewer.");
+        }
+
+        try
+        {
+            var (ok, message) = _reservationService.Return(
+                request,
+                CurrentUserId(),
+                CurrentName());
+
+            if (!ok)
+                return ShowReturnForm(request, message);
+
+            TempData["ReservationSuccess"] = message;
+
+            return RedirectToAction(
+                nameof(Details),
+                new { id = request.ReservationId });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception,
+                "Unable to record return for reservation {ReservationId}.",
+                request.ReservationId);
+
+            TempData["ReservationError"] =
+                "The return could not be saved. The reservation may have changed. "
+                + "Review its current details before trying again.";
+
+            return RedirectToAction(
+                nameof(Details),
+                new { id = request.ReservationId });
+        }
+    }
+
+    private IActionResult ShowReturnForm(
+        ReturnReservationRequest request,
+        string error)
+    {
+        var reservation =
+            _reservationService.GetReservationDetails(request.ReservationId);
+
+        if (reservation == null)
+            return NotFound();
+
+        if (reservation.Status != "Borrowed")
+        {
+            TempData["ReservationError"] =
+                "This reservation is no longer awaiting return.";
+
+            return RedirectToAction(
+                nameof(Details),
+                new { id = request.ReservationId });
+        }
+
+        ViewData["ReturnError"] = error;
+        ViewData["ReturnInput"] = request;
+
+        return View("Return", reservation);
+    }
+
     private int? CurrentUserId()
     {
         return int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : (int?)null;

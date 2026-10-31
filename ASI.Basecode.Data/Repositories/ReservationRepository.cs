@@ -63,9 +63,12 @@ namespace ASI.Basecode.Data.Repositories
         public Reservation GetReservationForUpdate(int reservationId)
         {
             return GetDbSet<Reservation>()
+                .AsTracking()
                 .Include(reservation => reservation.BorrowerUser)
                 .Include(reservation => reservation.ReservationItems)
-                .FirstOrDefault(reservation => reservation.ReservationId == reservationId);
+                    .ThenInclude(item => item.Equipment)
+                .FirstOrDefault(reservation =>
+                    reservation.ReservationId == reservationId);
         }
 
         public Dictionary<string, int> CountByStatus()

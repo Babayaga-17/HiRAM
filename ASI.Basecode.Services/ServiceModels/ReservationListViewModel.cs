@@ -13,6 +13,4 @@ namespace ASI.Basecode.Services.ServiceModels
         public Dictionary<string, int> Counts { get; set; } = new();     // reservations per status
         public int TotalCount { get; set; }
     }
-
-
 }

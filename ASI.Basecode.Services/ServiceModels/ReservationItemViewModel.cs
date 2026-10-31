@@ -15,6 +15,12 @@ namespace ASI.Basecode.Services.ServiceModels
         public string StorageLocation { get; set; }
         public string ConditionAtBorrowing { get; set; }     // recorded at release
         public string BorrowingRemarks { get; set; }
+        public bool IsReturned { get; set; }
+        public DateTime? ReturnedAt { get; set; }
+        public string ConditionAtReturn { get; set; }
+        public string ReturnRemarks { get; set; }
+        public string DamageNotes { get; set; }
+        public string MissingPartsNotes { get; set; }
     }
 
 }
