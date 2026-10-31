@@ -2,6 +2,8 @@
 
 @section styles {
     <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
+
+    <link rel="stylesheet" href="~/css/password-toggle.css" asp-append-version="true" />
 }
 
 @{
@@ -120,36 +122,39 @@
                                 <circle cx="12" cy="8" r="4"></circle>
                                 <path d="M4 21a8 8 0 0 1 16 0"></path>
                             </svg>
-                            <input asp-for="UserId"
-                                   type="text"
-                                   placeholder="Enter your email or ID"
-                                   autocomplete="username" />
+                            <input asp-for="UserId" type="text" placeholder="Enter your email or ID" autocomplete="username" />
                         </div>
                         <span asp-validation-for="UserId" class="field-validation-error"></span>
                     </div>
 
                     <div class="form-field">
                         <label for="Password">Password</label>
-                        <div class="input-wrap">
+                        <div class="input-wrap password-field">
                             <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true">
                                 <rect x="4" y="10" width="16" height="11" rx="2"></rect>
                                 <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"></path>
                             </svg>
-                            <input asp-for="Password"
-                                   type="password"
-                                   placeholder="Enter your password"
-                                   autocomplete="current-password" />
-                            <button class="password-toggle"
+                            <input asp-for="Password" type="password" placeholder="Enter your password" autocomplete="current-password" />
+
+                            <button class="password-toggle js-password-toggle"
                                     id="passwordToggle"
                                     type="button"
-                                    aria-label="Show password"
-                                    aria-pressed="false">
-                                <svg class="eye-icon eye-open" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
-                                    <circle cx="12" cy="12" r="2.5"></circle>
+                                    data-target="Password"
+                                    data-password-label="password"
+                                    aria-controls="Password"
+                                    aria-label="Show password">
+
+                                <svg class="eye-icon eye-open"
+                                     viewBox="0 0 24 24"
+                                     aria-hidden="true"
+                                     hidden>
+                                    <use href="#i-eye"></use>
                                 </svg>
-                                <svg class="eye-icon eye-closed" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="m3 3 18 18M10.6 6.1c.5-.1.9-.1 1.4-.1 6 0 9.5 6 9.5 6a16 16 0 0 1-2.1 2.8M6.4 6.4A16.7 16.7 0 0 0 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.2-1"></path>
+
+                                <svg class="eye-icon eye-closed"
+                                     viewBox="0 0 24 24"
+                                     aria-hidden="true">
+                                    <use href="#i-eye-closed"></use>
                                 </svg>
                             </button>
                         </div>
@@ -181,12 +186,12 @@
 
 @section scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/password-toggle.js" asp-append-version="true"></script>
+
     <script>
         const loginPage = document.getElementById("loginPage");
         const themeToggle = document.getElementById("themeToggle");
         const themeText = themeToggle.querySelector(".theme-toggle-text");
-        const passwordInput = document.getElementById("Password");
-        const passwordToggle = document.getElementById("passwordToggle");
 
         function applyTheme(theme) {
             const isDark = theme === "dark";
@@ -206,14 +211,6 @@
             const nextTheme = loginPage.dataset.theme === "dark" ? "light" : "dark";
             applyTheme(nextTheme);
             localStorage.setItem("hiram-theme", nextTheme);
-        });
-
-        passwordToggle.addEventListener("click", function () {
-            const isVisible = passwordInput.type === "text";
-
-            passwordInput.type = isVisible ? "password" : "text";
-            passwordToggle.setAttribute("aria-pressed", (!isVisible).toString());
-            passwordToggle.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
         });
     </script>
 }
