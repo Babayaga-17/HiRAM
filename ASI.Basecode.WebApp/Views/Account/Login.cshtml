@@ -1,14 +1,15 @@
 @model LoginViewModel
 
-@section styles {
+@{
+    ViewBag.LoginView = true;
+    ViewData["IsAccountPage"] = true;
+    ViewData["Title"] = "Sign In | HiRAM";
+}
+
+@section Styles {
     <link rel="stylesheet" href="~/css/login.css" asp-append-version="true" />
 
     <link rel="stylesheet" href="~/css/password-toggle.css" asp-append-version="true" />
-}
-
-@{
-    ViewBag.LoginView = true;
-    ViewData["Title"] = "Sign In | HiRAM";
 }
 
 <div class="login-page" id="loginPage">
@@ -184,34 +185,11 @@
     </main>
 </div>
 
-@section scripts {
+@section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
     <script src="~/js/password-toggle.js" asp-append-version="true"></script>
 
-    <script>
-        const loginPage = document.getElementById("loginPage");
-        const themeToggle = document.getElementById("themeToggle");
-        const themeText = themeToggle.querySelector(".theme-toggle-text");
-
-        function applyTheme(theme) {
-            const isDark = theme === "dark";
-
-            loginPage.dataset.theme = theme;
-            document.body.classList.toggle("login-dark-mode", isDark);
-            themeToggle.setAttribute("aria-pressed", isDark.toString());
-            themeToggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
-            themeText.textContent = isDark ? "Light mode" : "Dark mode";
-        }
-
-        const savedTheme = localStorage.getItem("hiram-theme");
-        const preferredTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-        applyTheme(savedTheme || preferredTheme);
-
-        themeToggle.addEventListener("click", function () {
-            const nextTheme = loginPage.dataset.theme === "dark" ? "light" : "dark";
-            applyTheme(nextTheme);
-            localStorage.setItem("hiram-theme", nextTheme);
-        });
-    </script>
+    <script src="~/js/login.js" asp-append-version="true"></script>
 }
 

@@ -1,75 +1,78 @@
 @{
-    Layout = null;
+    Layout = "_Layout";
+    ViewData["Title"] = "Verify code | HiRAM";
+    ViewData["IsAccountPage"] = true;
+    ViewData["UseLegacyAssets"] = false;
+
     var error = ViewBag.Error as string;
     var email = ViewBag.Email as string;
 }
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Verify code | HiRAM</title>
+
+@section Styles {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;650;700&display=swap" rel="stylesheet" />
+
     <link rel="stylesheet" href="~/css/hiram-auth.css" asp-append-version="true" />
-</head>
-<body>
-    <main class="auth-shell">
-        <section class="brand-panel">
-            <div class="brand-row">
-                <div class="brand-mark">H</div>
-                <span class="brand-name">HiRAM</span>
+}
+
+<main class="auth-shell">
+    <section class="brand-panel">
+        <div class="brand-row">
+            <div class="brand-mark">H</div>
+            <span class="brand-name">HiRAM</span>
+        </div>
+        <div class="brand-copy">
+            <p class="eyebrow">School resource management</p>
+            <h1>Check your email for the code.</h1>
+            <p>The code expires in 10 minutes. Enter it to continue to your new password.</p>
+        </div>
+        <div class="glass-card">
+            <div>
+                <strong>Code sent</strong>
+                <span>@email</span>
             </div>
-            <div class="brand-copy">
-                <p class="eyebrow">School resource management</p>
-                <h1>Check your email for the code.</h1>
-                <p>The code expires in 10 minutes. Enter it to continue to your new password.</p>
+            <span class="badge">Sent</span>
+        </div>
+        <div class="brand-foot">Equipment Borrowing &amp; Reservation System</div>
+    </section>
+
+    <section class="form-panel">
+        <div class="form-box">
+            <div class="form-head">
+                <h2>Verify your code</h2>
+                <p>Enter the 6-digit code we sent to your email.</p>
             </div>
-            <div class="glass-card">
-                <div>
-                    <strong>Code sent</strong>
-                    <span>@email</span>
-                </div>
-                <span class="badge">Sent</span>
-            </div>
-            <div class="brand-foot">Equipment Borrowing &amp; Reservation System</div>
-        </section>
 
-        <section class="form-panel">
-            <div class="form-box">
-                <div class="form-head">
-                    <h2>Verify your code</h2>
-                    <p>Enter the 6-digit code we sent to your email.</p>
-                </div>
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <div class="alert" role="alert">@error</div>
+            }
 
-                @if (!string.IsNullOrEmpty(error))
-                {
-                    <div class="alert" role="alert">@error</div>
-                }
+            <form asp-controller="Account" asp-action="VerifyCode" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="email" value="@email" />
 
-                <form asp-controller="Account" asp-action="VerifyCode" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="email" value="@email" />
-
-                    <div class="field">
-                        <label for="code">Verification code</label>
-                        <div class="input-wrap">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.2 7.7 8 9 4.8-1.3 8-4.5 8-9V6l-8-3Z" /><path d="m9 12 2 2 4-4" /></svg>
-                            <input id="code" name="code" class="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="one-time-code" required autofocus />
-                        </div>
+                <div class="field">
+                    <label for="code">Verification code</label>
+                    <div class="input-wrap">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.2 7.7 8 9 4.8-1.3 8-4.5 8-9V6l-8-3Z" /><path d="m9 12 2 2 4-4" /></svg>
+                        <input id="code" name="code" class="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="one-time-code" required autofocus />
                     </div>
+                </div>
 
-                    <div class="btn-row">
-                        <a class="btn-secondary" asp-controller="Account" asp-action="CancelReset">Cancel</a>
-                        <button type="submit" class="btn-primary">Verify code</button>
-                    </div>
-                </form>
+                <div class="btn-row">
+                    <a class="btn-secondary" asp-controller="Account" asp-action="CancelReset">Cancel</a>
+                    <button type="submit" class="btn-primary">Verify code</button>
+                </div>
+            </form>
 
-                <p class="form-links">Didn't get a code? <a asp-controller="Account" asp-action="ForgotPassword">Send a new code</a></p>
-            </div>
-            <div class="form-foot">Secure access for the HiRAM school community</div>
-        </section>
-    </main>
-</body>
-</html>
+            <p class="form-links">Didn't get a code? <a asp-controller="Account" asp-action="ForgotPassword">Send a new code</a></p>
+        </div>
+        <div class="form-foot">Secure access for the HiRAM school community</div>
+    </section>
+</main>
+
+@section Scripts {
+}
