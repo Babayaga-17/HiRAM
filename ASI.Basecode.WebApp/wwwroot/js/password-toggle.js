@@ -11,8 +11,8 @@
         function updateToggle() {
             const visible = input.type === "text";
 
-            openEye.hidden = !visible;
-            closedEye.hidden = visible;
+            openEye.toggleAttribute("hidden", !visible);
+            closedEye.toggleAttribute("hidden", visible);
 
             button.setAttribute(
                 "aria-label",
