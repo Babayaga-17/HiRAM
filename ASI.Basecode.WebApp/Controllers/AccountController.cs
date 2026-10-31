@@ -119,7 +119,8 @@ namespace ASI.Basecode.WebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ForgotPassword(string email)
         {
-            if (!await _passwordResetService.SendResetCodeAsync(email))
+            bool codeSent = await _passwordResetService.SendResetCodeAsync(email);
+            if (!codeSent)
             {
                 ViewBag.Error = "Account cannot be found.";
                 return View();
