@@ -23,5 +23,13 @@
             Success = 0,
             Failed = 1,
         }
+
+        public enum SendResetCodeStatus
+        {
+            Sent,
+            AccountNotFound,
+            Cooldown,
+            Failed
+        }
     }
 }
