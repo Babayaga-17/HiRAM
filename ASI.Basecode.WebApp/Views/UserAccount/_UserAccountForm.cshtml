@@ -113,16 +113,72 @@
         @if (!Model.IsEdit)
         {
             <div class="form-group">
-                <label for="Password">Password <span class="required">*</span></label>
-                <input asp-for="Password" type="password" maxlength="64" autocomplete="new-password" required />
+                <label for="Password">
+                    Password <span class="required">*</span>
+                </label>
+
+                <div class="account-password-wrap">
+                    <input asp-for="Password"
+                           type="password"
+                           maxlength="64"
+                           autocomplete="new-password"
+                           required />
+
+                    <button type="button"
+                            class="account-password-toggle js-password-toggle"
+                            data-target="Password"
+                            data-password-label="password"
+                            aria-controls="Password"
+                            aria-label="Show password">
+                        <svg class="eye-open" viewBox="0 0 24 24"
+                             aria-hidden="true" hidden>
+                            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                            <circle cx="12" cy="12" r="2.5" />
+                        </svg>
+
+                        <svg class="eye-closed" viewBox="0 0 24 24"
+                             aria-hidden="true">
+                            <path d="m3 3 18 18M10.6 6.1c.5-.1.9-.1 1.4-.1 6 0 9.5 6 9.5 6a16 16 0 0 1-2.1 2.8M6.4 6.4A16.7 16.7 0 0 0 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.2-1" />
+                        </svg>
+                    </button>
+                </div>
+
                 <span asp-validation-for="Password"></span>
             </div>
+
             <div class="form-group">
-                <label for="ConfirmPassword">Confirm password <span class="required">*</span></label>
-                <input asp-for="ConfirmPassword" type="password" maxlength="64" autocomplete="new-password" required />
+                <label for="ConfirmPassword">
+                    Confirm password <span class="required">*</span>
+                </label>
+
+                <div class="account-password-wrap">
+                    <input asp-for="ConfirmPassword"
+                           type="password"
+                           maxlength="64"
+                           autocomplete="new-password"
+                           required />
+
+                    <button type="button"
+                            class="account-password-toggle js-password-toggle"
+                            data-target="ConfirmPassword"
+                            data-password-label="confirm password"
+                            aria-controls="ConfirmPassword"
+                            aria-label="Show confirm password">
+                        <svg class="eye-open" viewBox="0 0 24 24"
+                             aria-hidden="true" hidden>
+                            <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z" />
+                            <circle cx="12" cy="12" r="2.5" />
+                        </svg>
+
+                        <svg class="eye-closed" viewBox="0 0 24 24"
+                             aria-hidden="true">
+                            <path d="m3 3 18 18M10.6 6.1c.5-.1.9-.1 1.4-.1 6 0 9.5 6 9.5 6a16 16 0 0 1-2.1 2.8M6.4 6.4A16.7 16.7 0 0 0 2.5 12s3.5 6 9.5 6c1.6 0 3-.4 4.2-1" />
+                        </svg>
+                    </button>
+                </div>
+
                 <span asp-validation-for="ConfirmPassword"></span>
             </div>
-            <div class="form-group form-group-wide"><small>@UserAccountFormViewModel.PasswordRuleText</small></div>
         }
     </div>
 

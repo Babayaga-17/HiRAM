@@ -578,13 +578,8 @@ body > .footer {
     stroke-linejoin: round;
 }
 
-.eye-closed,
-.password-toggle[aria-pressed="true"] .eye-open {
+.js-password-toggle svg[hidden] {
     display: none;
-}
-
-.password-toggle[aria-pressed="true"] .eye-closed {
-    display: block;
 }
 
 .form-options {

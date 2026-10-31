@@ -188,3 +188,7 @@ body {
         outline: 3px solid var(--focus-ring);
         outline-offset: 2px;
     }
+
+.js-password-toggle svg[hidden] {
+    display: none;
+}
