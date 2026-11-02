@@ -93,7 +93,6 @@
                   asp-controller="Account"
                   asp-action="ResendCode"
                   method="post">
-                @Html.AntiForgeryToken()
 
                 <input type="hidden" name="email" value="@email" />
 
