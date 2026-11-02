@@ -9,11 +9,11 @@
     var heading = "Reservations";
     var queueHeading = active switch
     {
-        "Pending" => "Pending requests",
-        "Approved" => "Ready for release",
-        "Borrowed" => "Awaiting return",
-        "Returned" => "Returned reservations",
-        "Rejected" => "Rejected requests",
+        ReservationStatuses.Pending => "Pending requests",
+        ReservationStatuses.Approved => "Ready for release",
+        ReservationStatuses.Borrowed => "Awaiting return",
+        ReservationStatuses.Returned => "Returned reservations",
+        ReservationStatuses.Rejected => "Rejected requests",
         _ => "All reservations"
     };
     var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"));
@@ -22,21 +22,21 @@
 
     var subtitle = active switch
     {
-        "Pending" => "Review reservation requests that are waiting for custodian approval.",
-        "Approved" => "Approved requests that are waiting for the equipment to be released.",
-        "Borrowed" => "Equipment that has been released and is currently with borrowers.",
-        "Returned" => "Completed reservations whose equipment has been returned.",
-        "Rejected" => "Requests that were declined, with the reason given.",
+        ReservationStatuses.Pending => "Review reservation requests that are waiting for custodian approval.",
+        ReservationStatuses.Approved => "Approved requests that are waiting for the equipment to be released.",
+        ReservationStatuses.Borrowed => "Equipment that has been released and is currently with borrowers.",
+        ReservationStatuses.Returned => "Completed reservations whose equipment has been returned.",
+        ReservationStatuses.Rejected => "Requests that were declined, with the reason given.",
         _ => "Every reservation request, in all stages."
     };
     int CountOf(string s) => Model.Counts.TryGetValue(s, out var c) ? c : 0;
     string BadgeClass(string s) => s switch
     {
-        "Pending" => "status-pending",
-        "Approved" => "rs-approved",
-        "Borrowed" => "rs-borrowed",
-        "Rejected" => "rs-rejected",
-        "Returned" => "rs-returned",
+        ReservationStatuses.Pending => "status-pending",
+        ReservationStatuses.Approved => "rs-approved",
+        ReservationStatuses.Borrowed => "rs-borrowed",
+        ReservationStatuses.Rejected => "rs-rejected",
+        ReservationStatuses.Returned => "rs-returned",
         _ => "rs-neutral"
     };
 }
@@ -68,10 +68,10 @@
 else
 {
     <nav class="rs-tabs" aria-label="Reservation status">
-        @foreach (var tab in new[] { "Pending", "Approved", "Borrowed", "Returned", "Rejected", "All" })
+        @foreach (var tab in new[] { ReservationStatuses.Pending, ReservationStatuses.Approved, ReservationStatuses.Borrowed, ReservationStatuses.Returned, ReservationStatuses.Rejected, ReservationFilters.All })
         {
-            var n = tab == "All" ? Model.TotalCount : CountOf(tab);
-            if (tab == "Returned")
+            var n = tab == ReservationFilters.All ? Model.TotalCount : CountOf(tab);
+            if (tab == ReservationStatuses.Returned)
             {
                 <span class="rs-tab" aria-disabled="true" title="Completed returns will be available when return processing is connected.">Returned <span class="rs-count">Soon</span></span>
                 continue;
@@ -84,7 +84,7 @@ else
         <div class="card-heading">
             <div>
                 <h2 id="pendingListHeading">@queueHeading</h2>
-                <p>@(active == "Pending" ? "Oldest requests appear first so they can be reviewed in the order they were submitted." : active == "Borrowed" ? "Earliest expected returns appear first. Open a reservation to review its borrowing details." : "Open a reservation to see its full details.")</p>
+                <p>@(active == ReservationStatuses.Pending ? "Oldest requests appear first so they can be reviewed in the order they were submitted." : active == ReservationStatuses.Borrowed ? "Earliest expected returns appear first. Open a reservation to review its borrowing details." : "Open a reservation to see its full details.")</p>
             </div>
             <span class="count-pill">@items.Count @(items.Count == 1 ? "request" : "requests")</span>
         </div>
@@ -93,7 +93,7 @@ else
         {
             <div class="empty-categories">
                 <span class="empty-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
-                <h3>@(active == "All" ? "No reservations yet" : active == "Borrowed" ? "No equipment awaiting return" : "No " + active.ToLowerInvariant() + " reservations")</h3>
+                <h3>@(active == ReservationFilters.All ? "No reservations yet" : active == ReservationStatuses.Borrowed ? "No equipment awaiting return" : "No " + active.ToLowerInvariant() + " reservations")</h3>
                 <p>Reservations in this stage will appear here.</p>
             </div>
         }
@@ -144,7 +144,7 @@ else
                                 <td>
                                     @request.StartDateTime.ToString("MMM d, yyyy h:mm tt")
                                     <div class="pending-muted">to @request.ExpectedReturnDateTime.ToString("MMM d, yyyy h:mm tt")</div>
-                                    @if (request.Status == "Borrowed" && request.ExpectedReturnDateTime < now)
+                                    @if (request.Status == ReservationStatuses.Borrowed && request.ExpectedReturnDateTime < now)
                                     {
                                         <div class="rs-overdue">Overdue</div>
                                     }
@@ -155,7 +155,7 @@ else
                                 </td>
                                 <td class="actions-column">
                                     <div class="row-actions">
-                                        @if (request.Status == "Approved")
+                                        @if (request.Status == ReservationStatuses.Approved)
                                         {
                                             <a class="button button-primary rs-small" asp-controller="Reservation" asp-action="Details" asp-route-id="@request.ReservationId">Release</a>
                                         }

@@ -12,26 +12,26 @@
 
     var statusLabel = Model.Status switch
     {
-        "Pending" => "Pending approval",
-        "Borrowed" => "Currently borrowed",
+        ReservationStatuses.Pending => "Pending approval",
+        ReservationStatuses.Borrowed => "Currently borrowed",
         _ => Model.Status
     };
 
     var nextStep = Model.Status switch
     {
-        "Pending" =>
+        ReservationStatuses.Pending =>
             "The custodian will review your request. Wait for approval before collecting your equipment.",
-        "Approved" =>
+        ReservationStatuses.Approved =>
             "Your request is approved. Collect your equipment at the scheduled pickup time.",
-        "Borrowed" =>
+        ReservationStatuses.Borrowed =>
             "Return your equipment by the expected return date and time.",
-        "Overdue" =>
+        ReservationStatuses.Overdue =>
             "Your equipment is overdue. Return it and contact the custodian.",
-        "Returned" =>
+        ReservationStatuses.Returned =>
             "Your equipment has been returned.",
-        "Rejected" =>
+        ReservationStatuses.Rejected =>
             "Your request was rejected. Review the reason below before making another request.",
-        "Cancelled" =>
+        ReservationStatuses.Cancelled =>
             "This reservation has been cancelled.",
         _ =>
             "Contact the custodian if you need help with this reservation."
@@ -211,7 +211,7 @@
             </p>
         }
 
-        @if (Model.Status == "Pending")
+        @if (Model.Status == ReservationStatuses.Pending)
         {
             <div class="reservation-action-links reservation-detail-actions">
                 <a class="button button-secondary"
@@ -262,7 +262,7 @@
                 </li>
             }
 
-            @if (Model.Status == "Pending")
+            @if (Model.Status == ReservationStatuses.Pending)
             {
                 <li class="reservation-timeline-current"
                     aria-current="step">

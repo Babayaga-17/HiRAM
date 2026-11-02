@@ -1,4 +1,5 @@
 // ASI.Basecode.Services/Services/ReservationService.cs
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Data.Repositories;
@@ -12,7 +13,7 @@ namespace ASI.Basecode.Services.Services
 {
     public class ReservationService : IReservationService
     {
-        private static readonly string[] Tabs = { "Pending", "Approved", "Borrowed", "Returned", "Rejected", "All" };
+        private static readonly string[] Tabs = { ReservationStatuses.Pending, ReservationStatuses.Approved, ReservationStatuses.Borrowed, ReservationStatuses.Returned, ReservationStatuses.Rejected, ReservationFilters.All };
 
         private readonly IReservationRepository _reservationRepository;
 
@@ -81,7 +82,7 @@ namespace ASI.Basecode.Services.Services
 
         public ReservationListViewModel GetReservations(string status)
         {
-            status = Tabs.FirstOrDefault(tab => string.Equals(tab, status, StringComparison.OrdinalIgnoreCase)) ?? "Pending";
+            status = Tabs.FirstOrDefault(tab => string.Equals(tab, status, StringComparison.OrdinalIgnoreCase)) ?? ReservationStatuses.Pending;
 
             var counts = _reservationRepository.CountByStatus();
             return new ReservationListViewModel
@@ -157,13 +158,13 @@ namespace ASI.Basecode.Services.Services
             var reservation = _reservationRepository.GetReservationForUpdate(reservationId);
             if (reservation == null)
                 return (false, "That request was not found.");
-            if (reservation.Status != ReservationRepository.PendingStatus)
+            if (reservation.Status != ReservationStatuses.Pending)
                 return (false, "Only pending requests can be approved. This one was already reviewed.");
-            if (reservation.BorrowerUser?.EligibilityStatus != "Eligible")
+            if (reservation.BorrowerUser?.EligibilityStatus != EligibilityStatuses.Eligible)
                 return (false, "This borrower is not eligible to borrow, so the request can't be approved.");
 
             var now = DateTime.Now;
-            reservation.Status = ReservationRepository.ApprovedStatus;
+            reservation.Status = ReservationStatuses.Approved;
             reservation.ApprovedByUserId = ResolveUser(actorUserId);
             reservation.ApprovedAt = now;
             reservation.UpdatedBy = actorName;
@@ -181,11 +182,11 @@ namespace ASI.Basecode.Services.Services
             var reservation = _reservationRepository.GetReservationForUpdate(reservationId);
             if (reservation == null)
                 return (false, "That request was not found.");
-            if (reservation.Status != ReservationRepository.PendingStatus)
+            if (reservation.Status != ReservationStatuses.Pending)
                 return (false, "Only pending requests can be rejected. This one was already reviewed.");
 
             var now = DateTime.Now;
-            reservation.Status = ReservationRepository.RejectedStatus;
+            reservation.Status = ReservationStatuses.Rejected;
             reservation.RejectedByUserId = ResolveUser(actorUserId);
             reservation.RejectedAt = now;
             reservation.RejectionReason = reason.Trim();
@@ -204,7 +205,7 @@ namespace ASI.Basecode.Services.Services
             var reservation = _reservationRepository.GetReservationForUpdate(request.ReservationId);
             if (reservation == null)
                 return (false, "That request was not found.");
-            if (reservation.Status != ReservationRepository.ApprovedStatus)
+            if (reservation.Status != ReservationStatuses.Approved)
                 return (false, "Only approved requests can be released.");
             if (reservation.ReservationItems.Count == 0)
                 return (false, "This request has no equipment to release.");
@@ -227,7 +228,7 @@ namespace ASI.Basecode.Services.Services
                 item.UpdatedAt = now;
             }
 
-            reservation.Status = ReservationRepository.BorrowedStatus;
+            reservation.Status = ReservationStatuses.Borrowed;
             reservation.BorrowedAt = request.ReleasedAt ?? now;
             reservation.UpdatedBy = actorName;
             reservation.UpdatedAt = now;
@@ -293,7 +294,7 @@ namespace ASI.Basecode.Services.Services
             if (reservation == null)
                 return (false, "Reservation not found.");
 
-            if (reservation.Status != ReservationRepository.BorrowedStatus)
+            if (reservation.Status != ReservationStatuses.Borrowed)
                 return (false, "Only borrowed reservations can be returned.");
 
             if (string.IsNullOrWhiteSpace(request.RowVersion)
@@ -338,7 +339,7 @@ namespace ASI.Basecode.Services.Services
                     return (false, "The equipment record could not be found.");
 
                 if (!EquipmentFormViewModel.Conditions.Contains(input.ConditionAtReturn)
-                    || input.ConditionAtReturn == "Lost")
+                    || input.ConditionAtReturn == EquipmentConditions.Lost)
                 {
                     return (false,
                         "Select a valid condition for each received item.");
@@ -354,7 +355,7 @@ namespace ASI.Basecode.Services.Services
                 if (notes.Any(note => note?.Length > 500))
                     return (false, "Each inspection note must be 500 characters or fewer.");
 
-                if (input.ConditionAtReturn == "Damaged"
+                if (input.ConditionAtReturn == EquipmentConditions.Damaged
                     && string.IsNullOrWhiteSpace(input.DamageNotes)
                     && string.IsNullOrWhiteSpace(input.MissingPartsNotes))
                 {
@@ -362,7 +363,7 @@ namespace ASI.Basecode.Services.Services
                 }
 
                 if (!string.IsNullOrWhiteSpace(input.MissingPartsNotes)
-                    && input.ConditionAtReturn != "Damaged")
+                    && input.ConditionAtReturn != EquipmentConditions.Damaged)
                 {
                     return (false,
                         "Mark equipment with missing parts as damaged pending review.");
@@ -396,7 +397,7 @@ namespace ASI.Basecode.Services.Services
 
             if (allReturned)
             {
-                reservation.Status = "Returned";
+                reservation.Status = ReservationStatuses.Returned;
                 reservation.ReturnedAt = now;
                 reservation.ReceivedByUserId = receiverId;
             }

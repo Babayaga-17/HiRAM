@@ -1,4 +1,5 @@
 // ASI.Basecode.Data/Repositories/ReservationRepository.cs
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using Basecode.Data.Repositories;
@@ -10,11 +11,6 @@ namespace ASI.Basecode.Data.Repositories
 {
     public class ReservationRepository : BaseRepository, IReservationRepository
     {
-        public const string PendingStatus = "Pending";
-        public const string ApprovedStatus = "Approved";
-        public const string RejectedStatus = "Rejected";
-        public const string BorrowedStatus = "Borrowed";
-
         public ReservationRepository(IUnitOfWork unitOfWork) : base(unitOfWork)
         {
         }
@@ -35,21 +31,21 @@ namespace ASI.Basecode.Data.Repositories
         {
             return GetDbSet<Reservation>()
                 .AsNoTracking()
-                .Count(reservation => reservation.Status == PendingStatus);
+                .Count(reservation => reservation.Status == ReservationStatuses.Pending);
         }
 
         public IQueryable<Reservation> GetReservationsByStatus(string status)
         {
             var query = WithDetails(GetDbSet<Reservation>().AsNoTracking());
 
-            if (!string.IsNullOrWhiteSpace(status) && status != "All")
+            if (!string.IsNullOrWhiteSpace(status) && status != ReservationFilters.All)
                 query = query.Where(reservation => reservation.Status == status);
 
             switch (status)
             {
-                case PendingStatus: return query.OrderBy(reservation => reservation.RequestedAt);
-                case ApprovedStatus: return query.OrderBy(reservation => reservation.StartDateTime);
-                case BorrowedStatus: return query.OrderBy(reservation => reservation.ExpectedReturnDateTime);
+                case ReservationStatuses.Pending: return query.OrderBy(reservation => reservation.RequestedAt);
+                case ReservationStatuses.Approved: return query.OrderBy(reservation => reservation.StartDateTime);
+                case ReservationStatuses.Borrowed: return query.OrderBy(reservation => reservation.ExpectedReturnDateTime);
                 default: return query.OrderByDescending(reservation => reservation.RequestedAt);
             }
         }
@@ -94,7 +90,7 @@ namespace ASI.Basecode.Data.Repositories
         private IQueryable<Reservation> PendingQuery()
         {
             return WithDetails(GetDbSet<Reservation>().AsNoTracking())
-                .Where(reservation => reservation.Status == PendingStatus);
+                .Where(reservation => reservation.Status == ReservationStatuses.Pending);
         }
 
         private static IQueryable<Reservation> WithDetails(IQueryable<Reservation> query)

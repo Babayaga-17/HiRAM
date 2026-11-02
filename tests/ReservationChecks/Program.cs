@@ -1,3 +1,4 @@
+using ASI.Basecode.Resources.Constants;
 using System.ComponentModel.DataAnnotations;
 using ASI.Basecode.Data;
 using ASI.Basecode.Data.Models;
@@ -18,9 +19,9 @@ try
     db.Database.EnsureCreated();
     var user = new User { UserCode = "TEST", FirstName = "Test", LastName = "Borrower", CreatedBy = "test" };
     user.Account = new Account { Email = "reservation-test@example.invalid", PasswordHash = "unused",
-        AccountStatus = "Active", CreatedBy = "test",
+        AccountStatus = AccountStatuses.Active, CreatedBy = "test",
         Role = new Role { RoleName = "Borrower", IsActive = true, CreatedBy = "test" } };
-    user.BorrowerProfileUser = new BorrowerProfile { EligibilityStatus = "Eligible", CreatedBy = "test",
+    user.BorrowerProfileUser = new BorrowerProfile { EligibilityStatus = EligibilityStatuses.Eligible, CreatedBy = "test",
         Department = new Department { DepartmentCode = "TEST", DepartmentName = "Test", IsActive = true, CreatedBy = "test" } };
     db.Users.Add(user);
     var first = NewEquipment("A");
@@ -45,7 +46,7 @@ try
 
     Check(Submit(Form()).Error == null, "Valid request saves");
     var saved = db.Reservations.Include(r => r.ReservationItems).Single();
-    Check(saved.Status == "Pending" && saved.BorrowerUserId == userId && saved.ReservationItems.Count == 1,
+    Check(saved.Status == ReservationStatuses.Pending && saved.BorrowerUserId == userId && saved.ReservationItems.Count == 1,
         "Reservation and item are persisted with the authenticated borrower");
     Check(Submit(Form()).Error != null, "Pending duplicate is rejected");
     Check(Submit(Form(start.AddHours(-1), start.AddHours(1))).Error != null, "Overlap at start is rejected");
@@ -68,12 +69,12 @@ try
     Check(Submit(Form(ids: new[] { second.EquipmentId })).Error != null, "Inactive equipment is rejected");
     second.IsActive = true; db.SaveChanges();
 
-    foreach (var status in new[] { "Approved", "Borrowed", "Overdue" })
+    foreach (var status in new[] { ReservationStatuses.Approved, ReservationStatuses.Borrowed, ReservationStatuses.Overdue })
     {
         saved.Status = status; db.SaveChanges();
         Check(Submit(Form()).Error != null, status + " overlap is rejected");
     }
-    foreach (var status in new[] { "Cancelled", "Rejected", "Returned" })
+    foreach (var status in new[] { ReservationStatuses.Cancelled, ReservationStatuses.Rejected, ReservationStatuses.Returned })
     {
         saved.Status = status; db.SaveChanges();
         var accepted = Submit(Form());
@@ -86,13 +87,13 @@ try
     }
 
     db.MaintenanceRecords.Add(new MaintenanceRecord { EquipmentId = second.EquipmentId,
-        MaintenanceType = "Repair", Description = "Test", Status = "Scheduled", StartDateTime = start,
+        MaintenanceType = "Repair", Description = "Test", Status = MaintenanceStatuses.Scheduled, StartDateTime = start,
         EndDateTime = start.AddHours(2), CreatedBy = "test" });
     db.SaveChanges();
     Check(Submit(Form(ids: new[] { second.EquipmentId })).Error != null, "Scheduled maintenance blocks reservation");
-    user.BorrowerProfileUser.EligibilityStatus = "Suspended"; db.SaveChanges();
+    user.BorrowerProfileUser.EligibilityStatus = EligibilityStatuses.Suspended; db.SaveChanges();
     Check(Submit(Form(start.AddDays(1), start.AddDays(1).AddHours(1))).Error != null, "Suspended borrower is rejected");
-    user.BorrowerProfileUser.EligibilityStatus = "Eligible"; db.SaveChanges();
+    user.BorrowerProfileUser.EligibilityStatus = EligibilityStatuses.Eligible; db.SaveChanges();
 
     var editStart = start.AddDays(3);
     var editable = Submit(Form(editStart, editStart.AddHours(2), first.EquipmentId, second.EquipmentId));
@@ -149,7 +150,7 @@ try
         { RowVersion = currentVersion, Reason = "Activity postponed" }, userId) == null,
         "Pending cancellation saves through repository");
     var cancelled = reservationService.GetReservationDetails(editableId, userId);
-    Check(cancelled.Status == "Cancelled" && cancelled.CancelledAt.HasValue
+    Check(cancelled.Status == ReservationStatuses.Cancelled && cancelled.CancelledAt.HasValue
         && cancelled.CancellationReason == "Activity postponed"
         && !reservationService.GetPendingReservations(userId).Any(r => r.ReservationId == editableId),
         "Cancelled record remains in details and leaves the pending list");
@@ -180,7 +181,7 @@ finally
 
 TestDb Open() => new(new DbContextOptionsBuilder<HiramDbContext>().UseSqlServer(connection).Options);
 Equipment NewEquipment(string code) => new() { EquipmentCode = code, EquipmentName = "Test " + code,
-    ConditionStatus = "Good", IsActive = true, CreatedBy = "test" };
+    ConditionStatus = EquipmentConditions.Good, IsActive = true, CreatedBy = "test" };
 EquipmentReservationService Service(HiramDbContext context) => new(new EquipmentReservationRepository(new UnitOfWork(context)),
     new EquipmentService(new EquipmentRepository(new UnitOfWork(context)), null));
 

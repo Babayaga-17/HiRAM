@@ -1,0 +1,326 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@model BorrowingReportViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Borrowing history report";
+    ViewData["TopbarPage"] = "Reports";
+
+    var loadError = TempData["ReportError"] as string;
+    var filter = Model.Filter;
+
+    // The same filters are kept in every link (pager, print preview).
+    object RouteFor(int? page) => new
+    {
+        filter.Search,
+        filter.BorrowerId,
+        filter.EquipmentId,
+        From = filter.From?.ToString("yyyy-MM-dd"),
+        To = filter.To?.ToString("yyyy-MM-dd"),
+        filter.Status,
+        LateOnly = filter.LateOnly ? "true" : null,
+        page
+    };
+
+    var pageNumbers = new List<int>();
+    for (var number = 1; number <= Model.TotalPages; number++)
+    {
+        if (number == 1 || number == Model.TotalPages || Math.Abs(number - Model.Page) <= 1)
+        {
+            pageNumbers.Add(number);
+        }
+    }
+    var lastShown = 0;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/reports.css" asp-append-version="true" />
+}
+
+<div class="page-heading">
+    <div>
+        <div class="eyebrow-line"><span class="eyebrow-dot"></span>REPORTS AND MONITORING</div>
+        <h1>Borrowing history report</h1>
+        <p>Review who borrowed what, when it was returned, and which returns were late.</p>
+    </div>
+
+    <div class="rep-actions">
+        <a class="button button-secondary" href="@Url.Action("Preview", "Report", RouteFor(null))">
+            <svg class="icon"><use href="#i-print" /></svg>Print
+        </a>
+        <button type="button" class="button button-primary" id="openExport">
+            <svg class="icon"><use href="#i-download" /></svg>Export
+        </button>
+    </div>
+</div>
+
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">@loadError</div>
+}
+
+<div id="reportRoot"
+     data-details-url="@Url.Action("Details", "Report", new { id = "__ID__" })"
+     data-preview-url="@Url.Action("Preview", "Report")"
+     data-export-url="@Url.Action("ExportPdf", "Report")"
+     data-export-excel-url="@Url.Action("ExportExcel", "Report")"
+     data-export-csv-url="@Url.Action("ExportCsv", "Report")"
+     data-default-file-name="@Model.DefaultFileName">
+
+    <section class="stats-grid report-stats" aria-label="Report overview">
+        <div class="stat-card">
+            <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-layers" /></svg></span>
+            <span class="stat-copy"><span>Total records</span><strong>@Model.Summary.TotalRecords</strong><small>All borrowing records</small></span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon stat-icon-teal"><svg class="icon"><use href="#i-check" /></svg></span>
+            <span class="stat-copy"><span>Returned</span><strong>@Model.Summary.ReturnedCount</strong><small>Completed borrowings</small></span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon stat-icon-blue"><svg class="icon"><use href="#i-box" /></svg></span>
+            <span class="stat-copy"><span>Currently borrowed</span><strong>@Model.Summary.CurrentlyBorrowed</strong><small>Not yet returned</small></span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-icon stat-icon-red"><svg class="icon"><use href="#i-info" /></svg></span>
+            <span class="stat-copy"><span>Late returns</span><strong>@Model.Summary.LateReturns</strong><small>Returned or still out past due</small></span>
+        </div>
+    </section>
+
+    <section class="content-card category-list" aria-labelledby="recordsHeading">
+        <div class="card-heading">
+            <div>
+                <h2 id="recordsHeading">Borrowing records</h2>
+                <p>Search and filter, then generate the report.</p>
+            </div>
+            <span class="count-pill">@Model.Summary.TotalRecords @(Model.Summary.TotalRecords == 1 ? "record" : "records")</span>
+        </div>
+
+        <form method="get" action="@Url.Action("Index", "Report")" class="rep-filters" id="filterForm">
+            <label class="search-field">
+                <svg class="icon"><use href="#i-search" /></svg>
+                <span class="sr-only">Search borrowing records</span>
+                <input type="search" name="Search" value="@filter.Search" placeholder="Search reservation no., borrower, equipment, or purpose..." autocomplete="off" />
+            </label>
+
+            <div class="rep-filter-row">
+                <label class="rep-field">
+                    Borrower
+                    <select name="BorrowerId">
+                        <option value="">All borrowers</option>
+                        @foreach (var option in Model.Borrowers)
+                        {
+                            <option value="@option.Value" selected="@(filter.BorrowerId.ToString() == option.Value)">@option.Text</option>
+                        }
+                    </select>
+                </label>
+                <label class="rep-field">
+                    Equipment
+                    <select name="EquipmentId">
+                        <option value="">All equipment</option>
+                        @foreach (var option in Model.Equipments)
+                        {
+                            <option value="@option.Value" selected="@(filter.EquipmentId.ToString() == option.Value)">@option.Text</option>
+                        }
+                    </select>
+                </label>
+                <label class="rep-field">
+                    Status
+                    <select name="Status">
+                        <option value="">All statuses</option>
+                        @foreach (var option in Model.Statuses)
+                        {
+                            <option value="@option.Value" selected="@(filter.Status == option.Value)">@option.Text</option>
+                        }
+                    </select>
+                </label>
+            </div>
+
+            <div class="rep-filter-row-2">
+                <label class="rep-field">
+                    Start date from
+                    <input type="date" name="From" value="@(filter.From?.ToString("yyyy-MM-dd"))" />
+                </label>
+                <label class="rep-field">
+                    Start date to
+                    <input type="date" name="To" value="@(filter.To?.ToString("yyyy-MM-dd"))" />
+                </label>
+                <label class="rep-check">
+                    <input type="checkbox" name="LateOnly" value="true" checked="@filter.LateOnly" /> Late returns only
+                </label>
+                <div class="rep-filter-actions">
+                    <button type="submit" class="button button-primary">Generate report</button>
+                    <a class="button button-secondary" href="@Url.Action("Index", "Report")">Clear</a>
+                </div>
+            </div>
+        </form>
+
+        @if (Model.Rows.Count == 0)
+        {
+            <div class="empty-categories">
+                <span class="empty-icon"><svg class="icon"><use href="#i-search" /></svg></span>
+                <h3>No borrowing records found</h3>
+                <p>Try a different search or clear one of the filters.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-scroll">
+                <table class="category-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">RESERVATION</th>
+                            <th scope="col">BORROWER</th>
+                            <th scope="col">EQUIPMENT</th>
+                            <th scope="col">BORROW PERIOD</th>
+                            <th scope="col">RETURNED</th>
+                            <th scope="col">STATUS</th>
+                            <th scope="col" class="actions-column">ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                <td><div class="rep-cell-main"><strong>@row.ReservationNumber</strong><small>@row.Purpose</small></div></td>
+                                <td><div class="rep-cell-main"><strong>@row.BorrowerName</strong><small>@row.Department</small></div></td>
+                                <td>@row.EquipmentSummary</td>
+                                <td>
+                                    <div class="rep-cell-main">
+                                        <strong>@row.StartDateTime.ToString("MMM d, yyyy h:mm tt")</strong>
+                                        <small>to @row.ExpectedReturnDateTime.ToString("MMM d, yyyy h:mm tt")</small>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (row.ReturnedAt.HasValue)
+                                    {
+                                        @row.ReturnedAt.Value.ToString("MMM d, h:mm tt")
+                                    }
+                                    else if (row.Status == ReservationStatuses.Cancelled || row.Status == ReservationStatuses.Rejected)
+                                    {
+                                        <span class="rep-empty-cell">—</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="rep-empty-cell">Not returned</span>
+                                    }
+                                </td>
+                                <td><span class="status-badge status-@row.StatusClass"><span></span>@row.DisplayStatus</span></td>
+                                <td class="actions-column">
+                                    <button type="button" class="button button-secondary rep-view" data-id="@row.ReservationId">View</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-footer">
+                <span>Showing @Model.FirstItem&ndash;@Model.LastItem of @Model.Summary.TotalRecords records</span>
+
+                @if (Model.TotalPages > 1)
+                {
+                    <nav class="pager" aria-label="Pagination">
+                        <a class="pager-link @(Model.Page == 1 ? "is-disabled" : "")" aria-label="Previous page"
+                           href="@Url.Action("Index", "Report", RouteFor(Math.Max(1, Model.Page - 1)))">&lsaquo;</a>
+
+                        @foreach (var number in pageNumbers)
+                        {
+                            if (lastShown != 0 && number - lastShown > 1)
+                            {
+                                <span class="pager-gap">…</span>
+                            }
+                            <a class="pager-link @(number == Model.Page ? "pager-active" : "")"
+                               href="@Url.Action("Index", "Report", RouteFor(number))">@number</a>
+                            lastShown = number;
+                        }
+
+                        <a class="pager-link @(Model.Page == Model.TotalPages ? "is-disabled" : "")" aria-label="Next page"
+                           href="@Url.Action("Index", "Report", RouteFor(Math.Min(Model.TotalPages, Model.Page + 1)))">&rsaquo;</a>
+                    </nav>
+                }
+            </div>
+        }
+    </section>
+
+    <div id="recordPanelWrap" hidden>
+        <div class="rep-scrim" data-close></div>
+        <aside class="rep-panel" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
+            <header class="rep-panel-head">
+                <div>
+                    <span class="dialog-kicker">BORROWING DETAILS</span>
+                    <h2 id="panelTitle"></h2>
+                    <span id="panelBadge"></span>
+                </div>
+                <button type="button" class="icon-button" data-close aria-label="Close details"><svg class="icon"><use href="#i-close" /></svg></button>
+            </header>
+            <div class="rep-panel-body" id="panelBody"></div>
+            <footer class="rep-panel-foot">
+                <button type="button" class="button button-secondary" data-close>Close</button>
+                <button type="button" class="button button-secondary" id="panelPrint">Print this record</button>
+            </footer>
+        </aside>
+    </div>
+
+    <dialog class="app-dialog rep-export" id="exportDialog" aria-labelledby="exportTitle">
+        <div class="rep-export-head">
+            <span class="rep-export-icon"><svg class="icon"><use href="#i-download" /></svg></span>
+            <div>
+                <h2 id="exportTitle">Export report</h2>
+                <p>Download the borrowing history report as a file.</p>
+            </div>
+            <button type="button" class="icon-button" data-export-close aria-label="Close"><svg class="icon"><use href="#i-close" /></svg></button>
+        </div>
+
+        <span class="rep-label" id="exportFormatLabel">File format</span>
+        <div class="rep-formats" role="radiogroup" aria-labelledby="exportFormatLabel">
+            <button type="button" class="rep-format is-active" data-format="pdf" role="radio" aria-checked="true">
+                <strong>PDF</strong><small>Best for printing and sharing</small><span class="rep-format-check">✓</span>
+            </button>
+            <button type="button" class="rep-format" data-format="excel" role="radio" aria-checked="false">
+                <strong>Excel</strong><small>Best for sorting and analysis</small><span class="rep-format-check">✓</span>
+            </button>
+            <button type="button" class="rep-format" data-format="csv" role="radio" aria-checked="false">
+                <strong>CSV</strong><small>Plain data for other tools</small><span class="rep-format-check">✓</span>
+            </button>
+        </div>
+
+        <div id="exportPdfOptions">
+            <span class="rep-label">Page orientation</span>
+            <div class="rep-segment">
+                <label><input type="radio" name="exportOrientation" value="Landscape" checked /><span>Landscape</span></label>
+                <label><input type="radio" name="exportOrientation" value="Portrait" /><span>Portrait</span></label>
+            </div>
+        </div>
+
+        <div class="rep-switches" id="exportSwitches">
+            <label class="rep-switch">
+                <span><strong>Include summary</strong><small>Totals for reservations, completed and late returns.</small></span>
+                <input type="checkbox" id="exportSummary" checked /><i></i>
+            </label>
+            <label class="rep-switch">
+                <span><strong>Show applied filters</strong><small>Print the filters used at the top of the report.</small></span>
+                <input type="checkbox" id="exportFilters" checked /><i></i>
+            </label>
+        </div>
+
+        <p class="rep-format-note" id="exportFormatNote" hidden></p>
+
+        <label class="rep-label" for="exportFileName">File name</label>
+        <div class="rep-filename"><input id="exportFileName" type="text" maxlength="80" /><span id="exportExtension">.pdf</span></div>
+
+        <div class="rep-contain">
+            <span class="rep-kicker">THIS FILE WILL CONTAIN</span>
+            <p><strong>@Model.Summary.TotalRecords records</strong> · @Model.Labels.Period</p>
+            <small>@(Model.Labels.Borrower ?? "All borrowers") · @(Model.Labels.Equipment ?? "All equipment") · @(Model.Labels.Status ?? "All statuses")@(Model.Labels.LateOnly ? " · Late returns only" : "")</small>
+        </div>
+
+        <div class="rep-export-actions">
+            <button type="button" class="button button-secondary" data-export-close>Cancel</button>
+            <button type="button" class="button button-secondary" id="exportPreview">Preview</button>
+            <button type="button" class="button button-primary" id="exportDownload"><svg class="icon"><use href="#i-download" /></svg><span id="exportDownloadLabel">Export PDF</span></button>
+        </div>
+    </dialog>
+</div>
+
+@section Scripts {
+    <script src="~/js/reports.js" asp-append-version="true"></script>
+}

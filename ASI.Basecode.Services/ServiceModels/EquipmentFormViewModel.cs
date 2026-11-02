@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ASI.Basecode.Resources.Constants;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace ASI.Basecode.Services.ServiceModels;
 
 public class EquipmentFormViewModel
 {
-    public static readonly string[] Conditions = { "Excellent", "Good", "Fair", "Damaged", "Lost" };
+    public static readonly string[] Conditions = EquipmentConditions.Values;
 
     public int EquipmentId { get; set; }
 
@@ -40,7 +41,7 @@ public class EquipmentFormViewModel
     public string Description { get; set; }
 
     [Required(ErrorMessage = "Condition is required.")]
-    public string ConditionStatus { get; set; } = "Good";
+    public string ConditionStatus { get; set; } = EquipmentConditions.Good;
 
     [StringLength(150, ErrorMessage = "Storage location must not exceed 150 characters.")]
     public string StorageLocation { get; set; }

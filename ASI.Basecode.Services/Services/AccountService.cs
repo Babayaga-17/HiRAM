@@ -30,7 +30,7 @@ namespace ASI.Basecode.Services.Services
                 return LoginResult.Failed;
             }
 
-            if (!string.Equals(account.AccountStatus, "Active", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(account.AccountStatus, AccountStatuses.Active, StringComparison.OrdinalIgnoreCase))
             {
                 return LoginResult.Failed;
             }

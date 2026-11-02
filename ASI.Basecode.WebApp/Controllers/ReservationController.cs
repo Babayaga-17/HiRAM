@@ -1,4 +1,5 @@
 // ASI.Basecode.WebApp/Controllers/ReservationController.cs
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.WebApp.Mvc;
@@ -124,7 +125,7 @@ public class ReservationController : ControllerBase<ReservationController>
     [HttpGet]
     public IActionResult Returns()
     {
-        var model = _reservationService.GetReservations("Borrowed");
+        var model = _reservationService.GetReservations(ReservationStatuses.Borrowed);
         return View(model);
     }
 
@@ -136,7 +137,7 @@ public class ReservationController : ControllerBase<ReservationController>
         if (reservation == null)
             return NotFound();
 
-        if (reservation.Status != "Borrowed")
+        if (reservation.Status != ReservationStatuses.Borrowed)
         {
             TempData["ReservationError"] =
                 "Only borrowed reservations can be processed for return.";
@@ -201,7 +202,7 @@ public class ReservationController : ControllerBase<ReservationController>
         if (reservation == null)
             return NotFound();
 
-        if (reservation.Status != "Borrowed")
+        if (reservation.Status != ReservationStatuses.Borrowed)
         {
             TempData["ReservationError"] =
                 "This reservation is no longer awaiting return.";

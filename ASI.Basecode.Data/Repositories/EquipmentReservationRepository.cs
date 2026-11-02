@@ -1,3 +1,4 @@
+using ASI.Basecode.Resources.Constants;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -19,7 +20,7 @@ public class EquipmentReservationRepository : BaseRepository, IEquipmentReservat
     public List<Reservation> GetPendingReservations(int borrowerUserId)
     {
         return ReservationDetailsQuery()
-            .Where(item => item.BorrowerUserId == borrowerUserId && item.Status == "Pending")
+            .Where(item => item.BorrowerUserId == borrowerUserId && item.Status == ReservationStatuses.Pending)
             .OrderByDescending(item => item.RequestedAt)
             .ThenByDescending(item => item.ReservationId)
             .ToList();

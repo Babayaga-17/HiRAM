@@ -1,4 +1,5 @@
-﻿using ASI.Basecode.Services.Interfaces;
+﻿using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
@@ -276,6 +277,6 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
             reservationId.Value,
             borrowerUserId);
 
-        return reservation?.Status == "Pending";
+        return reservation?.Status == ReservationStatuses.Pending;
     }
 }

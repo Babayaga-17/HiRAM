@@ -1,4 +1,5 @@
 // ASI.Basecode.Services/Services/BorrowerProfileService.cs
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Data;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Services.ServiceModels;
@@ -40,13 +41,13 @@ namespace ASI.Basecode.Services.Services
                 Status = status,
                 PageSize = pageSize,
                 OverallTotal = all.Count(),
-                OverallEligible = all.Count(b => b.EligibilityStatus == "Eligible"),
-                OverallSuspended = all.Count(b => b.EligibilityStatus == "Suspended")
+                OverallEligible = all.Count(b => b.EligibilityStatus == EligibilityStatuses.Eligible),
+                OverallSuspended = all.Count(b => b.EligibilityStatus == EligibilityStatuses.Suspended)
             };
 
             var q = all.Include(b => b.User).Include(b => b.Department).AsQueryable();
 
-            if (status == "Eligible" || status == "Suspended")
+            if (status == EligibilityStatuses.Eligible || status == EligibilityStatuses.Suspended)
                 q = q.Where(b => b.EligibilityStatus == status);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -134,9 +135,9 @@ namespace ASI.Basecode.Services.Services
             profile.DepartmentId = m.DepartmentId;
             profile.Program = m.Program?.Trim();
             profile.YearLevel = m.YearLevel;
-            profile.EligibilityStatus = m.EligibilityStatus == "Suspended" ? "Suspended" : "Eligible";
+            profile.EligibilityStatus = m.EligibilityStatus == EligibilityStatuses.Suspended ? EligibilityStatuses.Suspended : EligibilityStatuses.Eligible;
 
-            if (profile.EligibilityStatus == "Suspended")
+            if (profile.EligibilityStatus == EligibilityStatuses.Suspended)
             {
                 profile.SuspensionReason = m.SuspensionReason?.Trim();
                 profile.SuspendedUntil = m.SuspendedUntil;
@@ -163,14 +164,14 @@ namespace ASI.Basecode.Services.Services
             var now = DateTime.Now;
             if (suspend)
             {
-                e.EligibilityStatus = "Suspended";
+                e.EligibilityStatus = EligibilityStatuses.Suspended;
                 e.SuspensionReason = reason?.Trim();
                 e.SuspendedUntil = until;
                 e.SuspendedAt = now;
             }
             else
             {
-                e.EligibilityStatus = "Eligible";
+                e.EligibilityStatus = EligibilityStatuses.Eligible;
                 e.SuspensionReason = null;
                 e.SuspendedUntil = null;
                 e.SuspendedAt = null;
