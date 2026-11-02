@@ -36,18 +36,18 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
     }
 
     [HttpGet]
-    public IActionResult Index()
+    public IActionResult Index(EquipmentCategoryListRequest request)
     {
         try
         {
-            var equipmentCategories = _equipmentCategoryService.GetEquipmentCategories();
+            var equipmentCategories = _equipmentCategoryService.GetEquipmentCategoryPage(request);
             return View(equipmentCategories);
         }
         catch (Exception)
         {
             TempData["CategoryLoadError"] = "Unable to load equipment categories. Please try again.";
 
-            return View(new List<EquipmentCategoryListItem>());
+            return View(new EquipmentCategoryIndexViewModel());
         }
     }
 
@@ -90,7 +90,7 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
 
             return View(equipmentCategory);
         }
-        catch (Exception exception)
+        catch (Exception)
         {
             return StatusCode(500, "Unable to load the category. Please try again.");
         }
@@ -136,13 +136,19 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
     }
 
     [HttpPost]
-    public IActionResult Deactivate(int id) => ChangeCategoryStatus(id, false);
+    public IActionResult Deactivate(int id, [FromForm] EquipmentCategoryListRequest request)
+    {
+        return ChangeCategoryStatus(id, false, request);
+    }
 
     [HttpPost]
-    public IActionResult Activate(int id) => ChangeCategoryStatus(id, true);
+    public IActionResult Activate(int id, [FromForm] EquipmentCategoryListRequest request)
+    {
+        return ChangeCategoryStatus(id, true, request);
+    }
 
     [HttpPost]
-    public IActionResult Delete(int id)
+    public IActionResult Delete(int id, [FromForm] EquipmentCategoryListRequest request)
     {
         try
         {
@@ -160,15 +166,15 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
         {
             TempData["CategoryError"] = string.Join(" ", exception.Errors.Values);
         }
-        catch (Exception exception)
+        catch (Exception)
         {
             TempData["CategoryError"] = "Unable to delete the category. Please try again.";
         }
 
-        return RedirectToAction(nameof(Index));
+        return RedirectToList(request);
     }
 
-    private IActionResult ChangeCategoryStatus(int id, bool isActive)
+    private IActionResult ChangeCategoryStatus(int id, bool isActive, EquipmentCategoryListRequest request)
     {
         try
         {
@@ -187,6 +193,16 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
             TempData["CategoryError"] = "Unable to change the category status. Please try again.";
         }
 
-        return RedirectToAction(nameof(Index));
+        return RedirectToList(request);
+    }
+
+    private IActionResult RedirectToList(EquipmentCategoryListRequest request)
+    {
+        return RedirectToAction(nameof(Index), new
+        {
+            page = request.Page,
+            search = request.Search,
+            status = request.Status
+        });
     }
 }

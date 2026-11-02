@@ -67,11 +67,9 @@ namespace ASI.Basecode.Services.Services
             try
             {
                 var message = new MimeMessage();
-                message.From.Add(
-                    MailboxAddress.Parse(_configuration["Smtp:From"]));
+                message.From.Add(MailboxAddress.Parse(_configuration["Smtp:From"]));
                 message.To.Add(MailboxAddress.Parse(email.Trim()));
                 message.Subject = "HiRAM password reset code";
-
                 message.Body = new TextPart("plain")
                 {
                     Text = $"Your HiRAM verification code is {code}. " +

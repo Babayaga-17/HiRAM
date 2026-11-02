@@ -1,6 +1,5 @@
-﻿
-@using ASI.Basecode.Services.ServiceModels
-@model List<EquipmentListItem>
+﻿@using ASI.Basecode.Services.ServiceModels
+@model EquipmentIndexViewModel
 
 @{
     Layout = "_AppLayout";
@@ -20,10 +19,10 @@
         <p>Maintain inventory details, condition, availability, and storage locations.</p>
     </div>
 
-    <a class="button button-primary heading-action"
-       asp-controller="Equipment"
-       asp-action="Create">
-        <svg class="icon"><use href="#i-plus" /></svg>
+    <a class="button button-primary heading-action" asp-controller="Equipment" asp-action="Create">
+        <svg class="icon">
+            <use href="#i-plus" />
+        </svg>
         Add equipment
     </a>
 </div>
@@ -50,50 +49,48 @@
 }
 else
 {
-    var availableCount = Model.Count(equipment =>
-        equipment.Status == EquipmentAvailability.Available);
-
-    var attentionCount = Model.Count(equipment =>
-        equipment.Status == EquipmentAvailability.UnderMaintenance ||
-        equipment.Status == EquipmentAvailability.Unavailable);
-
     <section class="stats-grid" aria-label="Equipment overview">
         <div class="stat-card">
             <span class="stat-icon stat-icon-purple">
-                <svg class="icon"><use href="#i-box" /></svg>
+                <svg class="icon">
+                    <use href="#i-box" />
+                </svg>
             </span>
             <span class="stat-copy">
                 <span>Total equipment</span>
-                <strong>@Model.Count</strong>
+                <strong>@Model.TotalEquipment</strong>
                 <small>Items in the inventory</small>
             </span>
         </div>
 
         <div class="stat-card">
             <span class="stat-icon stat-icon-teal">
-                <svg class="icon"><use href="#i-check" /></svg>
+                <svg class="icon">
+                    <use href="#i-check" />
+                </svg>
             </span>
             <span class="stat-copy">
                 <span>Available now</span>
-                <strong>@availableCount</strong>
+                <strong>@Model.AvailableCount</strong>
                 <small>Ready to be reserved</small>
             </span>
         </div>
 
         <div class="stat-card">
             <span class="stat-icon stat-icon-blue">
-                <svg class="icon"><use href="#i-tools" /></svg>
+                <svg class="icon">
+                    <use href="#i-tools" />
+                </svg>
             </span>
             <span class="stat-copy">
                 <span>Needs attention</span>
-                <strong>@attentionCount</strong>
+                <strong>@Model.AttentionCount</strong>
                 <small>Under maintenance or unavailable</small>
             </span>
         </div>
     </section>
 
-    <section class="content-card category-list"
-             aria-labelledby="equipmentListHeading">
+    <section class="content-card category-list" aria-labelledby="equipmentListHeading">
 
         <div class="card-heading">
             <div>
@@ -102,58 +99,52 @@ else
             </div>
 
             <span class="count-pill">
-                @Model.Count @(Model.Count == 1 ? "item" : "items")
+                @Model.TotalEquipment @(Model.TotalEquipment == 1 ? "item" : "items")
             </span>
         </div>
 
-        @if (Model.Count == 0)
+        @if (Model.TotalEquipment == 0)
         {
             <div class="empty-categories">
                 <span class="empty-icon">
-                    <svg class="icon"><use href="#i-box" /></svg>
+                    <svg class="icon">
+                        <use href="#i-box" />
+                    </svg>
                 </span>
 
                 <h3>No equipment yet</h3>
                 <p>Equipment will appear here once it is added.</p>
 
-                <a class="button button-primary"
-                   asp-controller="Equipment"
-                   asp-action="Create">
-                    <svg class="icon"><use href="#i-plus" /></svg>
+                <a class="button button-primary" asp-controller="Equipment" asp-action="Create">
+                    <svg class="icon">
+                        <use href="#i-plus" />
+                    </svg>
                     Add equipment
                 </a>
             </div>
         }
         else
         {
-            <div class="list-toolbar">
+            <form method="get" asp-action="Index" class="list-toolbar">
                 <label class="search-field">
-                    <svg class="icon"><use href="#i-search" /></svg>
                     <span class="sr-only">Search equipment</span>
-                    <input id="equipmentSearch"
-                           type="search"
-                           placeholder="Search code, name, or model..."
+
+                    <input type="search" name="search" value="@Model.Search" placeholder="Search code, name, brand, or model"
                            autocomplete="off" />
                 </label>
 
                 <label class="filter-field">
                     <span>Category</span>
-                    <select id="categoryFilter" aria-label="Filter by category">
-                        <option value="all">All categories</option>
 
-                        @if (categoryOptions != null)
-                        {
-                            @foreach (var option in categoryOptions)
-                            {
-                                <option value="@option.Value">@option.Text</option>
-                            }
-                        }
+                    <select asp-for="CategoryId" asp-items="categoryOptions" name="categoryId">
+                        <option value="">All categories</option>
                     </select>
                 </label>
 
                 <label class="filter-field">
                     <span>Status</span>
-                    <select id="statusFilter" aria-label="Filter by status">
+
+                    <select asp-for="Status" name="status">
                         <option value="all">All statuses</option>
                         <option value="available">Available</option>
                         <option value="reserved">Reserved</option>
@@ -162,7 +153,15 @@ else
                         <option value="unavailable">Unavailable</option>
                     </select>
                 </label>
-            </div>
+
+                <button type="submit" class="button button-primary">
+                    Apply
+                </button>
+
+                <a asp-action="Index" class="button button-secondary">
+                    Clear
+                </a>
+            </form>
 
             <div class="table-scroll" id="equipmentTable">
                 <table class="category-table">
@@ -179,30 +178,23 @@ else
                     </thead>
 
                     <tbody id="equipmentRows">
-                        @foreach (var item in Model)
+                        @foreach (var item in Model.Items)
                         {
-                            <tr data-id="@item.EquipmentId"
-                                data-name="@item.EquipmentName"
-                                data-code="@item.EquipmentCode"
-                                data-category="@item.CategoryId"
-                                data-category-name="@item.CategoryName"
-                                data-brand="@item.Brand"
-                                data-model="@item.Model"
-                                data-serial="@item.SerialNumber"
-                                data-asset="@item.AssetTag"
-                                data-condition="@item.ConditionStatus"
-                                data-status="@item.StatusClass"
-                                data-status-label="@item.StatusLabel"
-                                data-location="@item.StorageLocation"
+                            <tr data-id="@item.EquipmentId" data-name="@item.EquipmentName" data-code="@item.EquipmentCode"
+                                data-category="@item.CategoryId" data-category-name="@item.CategoryName" data-brand="@item.Brand"
+                                data-model="@item.Model" data-serial="@item.SerialNumber" data-asset="@item.AssetTag"
+                                data-condition="@item.ConditionStatus" data-status="@item.StatusClass"
+                                data-status-label="@item.StatusLabel" data-location="@item.StorageLocation"
                                 data-acquired="@(item.AcquisitionDate?.ToString("MMM d, yyyy"))"
-                                data-cost="@(item.AcquisitionCost?.ToString("N2"))"
-                                data-description="@item.Description"
+                                data-cost="@(item.AcquisitionCost?.ToString("N2"))" data-description="@item.Description"
                                 data-next="@(item.NextReservationStart?.ToString("MMM d, yyyy h:mm tt"))">
 
                                 <td>
                                     <div class="category-name-cell">
                                         <span class="category-tile">
-                                            <svg class="icon"><use href="#i-box" /></svg>
+                                            <svg class="icon">
+                                                <use href="#i-box" />
+                                            </svg>
                                         </span>
                                         <span>
                                             <strong>@item.EquipmentName</strong>
@@ -235,60 +227,57 @@ else
 
                                 <td class="actions-column">
                                     <div class="row-actions">
-                                        <button type="button"
-                                                class="icon-button view-equipment"
-                                                aria-label="View @item.EquipmentName"
-                                                title="View details">
-                                            <svg class="icon"><use href="#i-eye" /></svg>
+                                        <button type="button" class="icon-button view-equipment"
+                                                aria-label="View @item.EquipmentName" title="View details">
+                                            <svg class="icon">
+                                                <use href="#i-eye" />
+                                            </svg>
                                         </button>
 
-                                        <a class="icon-button edit-equipment"
-                                           asp-controller="Equipment"
-                                           asp-action="Edit"
-                                           asp-route-id="@item.EquipmentId"
-                                           aria-label="Edit @item.EquipmentName"
+                                        <a class="icon-button edit-equipment" asp-controller="Equipment" asp-action="Edit"
+                                           asp-route-id="@item.EquipmentId" aria-label="Edit @item.EquipmentName"
                                            title="Edit equipment">
-                                            <svg class="icon"><use href="#i-edit" /></svg>
+                                            <svg class="icon">
+                                                <use href="#i-edit" />
+                                            </svg>
                                         </a>
 
                                         @if (item.IsActive)
                                         {
-                                            <form class="category-action-form"
-                                                  asp-controller="Equipment"
-                                                  asp-action="Deactivate"
-                                                  asp-route-id="@item.EquipmentId"
-                                                  method="post">
+                                            <form class="category-action-form" asp-controller="Equipment" asp-action="Deactivate"
+                                                  asp-route-id="@item.EquipmentId" method="post">
 
                                                 @Html.AntiForgeryToken()
 
-                                                <button type="submit"
-                                                        class="status-action"
-                                                        aria-label="Deactivate @item.EquipmentName">
+                                                <input type="hidden" name="page" value="@Model.Page" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                                                <input type="hidden" name="status" value="@Model.Status" />
+
+                                                <button type="submit" class="status-action" aria-label="Deactivate @item.EquipmentName">
                                                     Deactivate
                                                 </button>
                                             </form>
                                         }
                                         else
                                         {
-                                            <form class="category-action-form"
-                                                  asp-controller="Equipment"
-                                                  asp-action="Activate"
-                                                  asp-route-id="@item.EquipmentId"
-                                                  method="post">
+                                            <form class="category-action-form" asp-controller="Equipment" asp-action="Activate"
+                                                  asp-route-id="@item.EquipmentId" method="post">
 
                                                 @Html.AntiForgeryToken()
 
-                                                <button type="submit"
-                                                        class="status-action"
-                                                        aria-label="Activate @item.EquipmentName">
+                                                <input type="hidden" name="page" value="@Model.Page" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                                                <input type="hidden" name="status" value="@Model.Status" />
+
+                                                <button type="submit" class="status-action" aria-label="Activate @item.EquipmentName">
                                                     Activate
                                                 </button>
                                             </form>
 
-                                            <button type="button"
-                                                    class="status-action status-action-danger delete-equipment"
-                                                    aria-label="Delete @item.EquipmentName"
-                                                    title="Delete equipment">
+                                            <button type="button" class="status-action status-action-danger delete-equipment"
+                                                    aria-label="Delete @item.EquipmentName" title="Delete equipment">
                                                 Delete
                                             </button>
                                         }
@@ -300,41 +289,85 @@ else
                 </table>
             </div>
 
-            <div class="empty-results" id="emptyResults" hidden>
-                <span class="empty-icon">
-                    <svg class="icon"><use href="#i-search" /></svg>
-                </span>
+            @if (Model.FilteredCount == 0)
+            {
+                <div class="empty-results">
+                    <span class="empty-icon">
+                        <svg class="icon">
+                            <use href="#i-search" />
+                        </svg>
+                    </span>
 
-                <h3>No equipment found</h3>
-                <p>Try a different search or clear one of the filters.</p>
+                    <h3>No matching equipment</h3>
+                    <p>Try a different search or clear your filters.</p>
 
-                <button type="button" class="text-button" id="clearFilters">
-                    Clear filters
-                </button>
-            </div>
+                    <a asp-action="Index" class="text-button">
+                        Clear filters
+                    </a>
+                </div>
+            }
 
             <div class="table-footer">
-                <span id="resultCount"></span>
-                <nav class="pager" id="pager" aria-label="Pagination"></nav>
+                <span>
+                    Showing @Model.FirstItem–@Model.LastItem
+                    of @Model.FilteredCount items
+                </span>
+
+                @if (Model.FilteredCount > 0)
+                {
+                    <nav class="pager" aria-label="Equipment pagination">
+                        @if (Model.Page > 1)
+                        {
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search"
+                               asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                                Previous
+                            </a>
+                        }
+
+                        @for (var p = Math.Max(1, Model.Page - 2); p <= Math.Min(Model.TotalPages, Model.Page + 2); p++)
+                        {
+                            if (p == Model.Page)
+                            {
+                                <span class="pager-link pager-active" aria-current="page">
+                                    @p
+                                </span>
+                            }
+                            else
+                            {
+                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-search="@Model.Search"
+                                   asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                                    @p
+                                </a>
+                            }
+                        }
+                        @if (Model.Page < Model.TotalPages)
+                        {
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search"
+                               asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                                Next
+                            </a>
+                        }
+                    </nav>
+                }
             </div>
         }
     </section>
 
-    @if (Model.Count > 0)
+    @if (Model.Items.Count > 0)
     {
-        <dialog class="app-dialog"
-                id="detailsDialog"
-                aria-labelledby="detailsTitle">
+        <dialog class="app-dialog" id="detailsDialog" aria-labelledby="detailsTitle">
 
             <div class="dialog-top">
                 <span class="dialog-icon">
-                    <svg class="icon"><use href="#i-box" /></svg>
+                    <svg class="icon">
+                        <use href="#i-box" />
+                    </svg>
                 </span>
 
-                <button type="button"
-                        class="icon-button dialog-close"
-                        aria-label="Close details">
-                    <svg class="icon"><use href="#i-close" /></svg>
+                <button type="button" class="icon-button dialog-close" aria-label="Close details">
+                    <svg class="icon">
+                        <use href="#i-close" />
+                    </svg>
                 </button>
             </div>
 
@@ -343,37 +376,67 @@ else
             <p id="detailsDescription"></p>
 
             <dl class="details-list">
-                <div><dt>Equipment code</dt><dd id="detailsCode"></dd></div>
-                <div><dt>Category</dt><dd id="detailsCategory"></dd></div>
-                <div><dt>Brand / model</dt><dd id="detailsBrandModel"></dd></div>
-                <div><dt>Serial number</dt><dd id="detailsSerial"></dd></div>
-                <div><dt>Asset tag</dt><dd id="detailsAsset"></dd></div>
-                <div><dt>Condition</dt><dd id="detailsCondition"></dd></div>
-                <div><dt>Availability</dt><dd id="detailsStatus"></dd></div>
-                <div><dt>Next reservation</dt><dd id="detailsNext"></dd></div>
-                <div><dt>Storage location</dt><dd id="detailsLocation"></dd></div>
-                <div><dt>Acquired</dt><dd id="detailsAcquired"></dd></div>
-                <div><dt>Acquisition cost</dt><dd id="detailsCost"></dd></div>
+                <div>
+                    <dt>Equipment code</dt>
+                    <dd id="detailsCode"></dd>
+                </div>
+                <div>
+                    <dt>Category</dt>
+                    <dd id="detailsCategory"></dd>
+                </div>
+                <div>
+                    <dt>Brand / model</dt>
+                    <dd id="detailsBrandModel"></dd>
+                </div>
+                <div>
+                    <dt>Serial number</dt>
+                    <dd id="detailsSerial"></dd>
+                </div>
+                <div>
+                    <dt>Asset tag</dt>
+                    <dd id="detailsAsset"></dd>
+                </div>
+                <div>
+                    <dt>Condition</dt>
+                    <dd id="detailsCondition"></dd>
+                </div>
+                <div>
+                    <dt>Availability</dt>
+                    <dd id="detailsStatus"></dd>
+                </div>
+                <div>
+                    <dt>Next reservation</dt>
+                    <dd id="detailsNext"></dd>
+                </div>
+                <div>
+                    <dt>Storage location</dt>
+                    <dd id="detailsLocation"></dd>
+                </div>
+                <div>
+                    <dt>Acquired</dt>
+                    <dd id="detailsAcquired"></dd>
+                </div>
+                <div>
+                    <dt>Acquisition cost</dt>
+                    <dd id="detailsCost"></dd>
+                </div>
             </dl>
 
             <div class="dialog-actions">
-                <button type="button"
-                        class="button button-secondary dialog-close">
+                <button type="button" class="button button-secondary dialog-close">
                     Close
                 </button>
 
-                <a class="button button-primary"
-                   id="detailsEdit"
-                   href="#">
-                    <svg class="icon"><use href="#i-edit" /></svg>
+                <a class="button button-primary" id="detailsEdit" href="#">
+                    <svg class="icon">
+                        <use href="#i-edit" />
+                    </svg>
                     Edit equipment
                 </a>
             </div>
         </dialog>
 
-        <dialog class="app-dialog"
-                id="deleteEquipmentDialog"
-                aria-labelledby="deleteEquipmentTitle"
+        <dialog class="app-dialog" id="deleteEquipmentDialog" aria-labelledby="deleteEquipmentTitle"
                 aria-describedby="deleteEquipmentMessage">
 
             <h2 id="deleteEquipmentTitle">Delete equipment</h2>
@@ -384,19 +447,19 @@ else
                 This cannot be undone.
             </p>
 
-            <form asp-controller="Equipment"
-                  asp-action="Delete"
-                  method="post">
+            <form asp-controller="Equipment" asp-action="Delete" method="post">
 
                 @Html.AntiForgeryToken()
 
-                <input type="hidden"
-                       name="id"
-                       id="deleteEquipmentId" />
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                <input type="hidden" name="status" value="@Model.Status" />
+
+                <input type="hidden" name="id" id="deleteEquipmentId" />
 
                 <div class="dialog-actions">
-                    <button type="button"
-                            class="button button-secondary dialog-close">
+                    <button type="button" class="button button-secondary dialog-close">
                         Cancel
                     </button>
 
@@ -410,7 +473,7 @@ else
 }
 
 @section Scripts {
-    @if (Model.Count > 0 && loadError == null)
+    @if (Model.Items.Count > 0 && loadError == null)
     {
         <script src="~/js/equipment.js" asp-append-version="true"></script>
     }

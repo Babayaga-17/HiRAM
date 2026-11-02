@@ -477,5 +477,93 @@ namespace ASI.Basecode.Services.Services
 
             return errors;
         }
+
+        public EquipmentIndexViewModel GetEquipmentPage(EquipmentListRequest request)
+        {
+            const int pageSize = 5;
+
+            var search = (request.Search ?? string.Empty).Trim();
+            var page = request.Page;
+            var categoryId = request.CategoryId;
+
+            if (categoryId <= 0)
+            {
+                categoryId = null;
+            }
+
+            // Translate the selected status into your existing enum.
+            EquipmentAvailability? selectedStatus = (request.Status ?? "").ToLowerInvariant() switch
+            {
+                "available" => EquipmentAvailability.Available,
+                "reserved" => EquipmentAvailability.Reserved,
+                "borrowed" => EquipmentAvailability.Borrowed,
+                "undermaintenance" => EquipmentAvailability.UnderMaintenance,
+                "unavailable" => EquipmentAvailability.Unavailable,
+                _ => null
+            };
+
+            var status = selectedStatus.HasValue
+                ? selectedStatus.Value.ToString().ToLowerInvariant()
+                : "all";
+
+            var allEquipment = GetEquipmentItems();
+            var query = allEquipment;
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(item =>
+                    item.EquipmentName.Contains(search) ||
+                    item.EquipmentCode.Contains(search) ||
+                    (item.Brand != null && item.Brand.Contains(search)) ||
+                    (item.Model != null && item.Model.Contains(search)));
+            }
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(item =>
+                    item.CategoryId == categoryId.Value);
+            }
+
+            if (selectedStatus.HasValue)
+            {
+                var availability = selectedStatus.Value;
+                query = query.Where(item => item.Status == availability);
+            }
+
+            var filteredCount = query.Count();
+
+            var totalPages = Math.Max(
+                1,
+                (int)Math.Ceiling((double)filteredCount / pageSize));
+
+            page = Math.Clamp(page, 1, totalPages);
+
+            var items = query
+                .OrderBy(item => item.EquipmentName)
+                .ThenBy(item => item.EquipmentId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            return new EquipmentIndexViewModel
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                FilteredCount = filteredCount,
+                Search = search,
+                CategoryId = categoryId,
+                Status = status,
+
+                TotalEquipment = allEquipment.Count(),
+
+                AvailableCount = allEquipment.Count(item =>
+                    item.Status == EquipmentAvailability.Available),
+
+                AttentionCount = allEquipment.Count(item =>
+                    item.Status == EquipmentAvailability.UnderMaintenance ||
+                    item.Status == EquipmentAvailability.Unavailable)
+            };
+        }
     }
 }

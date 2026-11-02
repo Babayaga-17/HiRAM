@@ -20,5 +20,6 @@ namespace ASI.Basecode.Services.Interfaces
         List<EquipmentBusyPeriod> GetSchedule(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null);
         List<EquipmentCalendarEvent> GetCalendarEvents(DateTime start, DateTime end);
         EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null);
+        EquipmentIndexViewModel GetEquipmentPage(EquipmentListRequest request);
     }
 }

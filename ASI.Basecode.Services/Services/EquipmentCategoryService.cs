@@ -118,14 +118,14 @@ namespace ASI.Basecode.Services.Services
         public List<EquipmentCategoryListItem> GetEquipmentCategories()
         {
             return _equipmentCategoryRepository.GetEquipmentCategories().Select(equipmentCategory => new EquipmentCategoryListItem
-                {
-                    CategoryId = equipmentCategory.CategoryId,
-                    CategoryCode = equipmentCategory.CategoryCode,
-                    CategoryName = equipmentCategory.CategoryName,
-                    Description = equipmentCategory.Description ?? string.Empty,
-                    EquipmentCount = equipmentCategory.Equipment.Count,
-                    IsActive = equipmentCategory.IsActive
-                }).ToList();
+            {
+                CategoryId = equipmentCategory.CategoryId,
+                CategoryCode = equipmentCategory.CategoryCode,
+                CategoryName = equipmentCategory.CategoryName,
+                Description = equipmentCategory.Description ?? string.Empty,
+                EquipmentCount = equipmentCategory.Equipment.Count,
+                IsActive = equipmentCategory.IsActive
+            }).ToList();
         }
 
         public EquipmentCategoryListItem GetEquipmentCategoryById(int id)
@@ -159,6 +159,75 @@ namespace ASI.Basecode.Services.Services
             }
 
             return errors;
+        }
+
+        public EquipmentCategoryIndexViewModel GetEquipmentCategoryPage(EquipmentCategoryListRequest request)
+        {
+            const int pageSize = 5;
+
+            var search = (request.Search ?? string.Empty).Trim();
+            var page = request.Page;
+
+            var status = request.Status == "active" ||
+                         request.Status == "inactive"
+                ? request.Status
+                : "all";
+
+            // This remains IQueryable, so filtering and pagination run in SQL.
+            var allCategories = _equipmentCategoryRepository.GetEquipmentCategories();
+            var query = allCategories;
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(category =>
+                    category.CategoryName.Contains(search) ||
+                    category.CategoryCode.Contains(search) ||
+                    (category.Description != null && category.Description.Contains(search)));
+            }
+
+            if (status != "all")
+            {
+                var isActive = status == "active";
+                query = query.Where(category => category.IsActive == isActive);
+            }
+
+            var filteredCount = query.Count();
+            var totalPages = Math.Max(1, (int)Math.Ceiling((double)filteredCount / pageSize));
+
+            // Handles negative pages and pages beyond the last result.
+            page = Math.Clamp(page, 1, totalPages);
+
+            var items = query
+                .OrderBy(category => category.CategoryName)
+                .ThenBy(category => category.CategoryId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(category => new EquipmentCategoryListItem
+                {
+                    CategoryId = category.CategoryId,
+                    CategoryName = category.CategoryName,
+                    CategoryCode = category.CategoryCode,
+                    Description = category.Description ?? string.Empty,
+                    EquipmentCount = category.Equipment.Count,
+                    IsActive = category.IsActive
+                })
+                .ToList();
+
+            return new EquipmentCategoryIndexViewModel
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                FilteredCount = filteredCount,
+                Search = search,
+                Status = status,
+
+                TotalCategories = allCategories.Count(),
+                ActiveCategories = allCategories.Count(category => category.IsActive),
+                TotalEquipment = allCategories
+                    .Select(category => (int?)category.Equipment.Count)
+                    .Sum() ?? 0
+            };
         }
     }
 }
