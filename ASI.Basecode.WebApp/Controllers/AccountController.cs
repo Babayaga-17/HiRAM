@@ -74,18 +74,6 @@ namespace ASI.Basecode.WebApp.Controllers
             return View();
         }
 
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult ForgotPassword() => View();
-
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult VerifyCode(string email)
-        {
-            ViewBag.Email = email;
-            return View();
-        }
-
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -114,17 +102,50 @@ namespace ASI.Basecode.WebApp.Controllers
             return View(model);
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult ForgotPassword() => View();
+
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ForgotPassword(string email)
         {
-            if (!await _passwordResetService.SendResetCodeAsync(email))
+            var result = await _passwordResetService.SendResetCodeAsync(email);
+
+            if (result == SendResetCodeStatus.Cooldown)
             {
-                ViewBag.Error = "Account cannot be found.";
+                TempData["ResendError"] =
+                    "A code was requested recently. Please wait before requesting another.";
+
+                return RedirectToAction("VerifyCode", new { email });
+            }
+
+            if (result != SendResetCodeStatus.Sent)
+            {
+                ViewBag.Error = result == SendResetCodeStatus.AccountNotFound
+                    ? "Account cannot be found."
+                    : "Unable to send a code. Please try again.";
+
                 return View();
             }
             return RedirectToAction("VerifyCode", new { email });
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult VerifyCode(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return RedirectToAction(nameof(ForgotPassword));
+
+            email = email.Trim();
+
+            ViewBag.Email = email;
+
+            var timing = _passwordResetService.GetTiming(email);
+
+            return View(timing);
         }
 
         [HttpPost]
@@ -135,14 +156,54 @@ namespace ASI.Basecode.WebApp.Controllers
             var tokenId = _passwordResetService.VerifyCode(email, code);
             if (tokenId == null)
             {
-                ViewBag.Email = email;
+                ViewBag.Email = email?.Trim();
                 ViewBag.Error = "Invalid or expired code.";
-                return View();
+
+                var timing = _passwordResetService.GetTiming(email);
+
+                return View(timing);
             }
 
             _session.SetString(ResetEmailKey, email.Trim());
             _session.SetString(ResetTokenKey, tokenId.Value.ToString());
             return RedirectToAction("NewPassword");
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResendCode(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return RedirectToAction(nameof(ForgotPassword));
+
+            email = email.Trim();
+
+            // Starting another request must not retain prior reset authorization.
+            _session.Remove(ResetEmailKey);
+            _session.Remove(ResetTokenKey);
+
+            var result = await _passwordResetService.SendResetCodeAsync(email);
+
+            switch (result)
+            {
+                case SendResetCodeStatus.Sent:
+                    TempData["ResendSuccess"] =
+                        "A new code has been sent. Use the latest code.";
+                    break;
+
+                case SendResetCodeStatus.Cooldown:
+                    TempData["ResendError"] =
+                        "Please wait until resending is available.";
+                    break;
+
+                default:
+                    TempData["ResendError"] =
+                        "Unable to send a new code. Please try again.";
+                    break;
+            }
+
+            return RedirectToAction(nameof(VerifyCode), new { email });
         }
 
         // Step 2: choose the new password
