@@ -4,19 +4,19 @@
 @{
     Layout = "_AppLayout";
     ViewData["Title"] = Model.ReservationNumber;
-    ViewData["TopbarPage"] = Model.Status == "Pending" ? "Pending request" : "Request details";
+    ViewData["TopbarPage"] = Model.Status == ReservationStatuses.Pending ? "Pending request" : "Request details";
 
     string BadgeClass(string s) => s switch
     {
-        "Pending" => "status-pending",
-        "Approved" => "rs-approved",
-        "Borrowed" => "rs-borrowed",
-        "Rejected" => "rs-rejected",
-        "Returned" => "rs-returned",
+        ReservationStatuses.Pending => "status-pending",
+        ReservationStatuses.Approved => "rs-approved",
+        ReservationStatuses.Borrowed => "rs-borrowed",
+        ReservationStatuses.Rejected => "rs-rejected",
+        ReservationStatuses.Returned => "rs-returned",
         _ => "rs-neutral"
     };
-    var conditions = new[] { "Good", "Fair", "Damaged" };
-    var backStatus = Model.Status is "Pending" or "Approved" or "Borrowed" or "Returned" or "Rejected" ? Model.Status : "All";
+    var conditions = new[] { EquipmentConditions.Good, EquipmentConditions.Fair, EquipmentConditions.Damaged };
+    var backStatus = Model.Status is ReservationStatuses.Pending or ReservationStatuses.Approved or ReservationStatuses.Borrowed or ReservationStatuses.Returned or ReservationStatuses.Rejected ? Model.Status : ReservationFilters.All;
 }
 
 @section Styles {
@@ -33,7 +33,7 @@
     <span class="status-badge @BadgeClass(Model.Status) heading-status"><span></span>@Model.Status</span>
 </div>
 
-@if (Model.Status == "Borrowed")
+@if (Model.Status == ReservationStatuses.Borrowed)
 {
     <a class="button button-primary"
        asp-controller="Reservation"
@@ -106,7 +106,7 @@
                         <th scope="col">EQUIPMENT</th>
                         <th scope="col">CONDITION</th>
                         <th scope="col">LOCATION</th>
-                        @if (Model.Status is "Borrowed" or "Returned")
+                        @if (Model.Status is ReservationStatuses.Borrowed or ReservationStatuses.Returned)
                         {
                             <th scope="col">CONDITION AT RELEASE</th>
                         }
@@ -127,7 +127,7 @@
                             </td>
                             <td>@(string.IsNullOrWhiteSpace(item.ConditionStatus) ? "—" : item.ConditionStatus)</td>
                             <td>@(string.IsNullOrWhiteSpace(item.StorageLocation) ? "—" : item.StorageLocation)</td>
-                            @if (Model.Status is "Borrowed" or "Returned")
+                            @if (Model.Status is ReservationStatuses.Borrowed or ReservationStatuses.Returned)
                             {
                                 <td>
                                     @(string.IsNullOrWhiteSpace(item.ConditionAtBorrowing) ? "—" : item.ConditionAtBorrowing)
@@ -145,7 +145,7 @@
     }
 </section>
 
-@if (Model.Status == "Pending")
+@if (Model.Status == ReservationStatuses.Pending)
 {
     <section class="content-card form-card rs-panel" aria-label="Decision">
         <div class="form-card-header">
@@ -153,7 +153,7 @@
             <div><h2>Decision</h2><p>Approve this request or reject it with a reason.</p></div>
         </div>
 
-        @if (Model.EligibilityStatus != "Eligible")
+        @if (Model.EligibilityStatus != EligibilityStatuses.Eligible)
         {
             <div class="rs-warn">This borrower is <strong>@(string.IsNullOrWhiteSpace(Model.EligibilityStatus) ? "not eligible" : Model.EligibilityStatus)</strong>, so the request can't be approved. You can still reject it.</div>
         }
@@ -162,7 +162,7 @@
             <form method="post" asp-controller="Reservation" asp-action="Approve" asp-route-id="@Model.ReservationId">
                 <label class="rs-label" for="approveRemarks">Approval remarks (optional)</label>
                 <textarea class="rs-input" id="approveRemarks" name="remarks" rows="3" maxlength="500" placeholder="Notes for the borrower or the custodian"></textarea>
-                <button type="submit" class="button button-primary" @(Model.EligibilityStatus != "Eligible" ? "disabled" : "")>Approve request</button>
+                <button type="submit" class="button button-primary" @(Model.EligibilityStatus != EligibilityStatuses.Eligible ? "disabled" : "")>Approve request</button>
             </form>
             <form method="post" asp-controller="Reservation" asp-action="Reject" asp-route-id="@Model.ReservationId">
                 <label class="rs-label" for="rejectReason">Rejection reason *</label>
@@ -172,7 +172,7 @@
         </div>
     </section>
 }
-else if (Model.Status == "Approved")
+else if (Model.Status == ReservationStatuses.Approved)
 {
     <section class="content-card form-card rs-panel" aria-label="Release equipment">
         <div class="form-card-header">
@@ -202,7 +202,7 @@ else if (Model.Status == "Approved")
                         @for (var i = 0; i < Model.Items.Count; i++)
                         {
                             var item = Model.Items[i];
-                            var selected = conditions.Contains(item.ConditionStatus) ? item.ConditionStatus : "Good";
+                            var selected = conditions.Contains(item.ConditionStatus) ? item.ConditionStatus : EquipmentConditions.Good;
                             <tr>
                                 <td><strong>@item.EquipmentName</strong><div class="pending-muted">@item.EquipmentCode</div></td>
                                 <td>

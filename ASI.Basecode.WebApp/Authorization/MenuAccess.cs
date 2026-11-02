@@ -58,6 +58,12 @@ namespace ASI.Basecode.WebApp.Authorization
                 "View equipment availability by day, week, or month.",
                 null,
                 new[] { RoleNames.Borrower, RoleNames.Custodian, RoleNames.Admin }),
+            new MenuAccessEntry(
+                "Reports",
+                "Reports",
+                "Borrowing history report: filter, view details, print and export to PDF.",
+                null,
+                new[] { RoleNames.Custodian, RoleNames.Admin }),
         };
 
         public static MenuAccessEntry Find(string key)

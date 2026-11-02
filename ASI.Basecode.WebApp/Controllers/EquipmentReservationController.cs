@@ -1,3 +1,4 @@
+using ASI.Basecode.Resources.Constants;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -130,7 +131,7 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
         if (reservation == null)
             return NotFound();
 
-        if (reservation.Status != "Pending")
+        if (reservation.Status != ReservationStatuses.Pending)
         {
             TempData["ReservationError"] =
                 "Only pending reservations can be edited.";
@@ -188,7 +189,7 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
         if (reservation == null)
             return NotFound();
 
-        if (reservation.Status != "Pending")
+        if (reservation.Status != ReservationStatuses.Pending)
         {
             TempData["ReservationError"] =
                 "Only pending reservations can be edited.";
@@ -243,7 +244,7 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
         if (reservation == null)
             return NotFound();
 
-        if (reservation.Status != "Pending")
+        if (reservation.Status != ReservationStatuses.Pending)
         {
             TempData["ReservationError"] =
                 "Only pending reservations can be cancelled.";
@@ -274,7 +275,7 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
         if (reservation == null)
             return NotFound();
 
-        if (reservation.Status != "Pending")
+        if (reservation.Status != ReservationStatuses.Pending)
         {
             TempData["ReservationError"] =
                 "Only pending reservations can be cancelled.";
@@ -362,7 +363,7 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
             if (reservation == null)
                 return NotFound();
 
-            if (reservation.Status != "Pending")
+            if (reservation.Status != ReservationStatuses.Pending)
             {
                 TempData["ReservationError"] =
                     "Only pending reservations can be edited.";

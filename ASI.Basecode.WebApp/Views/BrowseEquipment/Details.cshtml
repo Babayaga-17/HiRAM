@@ -14,11 +14,11 @@
     var galleryPhotos = photos.Count > 0 ? photos : Enumerable.Repeat(placeholder, 4).ToList();
     var note = !Model.IsActive ? "This equipment is inactive and cannot be borrowed right now." : Model.ConditionStatus switch
     {
-        "Excellent" => "In excellent working order.",
-        "Good" => "In good working order.",
-        "Fair" => "Usable, with some signs of wear.",
-        "Damaged" => "Damaged. It cannot be borrowed.",
-        "Lost" => "Reported lost. It cannot be borrowed.",
+        EquipmentConditions.Excellent => "In excellent working order.",
+        EquipmentConditions.Good => "In good working order.",
+        EquipmentConditions.Fair => "Usable, with some signs of wear.",
+        EquipmentConditions.Damaged => "Damaged. It cannot be borrowed.",
+        EquipmentConditions.Lost => "Reported lost. It cannot be borrowed.",
         _ => string.Empty
     };
 }

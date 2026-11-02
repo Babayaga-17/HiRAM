@@ -1,3 +1,4 @@
+using ASI.Basecode.Resources.Constants;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -38,8 +39,8 @@ public class EquipmentReservationService : IEquipmentReservationService
         var error = ExecuteChange(() =>
         {
             var profile = _reservationRepository.GetBorrowerProfile(borrowerUserId);
-            if (profile?.EligibilityStatus != "Eligible"
-                || profile.User?.Account?.AccountStatus != "Active"
+            if (profile?.EligibilityStatus != EligibilityStatuses.Eligible
+                || profile.User?.Account?.AccountStatus != AccountStatuses.Active
                 || profile.User.Account.Role?.RoleName != "Borrower")
                 return "Your account needs an eligible borrower profile before you can reserve equipment. Contact the custodian.";
 
@@ -56,7 +57,7 @@ public class EquipmentReservationService : IEquipmentReservationService
                 Purpose = form.Purpose.Trim(),
                 StartDateTime = form.Pickup.Value,
                 ExpectedReturnDateTime = form.ExpectedReturn.Value,
-                Status = "Pending",
+                Status = ReservationStatuses.Pending,
                 RequestedAt = now,
                 CreatedAt = now,
                 CreatedBy = actor,
@@ -102,7 +103,7 @@ public class EquipmentReservationService : IEquipmentReservationService
             var reservation = _reservationRepository.GetReservationForUpdate(reservationId, borrowerUserId);
             if (reservation == null)
                 return "Reservation not found.";
-            if (reservation.Status != "Pending")
+            if (reservation.Status != ReservationStatuses.Pending)
                 return "Only pending reservations can be edited.";
             if (!reservation.RowVersion.SequenceEqual(version))
                 return "This reservation has changed. Reload it before editing.";
@@ -150,13 +151,13 @@ public class EquipmentReservationService : IEquipmentReservationService
             var reservation = _reservationRepository.GetReservationForUpdate(reservationId, borrowerUserId);
             if (reservation == null)
                 return "Reservation not found.";
-            if (reservation.Status != "Pending")
+            if (reservation.Status != ReservationStatuses.Pending)
                 return "Only pending reservations can be cancelled.";
             if (!reservation.RowVersion.SequenceEqual(version))
                 return "This reservation has changed. Reload it before cancelling.";
 
             var now = PhilippineTimeNow();
-            reservation.Status = "Cancelled";
+            reservation.Status = ReservationStatuses.Cancelled;
             reservation.CancelledAt = now;
             reservation.CancellationReason = string.IsNullOrWhiteSpace(form.Reason) ? null : form.Reason.Trim();
             reservation.UpdatedBy = borrowerUserId.ToString();

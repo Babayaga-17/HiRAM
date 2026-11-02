@@ -1,4 +1,5 @@
-﻿using ASI.Basecode.Data.Interfaces;
+﻿using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Exceptions;
@@ -14,8 +15,6 @@ namespace ASI.Basecode.Services.Services
 {
     public class EquipmentService : IEquipmentService
     {
-        private static readonly string[] BlockingReservationStatuses = { "Pending", "Approved", "Borrowed", "Overdue" };
-        private static readonly string[] BorrowableConditions = { "Excellent", "Good", "Fair" };
 
         private readonly IEquipmentRepository _equipmentRepository;
         private readonly IEquipmentCategoryService _equipmentCategoryService;
@@ -106,7 +105,7 @@ namespace ASI.Basecode.Services.Services
                 var now = DateTime.Now;
                 var hasActiveBooking = _equipmentRepository.GetEquipments().Any(item => item.EquipmentId == equipmentId
                     && item.ReservationItems.Any(reservationItem => !reservationItem.IsReturned
-                        && BlockingReservationStatuses.Contains(reservationItem.Reservation.Status)
+                        && ReservationStatuses.Blocking.Contains(reservationItem.Reservation.Status)
                         && reservationItem.Reservation.ExpectedReturnDateTime > now));
 
                 if (hasActiveBooking)
@@ -200,7 +199,7 @@ namespace ASI.Basecode.Services.Services
                 return result;
             }
 
-            if (!BorrowableConditions.Contains(equipment.ConditionStatus))
+            if (!EquipmentConditions.Borrowable.Contains(equipment.ConditionStatus))
             {
                 result.Reason = "Equipment in " + equipment.ConditionStatus + " condition cannot be borrowed.";
                 return result;
@@ -215,7 +214,7 @@ namespace ASI.Basecode.Services.Services
             result.Periods = GetBusyPeriods(equipmentId, start, end, excludeReservationId);
             result.Slots = GetFreeSlots(result.Periods, start, end);
 
-            if (result.Periods.Any(period => period.Type == "Maintenance"))
+            if (result.Periods.Any(period => period.Type == AvailabilityPeriodTypes.Maintenance))
                 result.Reason = "This equipment is scheduled for maintenance during this period.";
             else if (result.Periods.Count > 0)
                 result.Reason = "This equipment is already reserved during this period.";
@@ -245,7 +244,7 @@ namespace ASI.Basecode.Services.Services
                 .Where(equipment => equipment.IsActive)
                 .SelectMany(equipment => equipment.ReservationItems)
                 .Where(reservationItem => !reservationItem.IsReturned
-                    && BlockingReservationStatuses.Contains(reservationItem.Reservation.Status)
+                    && ReservationStatuses.Blocking.Contains(reservationItem.Reservation.Status)
                     && reservationItem.Reservation.StartDateTime < end
                     && reservationItem.Reservation.ExpectedReturnDateTime > start)
                 .Select(reservationItem => new
@@ -265,7 +264,7 @@ namespace ASI.Basecode.Services.Services
                     EquipmentCode = row.EquipmentCode,
                     EquipmentName = row.EquipmentName,
                     CategoryId = row.CategoryId,
-                    Type = row.Status == "Borrowed" || row.Status == "Overdue" ? "Borrowed" : "Reserved",
+                    Type = row.Status == ReservationStatuses.Borrowed || row.Status == ReservationStatuses.Overdue ? AvailabilityPeriodTypes.Borrowed : AvailabilityPeriodTypes.Reserved,
                     Status = row.Status,
                     Start = row.StartDateTime,
                     End = row.ExpectedReturnDateTime
@@ -275,7 +274,7 @@ namespace ASI.Basecode.Services.Services
             var maintenance = _equipmentRepository.GetEquipments()
                 .Where(equipment => equipment.IsActive)
                 .SelectMany(equipment => equipment.MaintenanceRecords)
-                .Where(record => (record.Status == "Scheduled" || record.Status == "InProgress")
+                .Where(record => (record.Status == MaintenanceStatuses.Scheduled || record.Status == MaintenanceStatuses.InProgress)
                     && record.StartDateTime < end
                     && (record.EndDateTime == null || record.EndDateTime > start))
                 .Select(record => new
@@ -295,7 +294,7 @@ namespace ASI.Basecode.Services.Services
                     EquipmentCode = row.EquipmentCode,
                     EquipmentName = row.EquipmentName,
                     CategoryId = row.CategoryId,
-                    Type = "Maintenance",
+                    Type = AvailabilityPeriodTypes.Maintenance,
                     Status = row.Status,
                     Start = row.StartDateTime,
                     End = row.EndDateTime ?? end
@@ -322,7 +321,7 @@ namespace ASI.Basecode.Services.Services
                 .SelectMany(item => item.ReservationItems)
                 .Where(reservationItem =>
                     !reservationItem.IsReturned
-                    && BlockingReservationStatuses.Contains(
+                    && ReservationStatuses.Blocking.Contains(
                     reservationItem.Reservation.Status)
                     && reservationItem.Reservation.StartDateTime < end
                     && reservationItem.Reservation.ExpectedReturnDateTime > start
@@ -333,7 +332,7 @@ namespace ASI.Basecode.Services.Services
                     Start = reservationItem.Reservation.StartDateTime,
                     End = reservationItem.Reservation.ExpectedReturnDateTime,
                     Type = "Reservation",
-                    Label = reservationItem.Reservation.Status == "Pending" || reservationItem.Reservation.Status == "Approved"
+                    Label = reservationItem.Reservation.Status == ReservationStatuses.Pending || reservationItem.Reservation.Status == ReservationStatuses.Approved
                         ? "Reserved" : "In use"
                 })
                 .ToList();
@@ -341,7 +340,7 @@ namespace ASI.Basecode.Services.Services
             var maintenance = _equipmentRepository.GetEquipments()
                 .Where(item => item.EquipmentId == equipmentId)
                 .SelectMany(item => item.MaintenanceRecords)
-                .Where(record => (record.Status == "Scheduled" || record.Status == "InProgress")
+                .Where(record => (record.Status == MaintenanceStatuses.Scheduled || record.Status == MaintenanceStatuses.InProgress)
                     && record.StartDateTime < end
                     && (record.EndDateTime == null || record.EndDateTime > start))
                 .Select(record => new { record.StartDateTime, record.EndDateTime })
@@ -350,7 +349,7 @@ namespace ASI.Basecode.Services.Services
                 {
                     Start = record.StartDateTime,
                     End = record.EndDateTime ?? end,
-                    Type = "Maintenance",
+                    Type = AvailabilityPeriodTypes.Maintenance,
                     Label = "Under maintenance"
                 })
                 .ToList();
@@ -402,21 +401,21 @@ namespace ASI.Basecode.Services.Services
                 IsActive = equipment.IsActive,
                 NextReservationStart = equipment.ReservationItems
                     .Where(item => !item.IsReturned
-                        && (item.Reservation.Status == "Pending" || item.Reservation.Status == "Approved")
+                        && (item.Reservation.Status == ReservationStatuses.Pending || item.Reservation.Status == ReservationStatuses.Approved)
                         && item.Reservation.StartDateTime > now)
                     .Min(item => (DateTime?)item.Reservation.StartDateTime),
                 Status =
-                    (!equipment.IsActive || equipment.ConditionStatus == "Lost" || equipment.ConditionStatus == "Damaged")
+                    (!equipment.IsActive || equipment.ConditionStatus == EquipmentConditions.Lost || equipment.ConditionStatus == EquipmentConditions.Damaged)
                         ? EquipmentAvailability.Unavailable
                     : equipment.MaintenanceRecords.Any(record =>
-                            (record.Status == "InProgress" || record.Status == "Scheduled")
+                            (record.Status == MaintenanceStatuses.InProgress || record.Status == MaintenanceStatuses.Scheduled)
                             && record.StartDateTime <= now
                             && (record.EndDateTime == null || record.EndDateTime > now))
                         ? EquipmentAvailability.UnderMaintenance
                     : equipment.ReservationItems.Any(item => !item.IsReturned
-                            && (item.Reservation.Status == "Borrowed" || item.Reservation.Status == "Overdue"))
+                            && (item.Reservation.Status == ReservationStatuses.Borrowed || item.Reservation.Status == ReservationStatuses.Overdue))
                         ? EquipmentAvailability.Borrowed
-                    : equipment.ReservationItems.Any(item => (item.Reservation.Status == "Pending" || item.Reservation.Status == "Approved")
+                    : equipment.ReservationItems.Any(item => (item.Reservation.Status == ReservationStatuses.Pending || item.Reservation.Status == ReservationStatuses.Approved)
                             && item.Reservation.StartDateTime <= now
                             && item.Reservation.ExpectedReturnDateTime > now)
                         ? EquipmentAvailability.Reserved

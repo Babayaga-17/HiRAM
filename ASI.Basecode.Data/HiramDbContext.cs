@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ASI.Basecode.Resources.Constants;
+using System;
 using System.Collections.Generic;
 using ASI.Basecode.Data.Models;
 using Microsoft.EntityFrameworkCore;
@@ -59,7 +60,7 @@ public partial class HiramDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasDefaultValue("Active")
+                .HasDefaultValue(AccountStatuses.Active)
                 .HasColumnName("account_status");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(sysdatetime())")
@@ -171,7 +172,7 @@ public partial class HiramDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasDefaultValue("Eligible")
+                .HasDefaultValue(EligibilityStatuses.Eligible)
                 .HasColumnName("eligibility_status");
             entity.Property(e => e.Program)
                 .HasMaxLength(150)
@@ -278,7 +279,7 @@ public partial class HiramDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasDefaultValue("Good")
+                .HasDefaultValue(EquipmentConditions.Good)
                 .HasColumnName("condition_status");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(sysdatetime())")
@@ -411,7 +412,7 @@ public partial class HiramDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasDefaultValue("Scheduled")
+                .HasDefaultValue(MaintenanceStatuses.Scheduled)
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.UpdatedBy)
@@ -530,7 +531,7 @@ public partial class HiramDbContext : DbContext
                 .IsRequired()
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasDefaultValue("Pending")
+                .HasDefaultValue(ReservationStatuses.Pending)
                 .HasColumnName("status");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.UpdatedBy)

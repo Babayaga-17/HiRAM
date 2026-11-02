@@ -1,4 +1,5 @@
-﻿using ASI.Basecode.Data.Interfaces;
+﻿using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using Basecode.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -52,7 +53,7 @@ namespace ASI.Basecode.Data.Repositories
 
         public int CountActiveAccountsByRole(byte roleId, int? excludeUserId = null)
         {
-            var query = GetDbSet<Account>().Where(account => account.RoleId == roleId && account.AccountStatus == "Active");
+            var query = GetDbSet<Account>().Where(account => account.RoleId == roleId && account.AccountStatus == AccountStatuses.Active);
 
             if (excludeUserId.HasValue)
             {

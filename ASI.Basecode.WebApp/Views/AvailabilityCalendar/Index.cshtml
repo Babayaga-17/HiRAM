@@ -8,7 +8,7 @@
     var loadError = TempData["CalendarLoadError"] as string;
     var categoryOptions = ViewBag.Categories as Microsoft.AspNetCore.Mvc.Rendering.SelectList;
     var isBorrower = User.IsInRole("Borrower");
-    var borrowableConditions = new[] { "Excellent", "Good", "Fair" };
+    var borrowableConditions = EquipmentConditions.Borrowable;
 }
 
 @section Styles {

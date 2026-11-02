@@ -43,8 +43,8 @@
                 <input class="bp-input" type="search" name="search" value="@Model.Search" placeholder="Search by name, user code, program or department" />
                 <select class="bp-select" name="status" onchange="this.form.submit()">
                     <option value="" selected="@string.IsNullOrEmpty(Model.Status)">All status</option>
-                    <option value="Eligible" selected="@(Model.Status == "Eligible")">Active (Eligible)</option>
-                    <option value="Suspended" selected="@(Model.Status == "Suspended")">Suspended</option>
+                    <option value="Eligible" selected="@(Model.Status == EligibilityStatuses.Eligible)">Active (Eligible)</option>
+                    <option value="Suspended" selected="@(Model.Status == EligibilityStatuses.Suspended)">Suspended</option>
                 </select>
                 <button class="bp-btn" type="submit">Search</button>
                 @if (filtered)
@@ -67,7 +67,7 @@
                         @foreach (var b in rows)
                         {
                             var initials = string.Concat((b.FullName ?? "?").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpper(p[0])));
-                            var badge = b.EligibilityStatus == "Eligible" ? "active" : b.EligibilityStatus == "Suspended" ? "suspended" : "other";
+                            var badge = b.EligibilityStatus == EligibilityStatuses.Eligible ? "active" : b.EligibilityStatus == EligibilityStatuses.Suspended ? "suspended" : "other";
                             <tr>
                                 <td><div class="bp-user"><div class="bp-avatar">@initials</div><div><div class="bp-name">@b.FullName</div><div class="bp-muted">@b.UserCode</div></div></div></td>
                                 <td>@(b.DepartmentName ?? "—")</td>
@@ -81,7 +81,7 @@
                                 <td>@(string.IsNullOrEmpty(b.ContactNumber) ? "—" : b.ContactNumber)</td>
                                 <td>
                                     <span class="bp-badge @badge">@b.EligibilityStatus</span>
-                                    @if (b.EligibilityStatus == "Suspended")
+                                    @if (b.EligibilityStatus == EligibilityStatuses.Suspended)
                                     {
                                         <div class="bp-muted" title="@b.SuspensionReason">@(b.SuspendedUntil.HasValue ? "until " + b.SuspendedUntil.Value.ToString("MMM dd, yyyy") : "indefinite")</div>
                                     }
@@ -90,7 +90,7 @@
                                 <td>
                                     <div class="bp-actions">
                                         <button type="button" class="bp-icon-btn" data-url="@Url.Action("History", new { id = b.UserId })" onclick="bpHistory(this)">History</button>
-                                        @if (b.EligibilityStatus == "Suspended")
+                                        @if (b.EligibilityStatus == EligibilityStatuses.Suspended)
                                         {
                                             <form method="post" asp-action="SetStatus" class="bp-status-form">
                                                 <input type="hidden" name="id" value="@b.UserId" />

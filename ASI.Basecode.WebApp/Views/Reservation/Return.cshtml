@@ -9,7 +9,7 @@
 
     var previous = ViewData["ReturnInput"] as ReturnReservationRequest;
     var conditions = EquipmentFormViewModel.Conditions
-        .Where(condition => condition != "Lost");
+        .Where(condition => condition != EquipmentConditions.Lost);
 
     var outstanding = Model.Items.Where(item => !item.IsReturned).ToList();
 }

@@ -1,0 +1,112 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@model PrintableBorrowingReport
+@{
+    Layout = null;
+
+    var landscape = Model.Options.Landscape;
+    var pageCount = Model.Pages.Count;
+    var query = Context.Request.QueryString.Value;
+    var backUrl = Url.Action("Index", "Report") + query;
+    var pdfUrl = Url.Action("ExportPdf", "Report") + query;
+
+    string Time(DateTime? value) => value.HasValue ? value.Value.ToString("MMM d, h:mm tt") : "—";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@(Model.FileName).pdf | HiRAM</title>
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/reports.css" asp-append-version="true" />
+    <style>@@page { size: A4 @(landscape ? "landscape" : "portrait"); margin: 0; }</style>
+</head>
+<body class="pv-body">
+    <div class="pv-bar">
+        <a class="button button-secondary" href="@backUrl">&lsaquo; Back to report</a>
+        <strong>@(Model.FileName).pdf</strong>
+        <small>Page 1 of @pageCount · A4 @(landscape ? "landscape" : "portrait")</small>
+        <div class="pv-bar-actions">
+            <button type="button" class="button button-secondary" onclick="window.print()">Print</button>
+            <a class="button button-primary" href="@pdfUrl">Download PDF</a>
+        </div>
+    </div>
+
+    <div class="pv-wrap">
+        @for (var index = 0; index < pageCount; index++)
+        {
+            var rows = Model.Pages[index];
+
+            <section class="pv-sheet @(landscape ? "is-landscape" : "is-portrait")">
+                <header class="pv-head">
+                    <div class="pv-brand">
+                        <span class="pv-logo">H</span>
+                        <div><strong>HiRAM</strong><small>SCHOOL RESOURCE MANAGEMENT</small></div>
+                    </div>
+                    <div class="pv-title">
+                        <strong>@Model.Title</strong>
+                        <small>Generated @Model.GeneratedAt · by @Model.GeneratedBy</small>
+                    </div>
+                </header>
+
+                @if (index == 0 && Model.Options.ShowFilters)
+                {
+                    <div class="pv-filters">
+                        <span><b>Period:</b> @Model.Labels.Period</span>
+                        <span><b>Borrower:</b> @(Model.Labels.Borrower ?? "All")</span>
+                        <span><b>Equipment:</b> @(Model.Labels.Equipment ?? "All")</span>
+                        <span><b>Status:</b> @(Model.Labels.Status ?? "All")</span>
+                        @if (Model.Labels.LateOnly)
+                        {
+                            <span><b>Late returns only:</b> Yes</span>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(Model.Labels.Search))
+                        {
+                            <span><b>Search:</b> @Model.Labels.Search</span>
+                        }
+                    </div>
+                }
+
+                @if (index == 0 && Model.Options.IncludeSummary)
+                {
+                    <div class="pv-summary">
+                        <div class="pv-stat"><strong>@Model.Summary.TotalRecords</strong><small>Reservations</small></div>
+                        <div class="pv-stat"><strong>@Model.Summary.ReturnedCount</strong><small>Completed</small></div>
+                        <div class="pv-stat"><strong>@Model.Summary.LateReturns</strong><small>Late returns</small></div>
+                        <div class="pv-stat"><strong>@Model.Summary.AverageDuration</strong><small>Avg. borrowing duration</small></div>
+                    </div>
+                }
+
+                <table class="pv-table">
+                    <thead>
+                        <tr>
+                            <th>RESERVATION</th><th>BORROWER</th><th>EQUIPMENT</th><th>BORROWED</th>
+                            <th>DUE</th><th>RETURNED</th><th>STATUS</th><th>LATE BY</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in rows)
+                        {
+                            <tr class="@(row.DisplayStatus == ReservationDisplayStatuses.Overdue ? "is-overdue" : "")">
+                                <td><b>@row.ReservationNumber</b></td>
+                                <td>@row.BorrowerName</td>
+                                <td>@row.EquipmentSummary</td>
+                                <td>@Time(row.BorrowedAt)</td>
+                                <td>@row.ExpectedReturnDateTime.ToString("MMM d, h:mm tt")</td>
+                                <td>@Time(row.ReturnedAt)</td>
+                                <td><b class="@(row.DisplayStatus == ReservationDisplayStatuses.Overdue ? "pv-late" : "")">@row.DisplayStatus</b></td>
+                                <td class="@(row.IsLate ? "pv-late" : "")">@(row.LateText ?? "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <footer class="pv-foot">
+                    <span>HiRAM · School Resource Management · Confidential</span>
+                    <span>Page @(index + 1) of @pageCount</span>
+                </footer>
+            </section>
+        }
+    </div>
+</body>
+</html>
