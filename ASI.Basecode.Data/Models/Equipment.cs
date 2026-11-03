@@ -43,6 +43,8 @@ public partial class Equipment
 
     public virtual EquipmentCategory Category { get; set; }
 
+    public virtual ICollection<EquipmentPhoto> EquipmentPhotos { get; set; } = new List<EquipmentPhoto>();
+
     public virtual ICollection<MaintenanceRecord> MaintenanceRecords { get; set; } = new List<MaintenanceRecord>();
 
     public virtual ICollection<ReservationItem> ReservationItems { get; set; } = new List<ReservationItem>();
