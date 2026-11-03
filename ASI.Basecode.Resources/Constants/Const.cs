@@ -35,10 +35,7 @@
         /// </summary>
         public const string Issuer = "asi.basecode";
     }
-}
 
-namespace ASI.Basecode.Resources.Constants
-{
     /// <summary>
     /// Allowed values of dbo.Reservations.status (CK_Reservations_status).
     /// These are the statuses that are actually stored. "All" (a UI filter) is in

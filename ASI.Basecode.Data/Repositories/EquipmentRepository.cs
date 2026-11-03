@@ -3,6 +3,7 @@ using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using Basecode.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ASI.Basecode.Data.Repositories
@@ -83,6 +84,16 @@ namespace ASI.Basecode.Data.Repositories
             }
 
             return query.Any();
+        }
+
+        public List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId)
+        {
+            return GetDbSet<EquipmentPhoto>()
+                .AsNoTracking()
+                .Where(photo => photo.EquipmentId == equipmentId)
+                .OrderBy(photo => photo.SortOrder)
+                .ThenBy(photo => photo.PhotoId)
+                .ToList();
         }
     }
 }

@@ -17,5 +17,6 @@ namespace ASI.Basecode.Data.Interfaces
         bool EquipmentCodeExists(string equipmentCode, int? excludeEquipmentId = null);
         bool SerialNumberExists(string serialNumber, int? excludeEquipmentId = null);
         bool AssetTagExists(string assetTag, int? excludeEquipmentId = null);
+        List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId);
     }
 }

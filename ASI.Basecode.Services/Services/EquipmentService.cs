@@ -25,7 +25,7 @@ namespace ASI.Basecode.Services.Services
             _equipmentCategoryService = equipmentCategoryService;
         }
 
-        public void AddEquipment(EquipmentFormViewModel model, string createdBy)
+        public void AddEquipment(EquipmentFormViewModel model, string createdBy, IReadOnlyList<string> photoPaths = null)
         {
             Normalize(model);
 
@@ -51,6 +51,18 @@ namespace ASI.Basecode.Services.Services
                 IsActive = model.IsActive,
                 CreatedBy = createdBy
             };
+
+            if (photoPaths != null)
+            {
+                for (var i = 0; i < photoPaths.Count; i++)
+                {
+                    equipment.EquipmentPhotos.Add(new EquipmentPhoto
+                    {
+                        StoragePath = photoPaths[i],
+                        SortOrder = i
+                    });
+                }
+            }
 
             _equipmentRepository.AddEquipment(equipment);
         }
@@ -564,6 +576,11 @@ namespace ASI.Basecode.Services.Services
                     item.Status == EquipmentAvailability.UnderMaintenance ||
                     item.Status == EquipmentAvailability.Unavailable)
             };
+        }
+
+        public List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId)
+        {
+            return _equipmentRepository.GetEquipmentPhotos(equipmentId);
         }
     }
 }

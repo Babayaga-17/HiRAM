@@ -1,4 +1,5 @@
-﻿using ASI.Basecode.Services.ServiceModels;
+﻿using ASI.Basecode.Data.Models;
+using ASI.Basecode.Services.ServiceModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace ASI.Basecode.Services.Interfaces
 {
     public interface IEquipmentService
     {
-        void AddEquipment(EquipmentFormViewModel model, string createdBy);
+        void AddEquipment(EquipmentFormViewModel model, string createdBy, IReadOnlyList<string> photoPaths = null);
         void DeleteEquipment(int id, string deletedBy);
         List<EquipmentListItem> GetEquipments();
         EquipmentListItem GetEquipmentById(int id);
@@ -21,5 +22,6 @@ namespace ASI.Basecode.Services.Interfaces
         List<EquipmentCalendarEvent> GetCalendarEvents(DateTime start, DateTime end);
         EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null);
         EquipmentIndexViewModel GetEquipmentPage(EquipmentListRequest request);
+        List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId);
     }
 }

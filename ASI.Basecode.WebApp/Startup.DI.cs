@@ -34,20 +34,19 @@ namespace ASI.Basecode.WebApp
 
             // Services
             this._services.TryAddSingleton<TokenValidationParametersFactory>();
-            //this._services.AddScoped<IUserService, UserService>();
             this._services.AddScoped<IAccountService, AccountService>();
             this._services.AddScoped<IEquipmentCategoryService, EquipmentCategoryService>();
             this._services.AddScoped<IEquipmentService, EquipmentService>();
             this._services.AddScoped<IEquipmentReservationService, EquipmentReservationService>();
             this._services.AddScoped<IEquipmentRepository, EquipmentRepository>();
             this._services.AddScoped<IPasswordResetService, PasswordResetService>();
-
             this._services.AddScoped<IBorrowerProfileService, BorrowerProfileService>();
-
             this._services.AddScoped<IUserAccountService, UserAccountService>();
             this._services.AddScoped<IReservationService, ReservationService>();
-
             this._services.AddScoped<IReportService, ReportService>();
+            this._services.AddHttpClient<IEquipmentPhotoService, EquipmentPhotoService>();
+
+            this._services.Configure<SupabaseStorageOptions>(this.Configuration.GetSection(SupabaseStorageOptions.SectionName));
 
             // Repositories
             this._services.AddScoped<IEquipmentReservationRepository, EquipmentReservationRepository>();
