@@ -17,5 +17,7 @@ namespace ASI.Basecode.Data.Interfaces
         bool EmailExists(string email, int? excludeUserId = null);
         int CountActiveAccountsByRole(byte roleId, int? excludeUserId = null);
         void UpdateAccount(Account account);
+
+        Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc);
     }
 }

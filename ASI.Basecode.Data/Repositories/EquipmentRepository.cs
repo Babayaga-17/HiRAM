@@ -3,6 +3,9 @@ using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using Basecode.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 
 namespace ASI.Basecode.Data.Repositories
@@ -41,6 +44,35 @@ namespace ASI.Basecode.Data.Repositories
         {
             GetDbSet<Equipment>().Update(equipment);
             UnitOfWork.SaveChanges();
+        }
+
+        public List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId)
+        {
+            return GetDbSet<EquipmentPhoto>()
+                .AsNoTracking()
+                .Where(photo => photo.EquipmentId == equipmentId)
+                .OrderBy(photo => photo.SortOrder)
+                .ThenBy(photo => photo.PhotoId)
+                .ToList();
+        }
+
+        public void AddEquipmentPhotos(IEnumerable<EquipmentPhoto> photos) // Equipment Photos Operation
+        {
+            GetDbSet<EquipmentPhoto>().AddRange(photos);
+        }
+
+        public void RemoveEquipmentPhotos(IEnumerable<EquipmentPhoto> photos) // Equipment Photos Operation
+        {
+            GetDbSet<EquipmentPhoto>().RemoveRange(photos);
+        }
+
+        public void ExecuteInTransaction(Action operation)
+        {
+            using var transaction = Context.Database.BeginTransaction(IsolationLevel.Serializable);
+
+            operation();
+
+            transaction.Commit();
         }
 
         public bool EquipmentCodeExists(string equipmentCode, int? excludeEquipmentId = null)

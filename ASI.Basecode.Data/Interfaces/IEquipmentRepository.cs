@@ -14,6 +14,10 @@ namespace ASI.Basecode.Data.Interfaces
         IQueryable<Equipment> GetEquipments();
         Equipment GetEquipmentById(int id);
         void UpdateEquipment(Equipment equipment);
+        List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId);
+        void AddEquipmentPhotos(IEnumerable<EquipmentPhoto> photos);
+        void RemoveEquipmentPhotos(IEnumerable<EquipmentPhoto> photos);
+        void ExecuteInTransaction(Action operation);
         bool EquipmentCodeExists(string equipmentCode, int? excludeEquipmentId = null);
         bool SerialNumberExists(string serialNumber, int? excludeEquipmentId = null);
         bool AssetTagExists(string assetTag, int? excludeEquipmentId = null);

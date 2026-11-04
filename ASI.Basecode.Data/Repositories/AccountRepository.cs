@@ -74,5 +74,13 @@ namespace ASI.Basecode.Data.Repositories
 
             UnitOfWork.SaveChanges();
         }
+
+        public async Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc)
+        {
+            await GetDbSet<Account>()
+                .Where(account => account.AccountId == accountId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(account => account.LastLoginAt, (DateTime?)loginAtUtc));
+        }
     }
 }

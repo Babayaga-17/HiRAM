@@ -1,27 +1,29 @@
 @* Shared navigation shows the features available to the signed-in role. *@
 @{
+    // Navigation visibility
     var isBorrower = User.IsInRole("Borrower");
     var isAdmin = User.IsInRole("Admin");
-    var canManage = User.IsInRole("Custodian") || isAdmin;
+    var canManageResources = User.IsInRole("Custodian") || isAdmin;
 
-    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-
-    var isDashboardPage = currentController == "Dashboard";
-    var isCategoriesPage = currentController == "EquipmentCategory";
-    var isEquipmentPage = currentController == "Equipment";
-    var isBorrowersPage = currentController == "BorrowerProfile";
-    var isReservationsPage = currentController == "Reservation";
-
-    // WBS 5.1 User and Role Management: same access rules the server enforces (Authorization/MenuAccess.cs).
-    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
     var canManageUsers = ASI.Basecode.WebApp.Authorization.MenuAccess.CanAccess(User, "UserAccount");
-    var isUsersPage = currentController == "UserAccount" && currentAction != "RoleAccess";
-    var isRoleAccessPage = currentController == "UserAccount" && currentAction == "RoleAccess";
-    var isMyReservationsPage = currentController == "EquipmentReservation" && (currentAction == "Index" || currentAction == "Details");
-    var isBrowsePage = currentController == "BrowseEquipment" || (currentController == "EquipmentReservation" && !isMyReservationsPage);
-    var isBorrowerProfilesPage = currentController == "BorrowerProfile";
-    var isCalendarPage = currentController == "AvailabilityCalendar";
-    var isReportsPage = currentController == "Report";
+
+    // Current destination
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+
+    bool IsActive(string controller, string action = null)
+    {
+        return currentController == controller
+            && (action == null || currentAction == action);
+    }
+
+    // Exceptions: these destinations share a controller.
+    var isRoleAccessActive = IsActive("UserAccount", "RoleAccess");
+    var isUsersActive = IsActive("UserAccount") && !isRoleAccessActive;
+
+    var isMyReservationsActive = IsActive("EquipmentReservation", "Index") || IsActive("EquipmentReservation", "Details");
+
+    var isBrowseActive = IsActive("BrowseEquipment") || (IsActive("EquipmentReservation") && !isMyReservationsActive);
 }
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Main navigation">
@@ -31,12 +33,12 @@
     </a>
 
     <nav class="sidebar-nav">
-        <span class="nav-caption">WORKSPACE</span>
+        <span class="nav-caption">OVERVIEW</span>
 
-        <a class="@(isDashboardPage ? "nav-link nav-link-active" : "nav-link")"
+        <a class="@(IsActive("Dashboard") ? "nav-link nav-link-active" : "nav-link")"
            asp-controller="Dashboard"
            asp-action="Index"
-           aria-current="@(isDashboardPage ? "page" : null)">
+           aria-current="@(IsActive("Dashboard") ? "page" : null)">
             <svg class="icon"><use href="#i-grid" /></svg>
             Dashboard
         </a>
@@ -45,28 +47,28 @@
         {
             <span class="nav-caption nav-caption-spaced">BORROWING</span>
 
-            <a class="@(isBrowsePage ? "nav-link nav-link-active" : "nav-link")"
+            <a class="@(isBrowseActive ? "nav-link nav-link-active" : "nav-link")"
                asp-controller="BrowseEquipment"
                asp-action="Index"
-               aria-current="@(isBrowsePage ? "page" : null)">
+               aria-current="@(isBrowseActive ? "page" : null)">
                 <svg class="icon"><use href="#i-box" /></svg>
                 Browse Equipment
             </a>
 
-            <a class="@(isMyReservationsPage ? "nav-link nav-link-active" : "nav-link")"
+            <a class="@(isMyReservationsActive ? "nav-link nav-link-active" : "nav-link")"
                asp-controller="EquipmentReservation"
                asp-action="Index"
-               aria-current="@(isMyReservationsPage ? "page" : null)">
+               aria-current="@(isMyReservationsActive ? "page" : null)">
                 <svg class="icon"><use href="#i-calendar" /></svg>
                 My Reservations
             </a>
 
-            <a class="@(isCalendarPage ? "nav-link nav-link-active" : "nav-link")"
+            <a class="@(IsActive("AvailabilityCalendar") ? "nav-link nav-link-active" : "nav-link")"
                asp-controller="AvailabilityCalendar"
                asp-action="Index"
-               aria-current="@(isCalendarPage ? "page" : null)">
+               aria-current="@(IsActive("AvailabilityCalendar") ? "page" : null)">
                 <svg class="icon"><use href="#i-eye" /></svg>
-                Calendar
+                Availability Calendar
             </a>
 
             <span class="nav-link nav-link-disabled" aria-disabled="true">
@@ -74,92 +76,87 @@
             </span>
         }
 
-        @if (canManage)
+        @if (canManageResources)
         {
             <span class="nav-caption nav-caption-spaced">MANAGE</span>
 
-            <a class="@(isEquipmentPage ? "nav-link nav-link-active" : "nav-link")"
-               asp-controller="Equipment"
-               asp-action="Index"
-               aria-current="@(isEquipmentPage ? "page" : null)">
-                <svg class="icon"><use href="#i-box" /></svg>
-                Equipment
-            </a>
-
-            <a class="@(isCategoriesPage ? "nav-link nav-link-active" : "nav-link")"
-               asp-controller="EquipmentCategory"
-               asp-action="Index"
-               aria-current="@(isCategoriesPage ? "page" : null)">
-                <svg class="icon"><use href="#i-layers" /></svg>
-                Categories
-            </a>
-
-            <a class="@(isReservationsPage ? "nav-link nav-link-active" : "nav-link")"
+            <a class="@(IsActive("Reservation") ? "nav-link nav-link-active" : "nav-link")"
                asp-controller="Reservation"
                asp-action="Pending"
-               aria-current="@(isReservationsPage ? "page" : null)">
+               aria-current="@(IsActive("Reservation") ? "page" : null)">
                 <svg class="icon"><use href="#i-calendar" /></svg>
                 Reservations
             </a>
 
+            <a class="@(IsActive("AvailabilityCalendar") ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="AvailabilityCalendar"
+               asp-action="Index"
+               aria-current="@(IsActive("AvailabilityCalendar") ? "page" : null)">
+                <svg class="icon"><use href="#i-eye" /></svg>
+                Availability Calendar
+            </a>
 
             <span class="nav-link nav-link-disabled" aria-disabled="true">
                 Maintenance <span class="nav-soon">Soon</span>
             </span>
 
-            <a class="@(isCalendarPage ? "nav-link nav-link-active" : "nav-link")"
-               asp-controller="AvailabilityCalendar"
+            <a class="@(IsActive("Equipment") ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="Equipment"
                asp-action="Index"
-               aria-current="@(isCalendarPage ? "page" : null)">
-                <svg class="icon"><use href="#i-eye" /></svg>
-                Calendar 
+               aria-current="@(IsActive("Equipment") ? "page" : null)">
+                <svg class="icon"><use href="#i-box" /></svg>
+                Equipment
             </a>
 
-            <span class="nav-caption nav-caption-spaced">INSIGHTS</span>
-
-            <a class="@(isReportsPage ? "nav-link nav-link-active" : "nav-link")"
-               asp-controller="Report"
+            <a class="@(IsActive("EquipmentCategory") ? "nav-link nav-link-active" : "nav-link")"
+               asp-controller="EquipmentCategory"
                asp-action="Index"
-               aria-current="@(isReportsPage ? "page" : null)">
-                <svg class="icon"><use href="#i-chart" /></svg>
-                Reports
+               aria-current="@(IsActive("EquipmentCategory") ? "page" : null)">
+                <svg class="icon"><use href="#i-layers" /></svg>
+                Categories
             </a>
         }
 
         @if (isAdmin)
         {
-            <span class="nav-caption nav-caption-spaced">ADMINISTRATION</span>
+            <span class="nav-caption nav-caption-spaced">PEOPLE & ACCESS</span>
 
             @if (canManageUsers)
             {
-                <a class="@(isUsersPage ? "nav-link nav-link-active" : "nav-link")"
-                   asp-controller="UserAccount"
-                   asp-action="Index"
-                   aria-current="@(isUsersPage ? "page" : null)">
-                    <svg class="icon"><use href="#i-users" /></svg>
-                    Users &amp; Roles
-                </a>
-
-                <a class="@(isBorrowerProfilesPage ? "nav-link nav-link-active" : "nav-link")"
+                <a class="@(IsActive("BorrowerProfile") ? "nav-link nav-link-active" : "nav-link")"
                    asp-controller="BorrowerProfile"
                    asp-action="Index"
-                   aria-current="@(isBorrowerProfilesPage ? "page" : null)">
+                   aria-current="@(IsActive("BorrowerProfile") ? "page" : null)">
                     <svg class="icon"><use href="#i-users" /></svg>
                     Borrowers
                 </a>
 
-                <a class="@(isRoleAccessPage ? "nav-link nav-link-active" : "nav-link")"
+                <a class="@(IsActive("UserAccount") ? "nav-link nav-link-active" : "nav-link")"
+                   asp-controller="UserAccount"
+                   asp-action="Index"
+                   aria-current="@(IsActive("UserAccount") ? "page" : null)">
+                    <svg class="icon"><use href="#i-users" /></svg>
+                    User Accounts
+                </a>
+
+                <a class="@(IsActive("RoleAccess") ? "nav-link nav-link-active" : "nav-link")"
                    asp-controller="UserAccount"
                    asp-action="RoleAccess"
-                   aria-current="@(isRoleAccessPage ? "page" : null)">
+                   aria-current="@(IsActive("RoleAccess") ? "page" : null)">
                     <svg class="icon"><use href="#i-shield" /></svg>
                     Role Access
                 </a>
-            }
 
-            <span class="nav-link nav-link-disabled" aria-disabled="true">
-                Audit Logs <span class="nav-soon">Soon</span>
-            </span>
+                <span class="nav-caption nav-caption-spaced">INSIGHTS</span>
+
+                <a class="@(IsActive("Report") ? "nav-link nav-link-active" : "nav-link")"
+                   asp-controller="Report"
+                   asp-action="Index"
+                   aria-current="@(IsActive("Report") ? "page" : null)">
+                    <svg class="icon"><use href="#i-chart" /></svg>
+                    Reports
+                </a>
+            }
         }
     </nav>
 

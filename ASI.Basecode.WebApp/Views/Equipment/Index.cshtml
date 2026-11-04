@@ -192,9 +192,16 @@ else
                                 <td>
                                     <div class="category-name-cell">
                                         <span class="category-tile">
-                                            <svg class="icon">
-                                                <use href="#i-box" />
-                                            </svg>
+                                            @if (item.ImageUrls.Count > 0)
+                                            {
+                                                <img class="equipment-cover-thumbnail" src="@item.ImageUrls[0]" alt="" />
+                                            }
+                                            else
+                                            {
+                                                <svg class="icon" aria-hidden="true">
+                                                    <use href="#i-box" />
+                                                </svg>
+                                            }
                                         </span>
                                         <span>
                                             <strong>@item.EquipmentName</strong>
@@ -373,6 +380,7 @@ else
 
             <span class="dialog-kicker">EQUIPMENT DETAILS</span>
             <h2 id="detailsTitle"></h2>
+            <img id="detailsCover" class="equipment-details-cover" alt="" hidden />
             <p id="detailsDescription"></p>
 
             <dl class="details-list">

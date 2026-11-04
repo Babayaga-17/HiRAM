@@ -11,5 +11,6 @@ namespace ASI.Basecode.Services.Interfaces
     public interface IAccountService
     {
         LoginResult AuthenticateAccount(string email, string password, ref Account account);
+        Task RecordSuccessfulLoginAsync(int accountId);
     }
 }

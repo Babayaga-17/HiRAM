@@ -10,6 +10,7 @@
       asp-controller="Equipment"
       asp-action="@(isEdit ? "Edit" : "Create")"
       method="post"
+      enctype="multipart/form-data"
       novalidate>
     
     <!--This shows every validation error at the top of the form.-->
@@ -17,6 +18,70 @@
     <div asp-validation-summary="All"></div>
 
     <input asp-for="EquipmentId" type="hidden" />
+
+    <section class="form-group" aria-labelledby="equipmentPhotosHeading">
+        <h2 id="equipmentPhotosHeading">Equipment photos</h2>
+
+        @if (Model.SavedPhotosUnavailable)
+        {
+            <p>Photo previews are unavailable. You can still edit equipment details.</p>
+        }
+        else
+        {
+            <p id="equipmentPhotosHelp">
+                Optional. Up to @EquipmentPhotoPolicy.MaxPhotosPerEquipment photos
+                in total. Choose JPG, PNG, or WebP images up to
+                @EquipmentPhotoPolicy.MaxPhotoSizeMb MB each.
+                The first photo is the cover.
+            </p>
+
+            <div class="equipment-photo-grid">
+                @for (var i = 0; i < Model.SavedPhotos.Count; i++)
+                {
+                    var photo = Model.SavedPhotos[i];
+
+                    <figure class="equipment-photo-tile" data-saved-photo="@photo.PhotoId">
+                        <img src="@photo.Url"
+                             alt="@($"{Model.EquipmentName}, photo {i + 1}")" />
+
+                        <input type="hidden"
+                               name="removedPhotoIds"
+                               value="@photo.PhotoId"
+                               data-removed-photo-id
+                               disabled />
+
+                        <button type="button" data-toggle-saved-photo>
+                            Remove
+                        </button>
+
+                        <figcaption data-saved-photo-cover hidden="@(i != 0)">Cover</figcaption>
+                    </figure>
+                }
+
+                <input id="equipmentPhotos"
+                       name="photos"
+                       type="file"
+                       class="sr-only equipment-photo-input"
+                       accept="image/jpeg,image/png,image/webp"
+                       multiple
+                       data-max-photos="@EquipmentPhotoPolicy.MaxPhotosPerEquipment"
+                       aria-describedby="equipmentPhotosHelp equipmentPhotosError" />
+
+                <label for="equipmentPhotos"
+                       id="equipmentPhotoPicker"
+                       class="equipment-photo-picker">
+                    <svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>
+                    <strong>Add photos</strong>
+                </label>
+            </div>
+
+            <div id="equipmentPhotosError">
+                @Html.ValidationMessage("photos")
+            </div>
+
+            <p id="equipmentPhotoStatus" role="status"></p>
+        }
+    </section>
 
     <div class="form-card-header">
         <span class="form-section-icon">

@@ -1,4 +1,5 @@
-﻿using ASI.Basecode.Services.ServiceModels;
+﻿using ASI.Basecode.Data.Models;
+using ASI.Basecode.Services.ServiceModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,11 +10,11 @@ namespace ASI.Basecode.Services.Interfaces
 {
     public interface IEquipmentService
     {
-        void AddEquipment(EquipmentFormViewModel model, string createdBy);
-        void DeleteEquipment(int id, string deletedBy);
+        void AddEquipment(EquipmentFormViewModel model, string createdBy, IReadOnlyList<string> photoPaths = null);
+        IReadOnlyList<string> DeleteEquipment(int id, string deletedBy);
         List<EquipmentListItem> GetEquipments();
         EquipmentListItem GetEquipmentById(int id);
-        bool EditEquipment(EquipmentFormViewModel model, string updatedBy);
+        (bool Found, IReadOnlyList<string> RemovedPhotoPaths) EditEquipment(EquipmentFormViewModel model, string updatedBy, IReadOnlyList<string> photoPaths = null, IReadOnlyList<int> removedPhotoIds = null);
         bool SetEquipmentStatus(int equipmentId, bool isActive, string updatedBy);
         List<EquipmentListItem> GetBorrowableEquipments();
         EquipmentListItem GetBorrowableEquipmentById(int id);
@@ -21,5 +22,7 @@ namespace ASI.Basecode.Services.Interfaces
         List<EquipmentCalendarEvent> GetCalendarEvents(DateTime start, DateTime end);
         EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null);
         EquipmentIndexViewModel GetEquipmentPage(EquipmentListRequest request);
+        List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId);
+        
     }
 }

@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
@@ -24,6 +25,7 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
     private readonly IEquipmentService _equipmentService;
     private readonly IEquipmentCategoryService _equipmentCategoryService;
     private readonly IEquipmentReservationService _reservationService;
+    private readonly IEquipmentPhotoService _equipmentPhotoService;
 
     public BrowseEquipmentController(
         IHttpContextAccessor httpContextAccessor,
@@ -32,15 +34,17 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         IEquipmentService equipmentService,
         IEquipmentCategoryService equipmentCategoryService,
         IEquipmentReservationService reservationService,
+        IEquipmentPhotoService equipmentPhotoService,
         IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
         _equipmentService = equipmentService;
         _equipmentCategoryService = equipmentCategoryService;
         _reservationService = reservationService;
+        _equipmentPhotoService = equipmentPhotoService;
     }
 
     [HttpGet]
-    public IActionResult Index(int? reservationId)
+    public async Task<IActionResult> Index(int? reservationId)
     {
         if (!CanEditSelection(reservationId))
             return NotFound();
@@ -65,9 +69,30 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
             SaveSelectedIds(selected, reservationId);
             ViewBag.SelectedIds = selected;
 
+            var cancellationToken = HttpContext.RequestAborted;
+
+            foreach (var item in equipments)
+            {
+                if (string.IsNullOrWhiteSpace(item.CoverPhotoStoragePath))
+                    continue;
+
+                try
+                {
+                    var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(
+                        item.CoverPhotoStoragePath, cancellationToken);
+
+                    item.ImageUrls.Add(coverUrl);
+                }
+                catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning(
+                        exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
+                }
+            }
+
             return View(equipments);
         }
-        catch (Exception exception)
+        catch (Exception exception) when (!HttpContext.RequestAborted.IsCancellationRequested)
         {
             _logger.LogError(exception, "Unable to load equipment for browsing.");
             TempData["BrowseLoadError"] = "Unable to load equipment. Please try again.";
@@ -76,7 +101,7 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
     }
 
     [HttpGet]
-    public IActionResult Details(int id, int? reservationId)
+    public async Task<IActionResult> Details(int id, int? reservationId)
     {
         if (!CanEditSelection(reservationId))
             return NotFound();
@@ -84,6 +109,21 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         var equipment = _equipmentService.GetBorrowableEquipmentById(id);
         if (equipment == null)
             return NotFound();
+
+        var cancellationToken = HttpContext.RequestAborted;
+        foreach (var photo in _equipmentService.GetEquipmentPhotos(id))
+        {
+            try
+            {
+                equipment.ImageUrls.Add(await _equipmentPhotoService.CreateReadUrlAsync(
+                    photo.StoragePath, cancellationToken));
+            }
+            catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(
+                    exception, "Unable to load photo {PhotoId} for equipment {EquipmentId}.", photo.PhotoId, id);
+            }
+        }
 
         ViewData["EditingReservationId"] = reservationId;
         ViewBag.IsSelected = GetSelectedIds(reservationId).Contains(id);

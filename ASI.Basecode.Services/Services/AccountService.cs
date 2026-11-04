@@ -43,8 +43,11 @@ namespace ASI.Basecode.Services.Services
             bool passwordMatches = PasswordManager.EncryptPassword(password).Equals(account.PasswordHash);
 
             return passwordMatches ? LoginResult.Success : LoginResult.Failed;
+        }
 
-
+        public Task RecordSuccessfulLoginAsync(int accountId)
+        {
+            return _accountRepository.UpdateLastLoginAtAsync(accountId, DateTime.UtcNow);
         }
     }
 }

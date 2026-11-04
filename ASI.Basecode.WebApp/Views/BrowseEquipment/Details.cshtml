@@ -11,7 +11,7 @@
     var brandModel = string.Join(" ", new[] { Model.Brand, Model.Model }.Where(value => !string.IsNullOrWhiteSpace(value)));
     var photos = Model.ImageUrls ?? new List<string>();
     var placeholder = Url.Content("~/images/equipment-placeholder.jpg");
-    var galleryPhotos = photos.Count > 0 ? photos : Enumerable.Repeat(placeholder, 4).ToList();
+    var galleryPhotos = photos.Count > 0 ? photos : new List<string> { placeholder };
     var note = !Model.IsActive ? "This equipment is inactive and cannot be borrowed right now." : Model.ConditionStatus switch
     {
         EquipmentConditions.Excellent => "In excellent working order.",
