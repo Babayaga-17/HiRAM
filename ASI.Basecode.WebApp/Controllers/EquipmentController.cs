@@ -147,10 +147,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
                 break;
             }
 
-            uploads.Add((
-                photo,
-                $"equipment/{Guid.NewGuid():N}{format.Value.Extension}",
-                format.Value.ContentType));
+            uploads.Add((photo, $"equipment/{Guid.NewGuid():N}{format.Value.Extension}", format.Value.ContentType));
         }
 
         return uploads;
@@ -194,7 +191,8 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpPost]
-    public async Task<IActionResult> Edit(EquipmentFormViewModel equipment, List<IFormFile> photos)
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(EquipmentFormViewModel equipment, List<IFormFile> photos, List<int> removedPhotoIds)
     {
         var attemptedPaths = new List<string>();
         var savingEquipment = false;
@@ -203,8 +201,14 @@ public class EquipmentController : ControllerBase<EquipmentController>
         {
             if (ModelState.IsValid && photos is { Count: > 0 })
             {
-                var savedCount = _equipmentService.GetEquipmentPhotos(equipment.EquipmentId).Count;
-                var availableSlots = Math.Max(0, EquipmentPhotoPolicy.MaxPhotosPerEquipment - savedCount);
+                var availableSlots = EquipmentPhotoPolicy.MaxPhotosPerEquipment;
+
+                if (removedPhotoIds is not { Count: > 0 })
+                {
+                    var savedCount = _equipmentService.GetEquipmentPhotos(equipment.EquipmentId).Count;
+                    availableSlots = Math.Max(0, availableSlots - savedCount);
+                }
+
                 var uploads = PreparePhotoUploads(photos, availableSlots);
 
                 if (ModelState.IsValid)
@@ -224,11 +228,15 @@ public class EquipmentController : ControllerBase<EquipmentController>
             {
                 savingEquipment = true;
 
-                if (!_equipmentService.EditEquipment(equipment, UserId, attemptedPaths))
+                var result = _equipmentService.EditEquipment(equipment, UserId, attemptedPaths, removedPhotoIds);
+
+                if (!result.Found)
                 {
                     await CleanUpPhotosAsync(attemptedPaths);
                     return NotFound();
                 }
+
+                await CleanUpPhotosAsync(result.RemovedPhotoPaths);
 
                 TempData["EquipmentSuccess"] = "The equipment was updated.";
                 return RedirectToAction(nameof(Index));
@@ -371,12 +379,16 @@ public class EquipmentController : ControllerBase<EquipmentController>
                 var url = await _equipmentPhotoService.CreateReadUrlAsync(
                     photo.StoragePath, HttpContext.RequestAborted);
 
-                model.SavedPhotoUrls.Add(url);
+                model.SavedPhotos.Add(new EquipmentPhotoPreview
+                {
+                    PhotoId = photo.PhotoId,
+                    Url = url
+                });
             }
         }
         catch (Exception exception) when (!HttpContext.RequestAborted.IsCancellationRequested)
         {
-            model.SavedPhotoUrls.Clear();
+            model.SavedPhotos.Clear();
             model.SavedPhotosUnavailable = true;
 
             _logger.LogWarning(

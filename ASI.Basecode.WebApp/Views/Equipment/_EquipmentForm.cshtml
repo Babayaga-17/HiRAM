@@ -36,16 +36,25 @@
             </p>
 
             <div class="equipment-photo-grid">
-                @for (var i = 0; i < Model.SavedPhotoUrls.Count; i++)
+                @for (var i = 0; i < Model.SavedPhotos.Count; i++)
                 {
-                    <figure class="equipment-photo-tile" data-saved-photo>
-                        <img src="@Model.SavedPhotoUrls[i]"
+                    var photo = Model.SavedPhotos[i];
+
+                    <figure class="equipment-photo-tile" data-saved-photo="@photo.PhotoId">
+                        <img src="@photo.Url"
                              alt="@($"{Model.EquipmentName}, photo {i + 1}")" />
 
-                        @if (i == 0)
-                        {
-                            <figcaption>Cover</figcaption>
-                        }
+                        <input type="hidden"
+                               name="removedPhotoIds"
+                               value="@photo.PhotoId"
+                               data-removed-photo-id
+                               disabled />
+
+                        <button type="button" data-toggle-saved-photo>
+                            Remove
+                        </button>
+
+                        <figcaption data-saved-photo-cover hidden="@(i != 0)">Cover</figcaption>
                     </figure>
                 }
 

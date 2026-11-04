@@ -16,6 +16,7 @@ namespace ASI.Basecode.Data.Interfaces
         void UpdateEquipment(Equipment equipment);
         List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId);
         void AddEquipmentPhotos(IEnumerable<EquipmentPhoto> photos);
+        void RemoveEquipmentPhotos(IEnumerable<EquipmentPhoto> photos);
         void ExecuteInTransaction(Action operation);
         bool EquipmentCodeExists(string equipmentCode, int? excludeEquipmentId = null);
         bool SerialNumberExists(string serialNumber, int? excludeEquipmentId = null);

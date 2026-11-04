@@ -67,12 +67,12 @@ namespace ASI.Basecode.Services.Services
             _equipmentRepository.AddEquipment(equipment);
         }
 
-        public bool EditEquipment(EquipmentFormViewModel model, string updatedBy, IReadOnlyList<string> photoPaths = null)
+        public (bool Found, IReadOnlyList<string> RemovedPhotoPaths) EditEquipment(EquipmentFormViewModel model, string updatedBy, IReadOnlyList<string> photoPaths = null, IReadOnlyList<int> removedPhotoIds = null)
         {
             var equipment = _equipmentRepository.GetEquipmentById(model.EquipmentId);
 
             if (equipment == null)
-                return false;
+                return (false, Array.Empty<string>());
 
             Normalize(model);
 
@@ -97,13 +97,30 @@ namespace ASI.Basecode.Services.Services
             equipment.UpdatedBy = updatedBy;
             equipment.UpdatedAt = DateTime.Now;
 
-            if (photoPaths is { Count: > 0 })
+            IReadOnlyList<string> removedPhotoPaths = Array.Empty<string>();
+
+            if (photoPaths is { Count: > 0 } || removedPhotoIds is { Count: > 0 })
             {
                 _equipmentRepository.ExecuteInTransaction(() =>
                 {
                     var savedPhotos = _equipmentRepository.GetEquipmentPhotos(equipment.EquipmentId);
+                    var removalIds = new HashSet<int>(removedPhotoIds ?? Array.Empty<int>());
+                    var photosToRemove = savedPhotos
+                        .Where(photo => removalIds.Contains(photo.PhotoId))
+                        .ToList();
 
-                    if (savedPhotos.Count + photoPaths.Count > EquipmentPhotoPolicy.MaxPhotosPerEquipment)
+                    if (photosToRemove.Count != removalIds.Count)
+                    {
+                        throw new EquipmentValidationException(new Dictionary<string, string>
+                        {
+                            ["photos"] = "One or more photos are no longer available for this item. Reload the form and try again."
+                        });
+                    }
+
+                    var pathsToAdd = photoPaths ?? Array.Empty<string>();
+                    var finalCount = savedPhotos.Count - photosToRemove.Count + pathsToAdd.Count;
+
+                    if (finalCount > EquipmentPhotoPolicy.MaxPhotosPerEquipment)
                     {
                         throw new EquipmentValidationException(new Dictionary<string, string>
                         {
@@ -116,8 +133,7 @@ namespace ASI.Basecode.Services.Services
                         : savedPhotos[savedPhotos.Count - 1].SortOrder + 1;
 
                     var newPhotos = new List<EquipmentPhoto>();
-
-                    foreach (var path in photoPaths)
+                    foreach (var path in pathsToAdd)
                     {
                         newPhotos.Add(new EquipmentPhoto
                         {
@@ -127,6 +143,8 @@ namespace ASI.Basecode.Services.Services
                         });
                     }
 
+                    removedPhotoPaths = photosToRemove.Select(photo => photo.StoragePath).ToList();
+                    _equipmentRepository.RemoveEquipmentPhotos(photosToRemove);
                     _equipmentRepository.AddEquipmentPhotos(newPhotos);
                     _equipmentRepository.UpdateEquipment(equipment);
                 });
@@ -136,7 +154,7 @@ namespace ASI.Basecode.Services.Services
                 _equipmentRepository.UpdateEquipment(equipment);
             }
 
-            return true;
+            return (true, removedPhotoPaths);
         }
 
         public bool SetEquipmentStatus(int equipmentId, bool isActive, string updatedBy)

@@ -17,10 +17,49 @@
     const maxPhotos = Number(input.dataset.maxPhotos);
     const photos = [];
 
-    const savedCount = picker.parentElement
-        .querySelectorAll("[data-saved-photo]").length;
+    function countSavedPhotos() {
+        return picker.parentElement
+            .querySelectorAll("[data-saved-photo]:not([data-pending-removal])").length;
+    }
+
+    picker.parentElement.querySelectorAll("[data-toggle-saved-photo]").forEach((button, index) => {
+        const tile = button.closest("[data-saved-photo]");
+        const image = tile.querySelector("img");
+        const photoLabel = `saved photo ${index + 1}`;
+        button.setAttribute("aria-label", `Remove ${photoLabel}`);
+
+        button.addEventListener("click", () => {
+            if (tile.hasAttribute("data-pending-removal")
+                && countSavedPhotos() + photos.length >= maxPhotos) {
+                render("Remove another photo before undoing this removal.");
+                return;
+            }
+
+            const marked = tile.toggleAttribute("data-pending-removal");
+
+            tile.querySelector("[data-removed-photo-id]").disabled = !marked;
+
+            image.style.opacity = marked ? "0.35" : "";
+            button.textContent = marked ? "Undo" : "Remove";
+            button.setAttribute(
+                "aria-label",
+                marked ? `Undo removal of ${photoLabel}` : `Remove ${photoLabel}`
+            );
+
+            render(marked ? "Photo marked for removal." : "Photo removal undone.");
+        });
+    });
 
     function render(message) {
+        const savedCount = countSavedPhotos();
+
+        const firstKeptPhoto = picker.parentElement
+            .querySelector("[data-saved-photo]:not([data-pending-removal])");
+
+        picker.parentElement.querySelectorAll("[data-saved-photo-cover]").forEach(caption => {
+            caption.hidden = caption.parentElement !== firstKeptPhoto;
+        });
+
         picker.parentElement
             .querySelectorAll(".equipment-photo-tile:not([data-saved-photo])")
             .forEach(tile => tile.remove());
@@ -75,7 +114,7 @@
 
     input.addEventListener("change", () => {
         const batch = Array.from(input.files);
-        const remaining = maxPhotos - savedCount - photos.length;
+        const remaining = maxPhotos - countSavedPhotos() - photos.length;
 
         if (batch.length > remaining) {
             const message = remaining === 0

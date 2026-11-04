@@ -56,9 +56,14 @@ namespace ASI.Basecode.Data.Repositories
                 .ToList();
         }
 
-        public void AddEquipmentPhotos(IEnumerable<EquipmentPhoto> photos)
+        public void AddEquipmentPhotos(IEnumerable<EquipmentPhoto> photos) // Equipment Photos Operation
         {
             GetDbSet<EquipmentPhoto>().AddRange(photos);
+        }
+
+        public void RemoveEquipmentPhotos(IEnumerable<EquipmentPhoto> photos) // Equipment Photos Operation
+        {
+            GetDbSet<EquipmentPhoto>().RemoveRange(photos);
         }
 
         public void ExecuteInTransaction(Action operation)
