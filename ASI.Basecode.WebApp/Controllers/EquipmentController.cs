@@ -66,38 +66,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(EquipmentFormViewModel equipment, List<IFormFile> photos)
     {
-        //const long maxPhotoBytes = 5 * 1024 * 1024;
-
-        photos ??= new List<IFormFile>();
-        var uploads = new List<(IFormFile File, string Path, string ContentType)>();
-
-        if (photos.Count > EquipmentPhotoPolicy.MaxPhotosPerEquipment)
-        {
-            ModelState.AddModelError("photos", $"Choose up to {EquipmentPhotoPolicy.MaxPhotosPerEquipment} photos.");
-        }
-        else
-        {
-            foreach (var photo in photos)
-            {
-                if (photo.Length == 0 || photo.Length > EquipmentPhotoPolicy.MaxPhotoBytes)
-                {
-                    ModelState.AddModelError(
-                        "photos", $"Each photo must be nonempty and at most {EquipmentPhotoPolicy.MaxPhotoSizeMb} MB.");
-                    break;
-                }
-
-                var format = GetPhotoFormat(photo);
-
-                if (format == null)
-                {
-                    ModelState.AddModelError(
-                        "photos", "Choose JPG, PNG, or WebP images.");
-                    break;
-                }
-
-                uploads.Add((photo, $"equipment/{Guid.NewGuid():N}{format.Value.Extension}", format.Value.ContentType));
-            }
-        }
+        var uploads = PreparePhotoUploads(photos, EquipmentPhotoPolicy.MaxPhotosPerEquipment);
 
         if (ModelState.IsValid)
         {
@@ -127,7 +96,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
                 foreach (var error in exception.Errors)
                     ModelState.AddModelError(error.Key, error.Value);
             }
-            catch (Exception exception)
+            catch (Exception)
             {
                 if (!savingEquipment)
                     await CleanUpPhotosAsync(attemptedPaths);
@@ -140,6 +109,51 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
         LoadCategories(equipment.CategoryId);
         return View(equipment);
+    }
+
+    private List<(IFormFile File, string Path, string ContentType)> PreparePhotoUploads(List<IFormFile> photos, int availableSlots)
+    {
+        var uploads = new List<(IFormFile File, string Path, string ContentType)>();
+
+        if (photos == null || photos.Count == 0)
+            return uploads;
+
+        if (photos.Count > availableSlots)
+        {
+            var message = availableSlots == 0
+                ? "This equipment already has the maximum number of photos."
+                : $"Choose up to {availableSlots} photos.";
+
+            ModelState.AddModelError(nameof(photos), message);
+            return uploads;
+        }
+
+        foreach (var photo in photos)
+        {
+            if (photo.Length == 0 || photo.Length > EquipmentPhotoPolicy.MaxPhotoBytes)
+            {
+                ModelState.AddModelError(
+                    nameof(photos),
+                    $"Each photo must be nonempty and at most {EquipmentPhotoPolicy.MaxPhotoSizeMb} MB.");
+                break;
+            }
+
+            var format = GetPhotoFormat(photo);
+
+            if (format == null)
+            {
+                ModelState.AddModelError(
+                    nameof(photos), "Choose JPG, PNG, or WebP images.");
+                break;
+            }
+
+            uploads.Add((
+                photo,
+                $"equipment/{Guid.NewGuid():N}{format.Value.Extension}",
+                format.Value.ContentType));
+        }
+
+        return uploads;
     }
 
     private async Task CleanUpPhotosAsync(IEnumerable<string> paths)
@@ -180,14 +194,41 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpPost]
-    public async Task<IActionResult> Edit(EquipmentFormViewModel equipment)
+    public async Task<IActionResult> Edit(EquipmentFormViewModel equipment, List<IFormFile> photos)
     {
+        var attemptedPaths = new List<string>();
+        var savingEquipment = false;
+
         try
         {
+            if (ModelState.IsValid && photos is { Count: > 0 })
+            {
+                var savedCount = _equipmentService.GetEquipmentPhotos(equipment.EquipmentId).Count;
+                var availableSlots = Math.Max(0, EquipmentPhotoPolicy.MaxPhotosPerEquipment - savedCount);
+                var uploads = PreparePhotoUploads(photos, availableSlots);
+
+                if (ModelState.IsValid)
+                {
+                    foreach (var upload in uploads)
+                    {
+                        attemptedPaths.Add(upload.Path);
+
+                        using var stream = upload.File.OpenReadStream();
+                        await _equipmentPhotoService.UploadAsync(
+                            upload.Path, stream, upload.ContentType, HttpContext.RequestAborted);
+                    }
+                }
+            }
+
             if (ModelState.IsValid)
             {
-                if (!_equipmentService.EditEquipment(equipment, UserId))
+                savingEquipment = true;
+
+                if (!_equipmentService.EditEquipment(equipment, UserId, attemptedPaths))
+                {
+                    await CleanUpPhotosAsync(attemptedPaths);
                     return NotFound();
+                }
 
                 TempData["EquipmentSuccess"] = "The equipment was updated.";
                 return RedirectToAction(nameof(Index));
@@ -195,13 +236,18 @@ public class EquipmentController : ControllerBase<EquipmentController>
         }
         catch (EquipmentValidationException exception)
         {
+            await CleanUpPhotosAsync(attemptedPaths);
+
             foreach (var error in exception.Errors)
                 ModelState.AddModelError(error.Key, error.Value);
         }
         catch (Exception exception)
         {
+            if (!savingEquipment)
+                await CleanUpPhotosAsync(attemptedPaths);
+
             _logger.LogError(exception, "Unable to save equipment changes.");
-            ModelState.AddModelError(string.Empty, "Unable to save the changes. " + exception.GetBaseException().Message);
+            ModelState.AddModelError(string.Empty, "Unable to save the changes. Please try again.");
         }
 
         LoadCategories(equipment.CategoryId);
@@ -270,7 +316,8 @@ public class EquipmentController : ControllerBase<EquipmentController>
     {
         try
         {
-            if (_equipmentService.SetEquipmentStatus(id, isActive, UserId))
+            bool setToNewStatus = _equipmentService.SetEquipmentStatus(id, isActive, UserId);
+            if (setToNewStatus)
                 TempData["EquipmentSuccess"] = isActive ? "The equipment was activated." : "The equipment was deactivated.";
             else
                 TempData["EquipmentError"] = "The equipment no longer exists.";
@@ -315,6 +362,30 @@ public class EquipmentController : ControllerBase<EquipmentController>
         });
     }
 
+    private async Task LoadSavedPhotosAsync(EquipmentFormViewModel model)
+    {
+        try
+        {
+            foreach (var photo in _equipmentService.GetEquipmentPhotos(model.EquipmentId))
+            {
+                var url = await _equipmentPhotoService.CreateReadUrlAsync(
+                    photo.StoragePath, HttpContext.RequestAborted);
+
+                model.SavedPhotoUrls.Add(url);
+            }
+        }
+        catch (Exception exception) when (!HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            model.SavedPhotoUrls.Clear();
+            model.SavedPhotosUnavailable = true;
+
+            _logger.LogWarning(
+                exception,
+                "Unable to load photos for equipment {EquipmentId}.",
+                model.EquipmentId);
+        }
+    }
+
     /* 
      * Checks the file signature and returns the extension and MIME type used for the upload. 
      * 
@@ -347,29 +418,5 @@ public class EquipmentController : ControllerBase<EquipmentController>
         }
 
         return null;
-    }
-
-    private async Task LoadSavedPhotosAsync(EquipmentFormViewModel model)
-    {
-        try
-        {
-            foreach (var photo in _equipmentService.GetEquipmentPhotos(model.EquipmentId))
-            {
-                var url = await _equipmentPhotoService.CreateReadUrlAsync(
-                    photo.StoragePath, HttpContext.RequestAborted);
-
-                model.SavedPhotoUrls.Add(url);
-            }
-        }
-        catch (Exception exception) when (!HttpContext.RequestAborted.IsCancellationRequested)
-        {
-            model.SavedPhotoUrls.Clear();
-            model.SavedPhotosUnavailable = true;
-
-            _logger.LogWarning(
-                exception,
-                "Unable to load photos for equipment {EquipmentId}.",
-                model.EquipmentId);
-        }
     }
 }

@@ -13,7 +13,6 @@ public class EquipmentFormViewModel
     public static readonly string[] Conditions = EquipmentConditions.Values;
 
     public List<EquipmentPhotoPreview> SavedPhotos { get; set; } = new();
-    public List<string> SavedPhotoUrls { get; } = new();
     public bool SavedPhotosUnavailable { get; set; }
 
     public int EquipmentId { get; set; }

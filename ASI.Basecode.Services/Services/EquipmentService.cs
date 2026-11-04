@@ -67,7 +67,7 @@ namespace ASI.Basecode.Services.Services
             _equipmentRepository.AddEquipment(equipment);
         }
 
-        public bool EditEquipment(EquipmentFormViewModel model, string updatedBy)
+        public bool EditEquipment(EquipmentFormViewModel model, string updatedBy, IReadOnlyList<string> photoPaths = null)
         {
             var equipment = _equipmentRepository.GetEquipmentById(model.EquipmentId);
 
@@ -97,7 +97,44 @@ namespace ASI.Basecode.Services.Services
             equipment.UpdatedBy = updatedBy;
             equipment.UpdatedAt = DateTime.Now;
 
-            _equipmentRepository.UpdateEquipment(equipment);
+            if (photoPaths is { Count: > 0 })
+            {
+                _equipmentRepository.ExecuteInTransaction(() =>
+                {
+                    var savedPhotos = _equipmentRepository.GetEquipmentPhotos(equipment.EquipmentId);
+
+                    if (savedPhotos.Count + photoPaths.Count > EquipmentPhotoPolicy.MaxPhotosPerEquipment)
+                    {
+                        throw new EquipmentValidationException(new Dictionary<string, string>
+                        {
+                            ["photos"] = $"Each equipment item can have up to {EquipmentPhotoPolicy.MaxPhotosPerEquipment} photos."
+                        });
+                    }
+
+                    var nextSortOrder = savedPhotos.Count == 0
+                        ? 0
+                        : savedPhotos[savedPhotos.Count - 1].SortOrder + 1;
+
+                    var newPhotos = new List<EquipmentPhoto>();
+
+                    foreach (var path in photoPaths)
+                    {
+                        newPhotos.Add(new EquipmentPhoto
+                        {
+                            EquipmentId = equipment.EquipmentId,
+                            StoragePath = path,
+                            SortOrder = nextSortOrder++
+                        });
+                    }
+
+                    _equipmentRepository.AddEquipmentPhotos(newPhotos);
+                    _equipmentRepository.UpdateEquipment(equipment);
+                });
+            }
+            else
+            {
+                _equipmentRepository.UpdateEquipment(equipment);
+            }
 
             return true;
         }

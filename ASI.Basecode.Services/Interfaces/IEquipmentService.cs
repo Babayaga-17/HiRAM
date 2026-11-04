@@ -14,7 +14,7 @@ namespace ASI.Basecode.Services.Interfaces
         void DeleteEquipment(int id, string deletedBy);
         List<EquipmentListItem> GetEquipments();
         EquipmentListItem GetEquipmentById(int id);
-        bool EditEquipment(EquipmentFormViewModel model, string updatedBy);
+        bool EditEquipment(EquipmentFormViewModel model, string updatedBy, IReadOnlyList<string> photoPaths = null);
         bool SetEquipmentStatus(int equipmentId, bool isActive, string updatedBy);
         List<EquipmentListItem> GetBorrowableEquipments();
         EquipmentListItem GetBorrowableEquipmentById(int id);
@@ -23,5 +23,6 @@ namespace ASI.Basecode.Services.Interfaces
         EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null);
         EquipmentIndexViewModel GetEquipmentPage(EquipmentListRequest request);
         List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId);
+        
     }
 }
