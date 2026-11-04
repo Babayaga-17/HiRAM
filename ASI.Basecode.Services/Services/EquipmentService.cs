@@ -192,7 +192,7 @@ namespace ASI.Basecode.Services.Services
             return true;
         }
 
-        public void DeleteEquipment(int id, string deletedBy)
+        public IReadOnlyList<string> DeleteEquipment(int id, string deletedBy)
         {
             var equipment = _equipmentRepository.GetEquipmentById(id);
 
@@ -212,7 +212,17 @@ namespace ASI.Basecode.Services.Services
                 });
             }
 
-            _equipmentRepository.DeleteEquipment(equipment);
+            IReadOnlyList<string> removedPhotoPaths = Array.Empty<string>();
+
+            _equipmentRepository.ExecuteInTransaction(() =>
+            {
+                var photos = _equipmentRepository.GetEquipmentPhotos(id);
+                removedPhotoPaths = photos.Select(photo => photo.StoragePath).ToList();
+                _equipmentRepository.RemoveEquipmentPhotos(photos);
+                _equipmentRepository.DeleteEquipment(equipment);
+            });
+
+            return removedPhotoPaths;
         }
 
         public List<EquipmentListItem> GetEquipments()
@@ -455,6 +465,11 @@ namespace ASI.Basecode.Services.Services
                 EquipmentCode = equipment.EquipmentCode,
                 AssetTag = equipment.AssetTag,
                 EquipmentName = equipment.EquipmentName,
+                CoverPhotoStoragePath = equipment.EquipmentPhotos
+                    .OrderBy(photo => photo.SortOrder)
+                    .ThenBy(photo => photo.PhotoId)
+                    .Select(photo => photo.StoragePath)
+                    .FirstOrDefault(),
                 CategoryId = equipment.CategoryId,
                 CategoryName = equipment.Category != null ? equipment.Category.CategoryName : string.Empty,
                 Brand = equipment.Brand,

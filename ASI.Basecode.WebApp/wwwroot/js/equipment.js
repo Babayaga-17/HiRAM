@@ -4,6 +4,7 @@
     );
 
     const detailsDialog = document.getElementById("detailsDialog");
+    const detailsCover = document.getElementById("detailsCover");
     const deleteDialog = document.getElementById("deleteEquipmentDialog");
 
     const show = value => value && value.trim() ? value : "—";
@@ -12,6 +13,14 @@
         row.querySelector(".view-equipment").addEventListener("click", () => {
             const data = row.dataset;
             document.getElementById("detailsTitle").textContent = data.name;
+            const cover = row.querySelector(".equipment-cover-thumbnail");
+            detailsCover.hidden = !cover;
+            if (cover) {
+                detailsCover.src = cover.src;
+                detailsCover.alt = data.name;
+            } else {
+                detailsCover.removeAttribute("src");
+            }
             document.getElementById("detailsDescription").textContent = data.description || "No description provided.";
             document.getElementById("detailsCode").textContent = data.code;
             document.getElementById("detailsCategory").textContent = show(data.categoryName);

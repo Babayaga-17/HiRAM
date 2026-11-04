@@ -510,6 +510,12 @@
     right: 12px;
 }
 
+.gallery-arrow[hidden],
+.gallery-thumbs[hidden],
+.equipment-photo-count[hidden] {
+    display: none;
+}
+
 .gallery-thumbs {
     display: flex;
     gap: 10px;

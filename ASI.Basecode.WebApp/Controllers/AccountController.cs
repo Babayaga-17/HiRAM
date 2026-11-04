@@ -89,6 +89,8 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 await _signInManager.SignInAsync(account, model.RememberMe);
 
+                await _accountService.RecordSuccessfulLoginAsync(account.AccountId);
+
                 if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
                 {
                     return LocalRedirect(returnUrl);

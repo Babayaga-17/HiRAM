@@ -40,15 +40,35 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpGet]
-    public IActionResult Index(EquipmentListRequest request)
+    public async Task<IActionResult> Index(EquipmentListRequest request)
     {
         try
         {
             LoadCategories(null, true);
             var model = _equipmentService.GetEquipmentPage(request);
+            var cancellationToken = HttpContext.RequestAborted;
+
+            foreach (var item in model.Items)
+            {
+                if (string.IsNullOrWhiteSpace(item.CoverPhotoStoragePath))
+                    continue;
+
+                try
+                {
+                    var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(
+                        item.CoverPhotoStoragePath, cancellationToken);
+                    item.ImageUrls.Add(coverUrl);
+                }
+                catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning(
+                        exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
+                }
+            }
+
             return View(model);
         }
-        catch (Exception)
+        catch (Exception) when (!HttpContext.RequestAborted.IsCancellationRequested)
         {
             TempData["EquipmentLoadError"] = "Unable to load equipment. Please try again.";
             return View(new EquipmentIndexViewModel());
@@ -277,7 +297,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Delete(int id, EquipmentListRequest request)
+    public async Task<IActionResult> Delete(int id, EquipmentListRequest request)
     {
         try
         {
@@ -297,10 +317,8 @@ public class EquipmentController : ControllerBase<EquipmentController>
                 return RedirectToList(request);
             }
 
-            // Delete the equipment through the service.
-            // This method must be implemented in IEquipmentService
-            // and EquipmentService.
-            _equipmentService.DeleteEquipment(id, UserId);
+            var removedPhotoPaths = _equipmentService.DeleteEquipment(id, UserId);
+            await CleanUpPhotosAsync(removedPhotoPaths);
 
             TempData["EquipmentSuccess"] =
                 "The equipment was deleted successfully.";
@@ -309,9 +327,9 @@ public class EquipmentController : ControllerBase<EquipmentController>
         {
             TempData["EquipmentError"] = string.Join(" ", exception.Errors.Values);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            // _logger.LogError(exception, "Unable to delete equipment.");
+            _logger.LogError(exception, "Unable to delete equipment {EquipmentId}.", id);
 
             TempData["EquipmentError"] =
                 "Unable to delete the equipment. Please try again.";

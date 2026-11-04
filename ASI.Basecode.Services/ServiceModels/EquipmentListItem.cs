@@ -34,6 +34,7 @@ namespace ASI.Basecode.Services.ServiceModels
         public bool IsActive { get; set; }
         public EquipmentAvailability Status { get; set; }
         public DateTime? NextReservationStart { get; set; }
+        public string CoverPhotoStoragePath { get; set; }
 
         // Photo URLs for this equipment.
         public List<string> ImageUrls { get; set; } = new List<string>();
