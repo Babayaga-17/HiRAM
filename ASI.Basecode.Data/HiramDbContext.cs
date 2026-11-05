@@ -370,6 +370,7 @@ public partial class HiramDbContext : DbContext
                 .HasColumnName("description");
             entity.Property(e => e.EndDateTime).HasColumnName("end_date_time");
             entity.Property(e => e.EquipmentId).HasColumnName("equipment_id");
+            entity.Property(e => e.ExpectedCompletionDateTime).HasColumnName("expected_completion_date_time");
             entity.Property(e => e.MaintenanceType)
                 .IsRequired()
                 .HasMaxLength(50)

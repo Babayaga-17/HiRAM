@@ -33,6 +33,8 @@ public partial class MaintenanceRecord
 
     public DateTime? UpdatedAt { get; set; }
 
+    public DateTime? ExpectedCompletionDateTime { get; set; }
+
     public virtual User CompletedByUser { get; set; }
 
     public virtual Equipment Equipment { get; set; }

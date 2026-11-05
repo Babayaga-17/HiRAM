@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Data;
+using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Interfaces;
@@ -47,6 +47,10 @@ namespace ASI.Basecode.WebApp
             this._services.AddHttpClient<IEquipmentPhotoService, EquipmentPhotoService>();
 
             this._services.Configure<SupabaseStorageOptions>(this.Configuration.GetSection(SupabaseStorageOptions.SectionName));
+
+            this._services.AddScoped<IMaintenanceService, MaintenanceService>();
+            this._services.AddScoped<IEmailManager, ASI.Basecode.Services.Manager.EmailManager>();
+            this._services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
 
             // Repositories
             this._services.AddScoped<IEquipmentReservationRepository, EquipmentReservationRepository>();

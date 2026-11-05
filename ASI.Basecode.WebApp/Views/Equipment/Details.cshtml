@@ -90,7 +90,7 @@
                     <div class="details-management-actions" aria-label="Equipment actions">
                         <div class="details-action-row">
                             <a class="button button-primary" asp-controller="Equipment" asp-action="Edit" asp-route-id="@Model.EquipmentId">Edit equipment</a>
-                            <a class="button button-secondary" asp-controller="Maintenance" asp-action="Index" asp-route-equipmentId="@Model.EquipmentId">Schedule maintenance</a>
+                            <a class="button button-secondary" asp-controller="Maintenance" asp-action="Create" asp-route-equipmentId="@Model.EquipmentId">Schedule maintenance</a>
                         </div>
                         <div class="details-lifecycle-actions" aria-label="Equipment status and deletion">
                             <div>
@@ -197,8 +197,3 @@
 @section Scripts {
     <script src="~/js/equipment-details.js" asp-append-version="true"></script>
 }
-
-
-
-
-

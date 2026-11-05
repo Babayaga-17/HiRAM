@@ -1,0 +1,73 @@
+.maintenance-page { display: grid; gap: 20px; }
+.maintenance-page .page-heading { margin-bottom: 0; }
+.maintenance-preview { display: grid; gap: 4px; padding: 14px 18px; border-radius: var(--radius-control); background: var(--info-soft); color: var(--info-ink); font-size: 13px; }
+.maintenance-workflow { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; padding: 20px 24px; }
+.maintenance-workflow > div { display: flex; align-items: flex-start; gap: 10px; }
+.maintenance-workflow strong { font-size: 14px; }
+.maintenance-workflow p, .maintenance-section-heading p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.maintenance-dot { width: 9px; height: 9px; margin-top: 6px; border-radius: 50%; flex: none; background: var(--muted); }
+.maintenance-dot.scheduled { background: var(--accent); }
+.maintenance-dot.inprogress { background: var(--primary); }
+.maintenance-dot.completed { background: var(--success); }
+.maintenance-records { padding: 24px; }
+.maintenance-section-heading h2 { margin: 0; font-size: 18px; }
+.maintenance-filters { display: grid; grid-template-columns: minmax(0,1fr) 200px; gap: 16px; margin-top: 22px; }
+.maintenance-filters label, .maintenance-form label, .maintenance-dialog .form-group label { display: grid; gap: 7px; font-size: 13px; font-weight: 600; }
+.maintenance-page input, .maintenance-page select, .maintenance-dialog input, .maintenance-dialog select, .maintenance-dialog textarea { width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid var(--control-line); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); font: inherit; }
+.maintenance-dialog textarea { resize: vertical; }
+.maintenance-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 42px 20px; }
+.maintenance-empty > .icon { width: 30px; height: 30px; color: var(--muted); margin-bottom: 12px; }
+.maintenance-empty h3 { font-size: 17px; margin: 0; }
+.maintenance-empty p { max-width: 390px; margin: 8px 0 20px; color: var(--muted); }
+.maintenance-table-scroll { overflow-x: auto; margin-top: 22px; }
+.maintenance-table { border-collapse: collapse; width: 100%; min-width: 760px; }
+.maintenance-table th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 12px 10px; }
+.maintenance-table td { padding: 16px 10px; border-top: 1px solid var(--line); vertical-align: top; font-size: 13px; }
+.maintenance-table td small { display: block; color: var(--muted); margin-top: 4px; max-width: 250px; }
+.maintenance-table td a { color: var(--link); font-weight: 600; }
+.maintenance-status { display: inline-flex; white-space: nowrap; padding: 4px 9px; border-radius: var(--radius-control); background: var(--raised); color: var(--ink); }
+.maintenance-status.scheduled { background: var(--accent-soft); color: var(--accent-ink); }
+.maintenance-status.inprogress { background: var(--primary-soft); color: var(--link); }
+.maintenance-status.completed { background: var(--success-soft); color: var(--success-ink); }
+.maintenance-muted { color: var(--muted); }
+.maintenance-dialog { width: min(620px,calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 24px; overflow-y: auto; }
+.maintenance-dialog-heading { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 22px; }
+.maintenance-dialog-heading h2 { margin: 0; font-size: 22px; }
+.maintenance-dialog-heading p { color: var(--muted); margin: 6px 0 0; }
+.maintenance-form { display: grid; gap: 18px; }
+.maintenance-form .form-group { display: grid; gap: 7px; margin: 0; }
+.maintenance-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.maintenance-form small, .maintenance-checklist p, .maintenance-duration p { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 5px 0 0; }
+.maintenance-duration { padding: 14px 16px; background: var(--raised); border-radius: var(--radius-control); }
+.maintenance-duration strong, .maintenance-checklist strong { font-size: 13px; }
+.maintenance-feedback { color: var(--muted); font-size: 13px; margin: 0; }
+.maintenance-dialog .dialog-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.maintenance-dialog .button:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 760px) {
+    .maintenance-workflow { grid-template-columns: 1fr; gap: 16px; padding: 18px; }
+    .maintenance-records { padding: 18px; }
+    .maintenance-filters { grid-template-columns: 1fr; gap: 12px; }
+    .maintenance-form-grid { grid-template-columns: 1fr; }
+    .maintenance-dialog { padding: 20px; }
+    .maintenance-empty { padding: 32px 0; }
+    .maintenance-page .page-heading { align-items: stretch; }
+}
+
+.maintenance-create { max-width: 800px; padding: 28px; }
+.maintenance-create input, .maintenance-create select, .maintenance-create textarea {
+    width: 100%; min-height: 42px; padding: 10px 12px;
+    border: 1px solid var(--control-line); border-radius: var(--radius-control);
+    background: var(--surface); color: var(--ink); font: inherit;
+}
+.maintenance-create textarea { resize: vertical; }
+.maintenance-create .dialog-actions { display: flex; justify-content: flex-end; gap: 12px; }
+@media (max-width: 760px) { .maintenance-create { padding: 20px; } }
+
+.maintenance-summary { display: grid; grid-template-columns: 160px minmax(0,1fr); gap: 12px; margin: 24px 0; }
+.maintenance-summary dt { color: var(--muted); }
+.maintenance-summary dd { margin: 0; overflow-wrap: anywhere; }
+.maintenance-pagination { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+@media (max-width: 520px) { .maintenance-summary { grid-template-columns: 1fr; gap: 6px; } .maintenance-summary dd { margin-bottom: 12px; } }
+
+.maintenance-filters { grid-template-columns: minmax(0,1fr) 200px auto; align-items: end; }
+@media (max-width: 760px) { .maintenance-filters { grid-template-columns: 1fr; } }

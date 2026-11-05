@@ -1,0 +1,39 @@
+@using ASI.Basecode.Services.ServiceModels
+@model MaintenancePageViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Schedule maintenance";
+    ViewData["TopbarPage"] = "Schedule maintenance";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/maintenance.css" asp-append-version="true" />
+}
+<div class="page-heading form-page-heading"><div>
+    <a class="back-link" asp-action="Index">‹ Back to maintenance records</a>
+    <h1>Schedule maintenance</h1>
+    <p>Report the work this equipment needs.</p>
+</div></div>
+<section class="content-card maintenance-create" aria-label="Schedule maintenance form">
+    <form asp-action="Create" method="post" class="maintenance-form">
+        <div asp-validation-summary="All" role="alert"></div>
+        @if (Model.EquipmentError != null) { <p class="category-notice category-notice-error" role="alert">@Model.EquipmentError</p> }
+        <div class="form-group"><label for="maintenanceEquipment">Equipment</label><select id="maintenanceEquipment" name="EquipmentId" required><option value="">Select equipment</option>@foreach (var equipment in Model.Equipment) { <option value="@equipment.EquipmentId" selected="@(Model.SelectedEquipmentId == equipment.EquipmentId)">@equipment.EquipmentCode · @equipment.EquipmentName</option> }</select></div>
+        <div class="maintenance-form-grid">
+            <div class="form-group"><label for="maintenanceType">Maintenance type</label><input id="maintenanceType" name="MaintenanceType" value="@Model.Form.MaintenanceType" required maxlength="50" placeholder="e.g. Repair or preventive care" /></div>
+            <div class="form-group"><label for="maintenanceStart">Start date and time</label><input id="maintenanceStart" name="StartDateTime" value="@Model.Form.StartDateTime.ToString("yyyy-MM-ddTHH:mm")" type="datetime-local" required /></div>
+        </div>
+        <div class="form-group"><label for="maintenanceDescription">Work needed</label><textarea id="maintenanceDescription" name="Description" rows="4" required maxlength="500" placeholder="Describe the issue, symptoms, or planned service." aria-describedby="descriptionHelp">@Model.Form.Description</textarea><small id="descriptionHelp">Up to 500 characters.</small></div>
+        <div class="form-group">
+            <label for="maintenanceExpectedCompletion">Expected completion (optional)</label>
+            <input id="maintenanceExpectedCompletion" name="ExpectedCompletionDateTime" value="@Model.Form.ExpectedCompletionDateTime?.ToString("yyyy-MM-ddTHH:mm")" type="datetime-local" aria-describedby="expectedCompletionHelp" />
+            <small id="expectedCompletionHelp">An estimate for planning. An admin must confirm this estimate before starting work and can update it as needed.</small>
+        </div>
+        <div class="maintenance-duration"><strong>Availability requires confirmation</strong><p>Passing the expected completion time does not make equipment available. The actual completion time is recorded when an admin confirms it is operational again.</p></div>
+        <div class="maintenance-checklist"><strong>Before scheduling</strong><p>Future reservations must be reviewed and resolved. Admin email updates will follow a successful schedule.</p></div>
+
+        <div class="dialog-actions"><a class="button button-secondary" asp-action="Index">Cancel</a><button class="button button-primary" type="submit">Schedule maintenance</button></div>
+    </form>
+</section>
+
+
+

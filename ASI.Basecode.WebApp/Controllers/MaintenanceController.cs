@@ -1,59 +1,78 @@
 using System;
-using System.Data;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Security.Claims;
-using ASI.Basecode.Data;
-using ASI.Basecode.Data.Models;
-using ASI.Basecode.Resources.Constants;
+using System.Threading.Tasks;
+using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 namespace ASI.Basecode.WebApp.Controllers;
 [Authorize(Roles = "Custodian,Admin")]
 public class MaintenanceController : Controller
 {
-    private readonly HiramDbContext db;
-    public MaintenanceController(HiramDbContext db) { this.db = db; }
-    public IActionResult Index(int? equipmentId)
+    private readonly IMaintenanceService maintenance;
+    private readonly IEquipmentService equipment;
+    private readonly ILogger<MaintenanceController> logger;
+    public MaintenanceController(IMaintenanceService maintenance, IEquipmentService equipment, ILogger<MaintenanceController> logger)
+    { this.maintenance = maintenance; this.equipment = equipment; this.logger = logger; }
+    [HttpGet]
+    public IActionResult Index(string search, string status, int page = 1, int? equipmentId = null)
     {
-        ViewBag.SelectedEquipmentId = equipmentId;
-        ViewBag.Equipment = db.Equipments.AsNoTracking().Where(e => e.IsActive).OrderBy(e => e.EquipmentName).ToList();
-        return View(db.MaintenanceRecords.AsNoTracking().Include(r => r.Equipment).OrderByDescending(r => r.CreatedAt).ToList());
+        if (equipmentId.HasValue) return RedirectToAction(nameof(Create), new { equipmentId });
+        try { return View(maintenance.GetPage(search, status, page)); }
+        catch (Exception exception) { logger.LogError(exception, "Unable to load maintenance."); TempData["MaintenanceError"] = "Maintenance could not be loaded. Check database setup and try again."; return View(new MaintenancePageViewModel()); }
     }
+    [HttpGet]
+    public IActionResult Create(int? equipmentId) => View(CreateModel(new MaintenanceForm { EquipmentId = equipmentId ?? 0 }));
     [HttpPost, ValidateAntiForgeryToken]
-    public IActionResult Schedule(MaintenanceForm model)
+    public async Task<IActionResult> Create(MaintenanceForm form)
     {
-        using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
-        if (model.StartDateTime == default || (model.EndDateTime.HasValue && model.EndDateTime <= model.StartDateTime))
-            ModelState.AddModelError("", "Enter a valid maintenance period with the end after the start.");
-        var end = model.EndDateTime ?? DateTime.MaxValue;
-        if (!db.Equipments.Any(e => e.EquipmentId == model.EquipmentId && e.IsActive))
-            ModelState.AddModelError("", "Select active equipment.");
-        if (db.MaintenanceRecords.Any(r => r.EquipmentId == model.EquipmentId && (r.Status == MaintenanceStatuses.Scheduled || r.Status == MaintenanceStatuses.InProgress) && r.StartDateTime < end && (r.EndDateTime == null || r.EndDateTime > model.StartDateTime)) ||
-            db.ReservationItems.Any(r => r.EquipmentId == model.EquipmentId && !r.IsReturned && ReservationStatuses.Blocking.Contains(r.Reservation.Status) && r.Reservation.StartDateTime < end && r.Reservation.ExpectedReturnDateTime > model.StartDateTime))
-            ModelState.AddModelError("", "This period overlaps a reservation or existing maintenance.");
-        if (!ModelState.IsValid) { TempData["MaintenanceError"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)); return RedirectToAction(nameof(Index)); }
-        db.MaintenanceRecords.Add(new MaintenanceRecord { EquipmentId = model.EquipmentId, MaintenanceType = model.MaintenanceType.Trim(), Description = model.Description.Trim(), StartDateTime = model.StartDateTime, EndDateTime = model.EndDateTime, Status = MaintenanceStatuses.Scheduled, ReportedByUserId = ActorId(), CreatedBy = User.Identity.Name ?? "Admin", CreatedAt = DateTime.Now });
-        db.SaveChanges(); transaction.Commit();
-        TempData["MaintenanceSuccess"] = "Maintenance scheduled.";
-        return RedirectToAction(nameof(Index));
+        if (ModelState.IsValid)
+        {
+            try
+            {
+                var result = await maintenance.ScheduleAsync(form, ActorId());
+                TempData["MaintenanceSuccess"] = result.EmailSent ? "Maintenance scheduled and email submitted." : "Maintenance scheduled, but email notification failed.";
+                return RedirectToAction(nameof(Details), new { id = result.Id });
+            }
+            catch (ValidationException exception) { ModelState.AddModelError("", exception.Message); }
+            catch (Exception exception) { logger.LogError(exception, "Unable to schedule maintenance."); ModelState.AddModelError("", "Unable to schedule maintenance. Please try again."); }
+        }
+        return View(CreateModel(form));
     }
-    [HttpPost, ValidateAntiForgeryToken]
-    [Authorize(Roles = "Admin")]
-    public IActionResult Proceed(int id, string operation, string remarks)
+    [HttpGet]
+    public IActionResult Details(int id, string search, string status, int page = 1)
     {
-        using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
-        var record = db.MaintenanceRecords.SingleOrDefault(r => r.MaintenanceId == id);
+        ViewData["ListSearch"] = search; ViewData["ListStatus"] = status; ViewData["ListPage"] = page;
+        var record = maintenance.GetDetails(id);
         if (record == null) return NotFound();
-        if ((remarks?.Length ?? 0) > 500) { TempData["MaintenanceError"] = "Remarks must be 500 characters or fewer."; return RedirectToAction(nameof(Index)); }
-        if (operation == "start" && record.Status == MaintenanceStatuses.Scheduled && record.StartDateTime <= DateTime.Now && (record.EndDateTime == null || record.EndDateTime > DateTime.Now)) record.Status = MaintenanceStatuses.InProgress;
-        else if (operation == "complete" && record.Status == MaintenanceStatuses.InProgress) { record.Status = MaintenanceStatuses.Completed; record.EndDateTime = DateTime.Now; record.CompletedByUserId = ActorId(); }
-        else if (operation == "cancel" && record.Status == MaintenanceStatuses.Scheduled) record.Status = MaintenanceStatuses.Cancelled;
-        else { TempData["MaintenanceError"] = "This action is unavailable for the current maintenance status or dates."; return RedirectToAction(nameof(Index)); }
-        record.Remarks = remarks?.Trim(); record.UpdatedBy = User.Identity.Name ?? "Admin"; record.UpdatedAt = DateTime.Now;
-        db.SaveChanges(); transaction.Commit(); TempData["MaintenanceSuccess"] = "Maintenance updated.";
-        return RedirectToAction(nameof(Index));
+        return View(record);
     }
-    private int? ActorId() => int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+    [HttpPost, ValidateAntiForgeryToken, Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Update(MaintenanceUpdateForm form, string search, string status, int page = 1)
+    {
+        if (!ModelState.IsValid)
+        {
+            TempData["MaintenanceError"] = string.Join(" ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return RedirectToAction(nameof(Details), new { id = form.Id, search, status, page });
+        }
+        try
+        {
+            var emailSent = await maintenance.UpdateAsync(form, ActorId(), User.IsInRole("Admin"));
+            TempData["MaintenanceSuccess"] = emailSent ? "Maintenance updated and email submitted." : "Maintenance updated, but email notification failed.";
+        }
+        catch (ValidationException exception) { TempData["MaintenanceError"] = exception.Message; }
+        catch (Exception exception) { logger.LogError(exception, "Unable to update maintenance."); TempData["MaintenanceError"] = "Unable to update maintenance. Please try again."; }
+        return RedirectToAction(nameof(Details), new { id = form.Id, search, status, page });
+    }
+    private int ActorId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+    private MaintenancePageViewModel CreateModel(MaintenanceForm form)
+    {
+        var model = new MaintenancePageViewModel { Form = form, SelectedEquipmentId = form.EquipmentId };
+        try { model.Equipment = equipment.GetEquipments().Where(e => e.IsActive).ToList(); }
+        catch (Exception exception) { logger.LogError(exception, "Unable to load maintenance equipment."); model.EquipmentError = "Equipment could not be loaded. Please try again."; }
+        return model;
+    }
 }
