@@ -40,8 +40,8 @@ public class EquipmentReservationService : IEquipmentReservationService
         {
             var profile = _reservationRepository.GetBorrowerProfile(borrowerUserId);
             if (profile?.EligibilityStatus != EligibilityStatuses.Eligible
-                || profile.User?.Account?.AccountStatus != AccountStatuses.Active
-                || profile.User.Account.Role?.RoleName != "Borrower")
+                || profile.User?.AccountUser?.AccountStatus != AccountStatuses.Active
+                || profile.User.AccountUser.Role?.RoleName != "Borrower")
                 return "Your account needs an eligible borrower profile before you can reserve equipment. Contact the custodian.";
 
             var selectionError = ValidateEquipment(ids, form.Pickup.Value, form.ExpectedReturn.Value);

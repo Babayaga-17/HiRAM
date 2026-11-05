@@ -266,33 +266,45 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult Register()
+        public IActionResult Register([FromServices] ASI.Basecode.Services.Services.IBorrowerProfileService profiles)
         {
             if (User.Identity?.IsAuthenticated == true)
             {
                 return RedirectToAction("Index", "Dashboard");
             }
 
-            return View(new UserViewModel());
+            var model = new BorrowerRegistrationViewModel();
+            LoadRegistrationDepartments(model, profiles);
+            return View(model);
         }
 
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public IActionResult Register(UserViewModel model)
+        public IActionResult Register(BorrowerRegistrationViewModel model, [FromServices] ASI.Basecode.Services.Services.IBorrowerProfileService profiles)
         {
             if (ModelState.IsValid)
             {
-                ModelState.AddModelError(string.Empty, "Contact your school administrator to complete account registration.");
+                ModelState.AddModelError(string.Empty, "Registration saving is not connected yet. No request has been submitted; please contact your school administrator.");
             }
 
             ModelState.SetModelValue(nameof(model.Password), string.Empty, string.Empty);
             ModelState.SetModelValue(nameof(model.ConfirmPassword), string.Empty, string.Empty);
             model.Password = null;
             model.ConfirmPassword = null;
+            LoadRegistrationDepartments(model, profiles);
             return View(model);
         }
 
+        private void LoadRegistrationDepartments(BorrowerRegistrationViewModel model, ASI.Basecode.Services.Services.IBorrowerProfileService profiles)
+        {
+            try { model.Departments = profiles.GetDepartments(); }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "Unable to load registration departments.");
+                model.DepartmentError = "Departments could not be loaded. Please refresh and try again.";
+            }
+        }
         [AllowAnonymous]
         public async Task<IActionResult> SignOutUser()
         {

@@ -27,6 +27,8 @@ public partial class User
 
     public DateTime? UpdatedAt { get; set; }
 
+    public string ProfilePhotoStoragePath { get; set; }
+
     public virtual ICollection<Account> AccountReviewedByUsers { get; set; } = new List<Account>();
 
     public virtual Account AccountUser { get; set; }

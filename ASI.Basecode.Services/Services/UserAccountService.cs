@@ -133,7 +133,7 @@ namespace ASI.Basecode.Services.Services
                 ContactNumber = model.ContactNumber,
                 CreatedBy = createdBy,
                 CreatedAt = now,
-                Account = new Account
+                AccountUser = new Account
                 {
                     RoleId = role.RoleId,
                     Email = model.Email,
@@ -149,7 +149,7 @@ namespace ASI.Basecode.Services.Services
             {
                 _userRepository.AddUser(user); // inserts Users + Accounts together
                 AddAudit(currentUserId, createdBy, ipAddress, UserAccountAuditActions.Created, user.UserId,
-                    $"Created {user.UserCode} ({user.Account.Email}) with role {role.RoleName} and status {user.Account.AccountStatus}.");
+                    $"Created {user.UserCode} ({user.AccountUser.Email}) with role {role.RoleName} and status {user.AccountUser.AccountStatus}.");
             });
 
             return user.UserId;

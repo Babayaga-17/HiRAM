@@ -672,6 +672,9 @@ public partial class HiramDbContext : DbContext
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("middle_name");
+            entity.Property(e => e.ProfilePhotoStoragePath)
+                .HasMaxLength(500)
+                .HasColumnName("profile_photo_storage_path");
             entity.Property(e => e.Suffix)
                 .HasMaxLength(20)
                 .IsUnicode(false)

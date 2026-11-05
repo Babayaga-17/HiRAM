@@ -1,0 +1,18 @@
+@{
+    ViewData["IsAccountPage"] = true;
+    ViewData["UseLegacyAssets"] = false;
+    ViewData["Title"] = "Awaiting approval | HiRAM";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/registration.css" asp-append-version="true" />
+}
+@* Render only after the registration service has successfully saved a pending request. *@
+<main class="auth-shell registration-pending">
+    <section class="form-panel" aria-labelledby="pendingHeading">
+        <h1 id="pendingHeading">Awaiting admin approval</h1>
+        <p>Your registration request has been received. An administrator will review your school details before you can sign in.</p>
+        <div class="registration-review-note"><strong>What happens next?</strong><p>You will receive an email when a decision is made. You do not need to register again while your request is pending.</p></div>
+        <p class="registration-help">If your details need correcting, contact your school administrator.</p>
+        <a class="sign-in-button registration-pending-link" asp-controller="Account" asp-action="Login">Back to sign in</a>
+    </section>
+</main>
