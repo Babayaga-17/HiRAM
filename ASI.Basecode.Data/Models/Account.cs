@@ -31,7 +31,15 @@ public partial class Account
 
     public DateTime? UpdatedAt { get; set; }
 
+    public int? ReviewedByUserId { get; set; }
+
+    public DateTime? ReviewedAt { get; set; }
+
+    public string ReviewRemarks { get; set; }
+
     public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+
+    public virtual User ReviewedByUser { get; set; }
 
     public virtual Role Role { get; set; }
 

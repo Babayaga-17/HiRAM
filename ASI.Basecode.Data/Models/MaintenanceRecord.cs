@@ -17,6 +17,8 @@ public partial class MaintenanceRecord
 
     public DateTime StartDateTime { get; set; }
 
+    public DateTime? ExpectedCompletionDateTime { get; set; }
+
     public DateTime? EndDateTime { get; set; }
 
     public int? ReportedByUserId { get; set; }
@@ -32,8 +34,6 @@ public partial class MaintenanceRecord
     public string UpdatedBy { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
-
-    public DateTime? ExpectedCompletionDateTime { get; set; }
 
     public virtual User CompletedByUser { get; set; }
 
