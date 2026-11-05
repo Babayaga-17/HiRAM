@@ -4,21 +4,21 @@
     display: inline-flex;
     padding: 5px 9px;
     border-radius: 999px;
-    background: #efedff;
-    color: var(--purple-dark);
+    background: var(--raised);
+    color: var(--primary-hover);
     font-size: 11px;
     font-weight: 700
 }
 
 /* Account statuses beyond Active/Inactive (CK_Accounts_status). */
 .status-suspended {
-    color: #b26b00;
-    background: #fff4dc
+    color: var(--pending-ink);
+    background: var(--pending-soft)
 }
 
 .status-disabled {
-    color: #c23b4a;
-    background: #ffedef
+    color: var(--danger-ink);
+    background: var(--danger-soft)
 }
 
 .account-actions-card .button {

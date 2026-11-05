@@ -12,13 +12,13 @@
 
 <header class="app-topbar">
     <div class="topbar-start">
-        <button class="menu-toggle icon-button" id="menuToggle" type="button" aria-label="Open navigation" aria-controls="appSidebar" aria-expanded="false"><svg class="icon"><use href="#i-menu"/></svg></button>
-        <div class="topbar-location"><span>Workspace</span><svg class="icon"><use href="#i-chevron"/></svg><strong>@topbarPage</strong></div>
+        <button class="menu-toggle icon-button" id="menuToggle" type="button" aria-label="Collapse navigation" aria-controls="appSidebar" aria-expanded="true"><svg class="icon"><use href="#i-menu"/></svg></button>
+        <div class="topbar-location"><span>Equipment workspace</span><svg class="icon"><use href="#i-chevron"/></svg><strong>@topbarPage</strong></div>
     </div>
     <div class="topbar-end">
-        <span class="topbar-divider"></span>
+        <partial name="_ThemeToggle" />
         <details class="profile-menu">
-            <summary>
+            <summary aria-label="Account menu for @displayName">
                 <span class="avatar">@initial</span>
                 <span class="profile-copy">
                     <strong>@displayName</strong>

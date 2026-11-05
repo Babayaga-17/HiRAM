@@ -1,6 +1,5 @@
 @{
-    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
-    var isBorrower = currentController == "BorrowerProfile";
+    var isBorrowerProfile = ViewContext.RouteData.Values["controller"]?.ToString() == "BorrowerProfile";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -8,26 +7,24 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@ViewData["Title"] | HiRAM</title>
+    <partial name="_ThemeAssets" />
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
-    @if (isBorrower)
+    <link rel="stylesheet" href="~/css/workspace.css" asp-append-version="true" />
+    @if (isBorrowerProfile)
     {
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
         <link rel="stylesheet" href="~/css/borrower-profile.css" asp-append-version="true" />
     }
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="app-body">
     <partial name="_AppIcons" />
-
     <div class="app-shell">
-        <div class="sidebar-scrim" id="sidebarScrim"></div>
-        
+        <div class="sidebar-scrim" id="sidebarScrim" aria-hidden="true"></div>
         <partial name="_AppSidebar" />
-
         <div class="app-main">
+            <a class="skip-link" href="#mainContent">Skip to main content</a>
             <partial name="_AppTopbar" />
-
-            <main class="app-content" id="mainContent">
+            <main class="app-content" id="mainContent" tabindex="-1">
                 @RenderBody()
             </main>
         </div>

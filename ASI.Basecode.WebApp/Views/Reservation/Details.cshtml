@@ -26,7 +26,6 @@
 <div class="page-heading form-page-heading">
     <div>
         <a class="back-link" asp-controller="Reservation" asp-action="Pending" asp-route-status="@backStatus"><svg class="icon"><use href="#i-chevron" /></svg>Back to @backStatus.ToLowerInvariant() reservations</a>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>RESERVATIONS</div>
         <h1>@Model.ReservationNumber</h1>
         <p>Reservation submitted @Model.RequestedAt.ToString("MMM d, yyyy h:mm tt")</p>
     </div>
@@ -99,16 +98,16 @@
     }
     else
     {
-        <div class="table-scroll">
+        <div class="table-scroll" role="region" aria-label="Requested equipment" tabindex="0">
             <table class="category-table">
                 <thead>
                     <tr>
-                        <th scope="col">EQUIPMENT</th>
-                        <th scope="col">CONDITION</th>
-                        <th scope="col">LOCATION</th>
+                        <th scope="col">Equipment</th>
+                        <th scope="col">Condition</th>
+                        <th scope="col">Location</th>
                         @if (Model.Status is ReservationStatuses.Borrowed or ReservationStatuses.Returned)
                         {
-                            <th scope="col">CONDITION AT RELEASE</th>
+                            <th scope="col">Condition at release</th>
                         }
                     </tr>
                 </thead>
@@ -193,10 +192,10 @@ else if (Model.Status == ReservationStatuses.Approved)
             <label class="rs-label" for="releasedAt">Release date and time</label>
             <input class="rs-input rs-datetime" id="releasedAt" type="datetime-local" name="ReleasedAt" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
 
-            <div class="table-scroll">
+            <div class="table-scroll" role="region" aria-label="Returned equipment" tabindex="0">
                 <table class="category-table rs-release-table">
                     <thead>
-                        <tr><th scope="col">EQUIPMENT</th><th scope="col">CONDITION AT RELEASE *</th><th scope="col">REMARKS</th></tr>
+                        <tr><th scope="col">Equipment</th><th scope="col">CONDITION AT RELEASE *</th><th scope="col">Remarks</th></tr>
                     </thead>
                     <tbody>
                         @for (var i = 0; i < Model.Items.Count; i++)

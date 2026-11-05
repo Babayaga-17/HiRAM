@@ -23,7 +23,6 @@
 
 <div class="page-heading">
     <div>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMINISTRATION</div>
         <h1>Users &amp; roles</h1>
         <p>Manage system access and role assignments for HiRAM users.</p>
     </div>
@@ -47,15 +46,12 @@ else
 {
     <section class="stats-grid" aria-label="User overview">
         <div class="stat-card">
-            <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-users" /></svg></span>
             <span class="stat-copy"><span>Total users</span><strong>@Model.Count</strong><small>Accounts in HiRAM</small></span>
         </div>
         <div class="stat-card">
-            <span class="stat-icon stat-icon-teal"><svg class="icon"><use href="#i-check" /></svg></span>
             <span class="stat-copy"><span>Active accounts</span><strong>@activeCount</strong><small>Can sign in</small></span>
         </div>
         <div class="stat-card">
-            <span class="stat-icon stat-icon-blue"><svg class="icon"><use href="#i-shield" /></svg></span>
             <span class="stat-copy"><span>Roles</span><strong>@roles.Count</strong><small><a asp-controller="UserAccount" asp-action="RoleAccess">View role access</a></small></span>
         </div>
     </section>
@@ -100,9 +96,9 @@ else
                     </select>
                 </label>
             </div>
-            <div class="table-scroll">
+            <div class="table-scroll" role="region" aria-label="User accounts" tabindex="0">
                 <table class="category-table">
-                    <thead><tr><th scope="col">USER</th><th scope="col">EMAIL</th><th scope="col">ROLE</th><th scope="col">LAST ACTIVE</th><th scope="col">STATUS</th><th scope="col" class="actions-column">ACTIONS</th></tr></thead>
+                    <thead><tr><th scope="col">User</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Last active</th><th scope="col">Status</th><th scope="col" class="actions-column">Actions</th></tr></thead>
                     <tbody id="userRows">
                         @foreach (var account in Model)
                         {

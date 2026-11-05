@@ -1,4 +1,4 @@
-﻿@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels
 @model PrintableBorrowingReport
 @{
     Layout = null;
@@ -17,6 +17,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@(Model.FileName).pdf | HiRAM</title>
+    <partial name="_ThemeAssets" />
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/reports.css" asp-append-version="true" />
     <style>@@page { size: A4 @(landscape ? "landscape" : "portrait"); margin: 0; }</style>
@@ -24,9 +25,10 @@
 <body class="pv-body">
     <div class="pv-bar">
         <a class="button button-secondary" href="@backUrl">&lsaquo; Back to report</a>
-        <strong>@(Model.FileName).pdf</strong>
+        <h1>@(Model.FileName).pdf</h1>
         <small>Page 1 of @pageCount · A4 @(landscape ? "landscape" : "portrait")</small>
         <div class="pv-bar-actions">
+            <partial name="_ThemeToggle" />
             <button type="button" class="button button-secondary" onclick="window.print()">Print</button>
             <a class="button button-primary" href="@pdfUrl">Download PDF</a>
         </div>
@@ -80,8 +82,8 @@
                 <table class="pv-table">
                     <thead>
                         <tr>
-                            <th>RESERVATION</th><th>BORROWER</th><th>EQUIPMENT</th><th>BORROWED</th>
-                            <th>DUE</th><th>RETURNED</th><th>STATUS</th><th>LATE BY</th>
+                            <th>Reservation</th><th>Borrower</th><th>Equipment</th><th>Borrowed</th>
+                            <th>Due</th><th>Returned</th><th>Status</th><th>Late by</th>
                         </tr>
                     </thead>
                     <tbody>

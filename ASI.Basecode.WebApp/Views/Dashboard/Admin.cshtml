@@ -1,73 +1,48 @@
 @{
     Layout = "_AppLayout";
-    ViewData["Title"] = "Admin Dashboard";
+    ViewData["Title"] = "Admin dashboard";
     ViewData["TopbarPage"] = "Dashboard";
+
+    var pendingCount = ViewBag.PendingCount as int?;
+    var canManageUsers = ASI.Basecode.WebApp.Authorization.MenuAccess.CanAccess(User, "UserAccount");
 }
 
-<div class="page-heading">
+<header class="page-heading">
     <div>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMIN OVERVIEW</div>
-        <h1>Welcome, @User.Identity?.Name</h1>
-        <p>Monitor school resources, borrower records, and borrowing activity.</p>
+        <h1>Administration dashboard</h1>
+        <p>Oversee equipment, requests, and borrower access.</p>
     </div>
+    <a class="button button-primary heading-action" asp-controller="Reservation" asp-action="Pending">
+        Review requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+    </a>
+</header>
+
+<div class="dashboard-layout">
+    <section class="dashboard-feature" aria-labelledby="pendingHeading">
+        <h2 id="pendingHeading">Pending requests</h2>
+        <p class="dashboard-number">@(pendingCount?.ToString() ?? "—")</p>
+        <p>@(pendingCount.HasValue ? "Reservations awaiting review." : "The pending request count is unavailable.")</p>
+        <a class="button button-secondary" asp-controller="Reservation" asp-action="Returns">View returns</a>
+    </section>
+
+    <partial name="_InventoryLinks" />
 </div>
 
-@* UI placeholders only. Connect system overview data when the related features are implemented. *@
-<section class="admin-stats" aria-label="System overview">
-    <article class="stat-card">
-        <span class="stat-icon stat-icon-blue"><svg class="icon"><use href="#i-box" /></svg></span>
-        <span class="stat-copy"><span>Active equipment</span><strong>&mdash;</strong><small>Equipment in the active inventory</small></span>
-    </article>
-    <article class="stat-card">
-        <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-tools" /></svg></span>
-        <span class="stat-copy"><span>Equipment for repair</span><strong>&mdash;</strong><small>Items requiring attention</small></span>
-    </article>
-    <article class="stat-card">
-        <span class="stat-icon stat-icon-teal"><svg class="icon"><use href="#i-check" /></svg></span>
-        <span class="stat-copy"><span>Active borrowers</span><strong>&mdash;</strong><small>Active student and faculty profiles</small></span>
-    </article>
-    <article class="stat-card">
-        <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-calendar" /></svg></span>
-        <span class="stat-copy"><span>Pending requests</span><strong>@(ViewBag.PendingCount is int pendingCount ? pendingCount.ToString() : "—")</strong><small>Reservations awaiting custodian review</small></span>
-    </article>
-</section>
-
-<section class="content-card admin-list" aria-labelledby="availabilityHeading">
-    <h2 id="availabilityHeading">Equipment availability</h2>
-    <p class="admin-description">An overview of available, reserved, borrowed, and unavailable equipment.</p>
-    <p class="admin-empty">Equipment availability totals will appear here.</p>
-</section>
-
-<div class="admin-lists">
-    <section class="content-card admin-list" aria-labelledby="activityHeading">
-        <h2 id="activityHeading">Recent borrowing activity</h2>
-        <p class="admin-description">Recent reservations, releases, and returns across the school.</p>
-        <p class="admin-empty">Borrower names, equipment details, activity, and dates will appear here.</p>
+@if (canManageUsers)
+{
+    <section class="dashboard-links dashboard-people" aria-labelledby="peopleHeading">
+        <h2 id="peopleHeading">People and activity</h2>
+        <a class="dashboard-link" asp-controller="UserAccount" asp-action="Index">
+            <span><strong>User accounts</strong><small>Manage accounts and role assignments.</small></span>
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+        </a>
+        <a class="dashboard-link" asp-controller="BorrowerProfile" asp-action="Index">
+            <span><strong>Borrower profiles</strong><small>Find student and faculty records.</small></span>
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+        </a>
+        <a class="dashboard-link" asp-controller="Report" asp-action="Index">
+            <span><strong>Borrowing history report</strong><small>Review completed loans and late returns.</small></span>
+            <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+        </a>
     </section>
-    <section class="content-card admin-list" aria-labelledby="overdueHeading">
-        <h2 id="overdueHeading">Borrowers with overdue items</h2>
-        <p class="admin-description">Outstanding equipment that has passed its return deadline.</p>
-        <p class="admin-empty">Borrower details, overdue equipment, and return deadlines will appear here.</p>
-    </section>
-</div>
-
-<section class="content-card dashboard-panel" aria-labelledby="inventoryHeading">
-    <div>
-        <h2 id="inventoryHeading">Equipment and categories</h2>
-        <p>Maintain inventory details, condition, availability, and the categories used to organize school equipment.</p>
-    </div>
-    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <a class="button button-primary" asp-controller="Equipment" asp-action="Index">
-            <svg class="icon"><use href="#i-box" /></svg>
-            Manage equipment
-        </a>
-        <a class="button button-primary" asp-controller="EquipmentCategory" asp-action="Index">
-            <svg class="icon"><use href="#i-layers" /></svg>
-            Manage categories
-        </a>
-        <a class="button button-primary" asp-controller="Reservation" asp-action="Pending">
-            <svg class="icon"><use href="#i-calendar" /></svg>
-            Pending requests
-        </a>
-    </div>
-</section>
+}

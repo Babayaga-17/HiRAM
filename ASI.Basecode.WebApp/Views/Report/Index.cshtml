@@ -38,7 +38,6 @@
 
 <div class="page-heading">
     <div>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>REPORTS AND MONITORING</div>
         <h1>Borrowing history report</h1>
         <p>Review who borrowed what, when it was returned, and which returns were late.</p>
     </div>
@@ -68,19 +67,15 @@
 
     <section class="stats-grid report-stats" aria-label="Report overview">
         <div class="stat-card">
-            <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-layers" /></svg></span>
             <span class="stat-copy"><span>Total records</span><strong>@Model.Summary.TotalRecords</strong><small>All borrowing records</small></span>
         </div>
         <div class="stat-card">
-            <span class="stat-icon stat-icon-teal"><svg class="icon"><use href="#i-check" /></svg></span>
             <span class="stat-copy"><span>Returned</span><strong>@Model.Summary.ReturnedCount</strong><small>Completed borrowings</small></span>
         </div>
         <div class="stat-card">
-            <span class="stat-icon stat-icon-blue"><svg class="icon"><use href="#i-box" /></svg></span>
             <span class="stat-copy"><span>Currently borrowed</span><strong>@Model.Summary.CurrentlyBorrowed</strong><small>Not yet returned</small></span>
         </div>
         <div class="stat-card">
-            <span class="stat-icon stat-icon-red"><svg class="icon"><use href="#i-info" /></svg></span>
             <span class="stat-copy"><span>Late returns</span><strong>@Model.Summary.LateReturns</strong><small>Returned or still out past due</small></span>
         </div>
     </section>
@@ -163,17 +158,17 @@
         }
         else
         {
-            <div class="table-scroll">
+            <div class="table-scroll" role="region" aria-label="Borrowing history report" tabindex="0">
                 <table class="category-table">
                     <thead>
                         <tr>
-                            <th scope="col">RESERVATION</th>
-                            <th scope="col">BORROWER</th>
-                            <th scope="col">EQUIPMENT</th>
-                            <th scope="col">BORROW PERIOD</th>
-                            <th scope="col">RETURNED</th>
-                            <th scope="col">STATUS</th>
-                            <th scope="col" class="actions-column">ACTIONS</th>
+                            <th scope="col">Reservation</th>
+                            <th scope="col">Borrower</th>
+                            <th scope="col">Equipment</th>
+                            <th scope="col">Borrow period</th>
+                            <th scope="col">Returned</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" class="actions-column">Actions</th>
                         </tr>
                     </thead>
                     <tbody>

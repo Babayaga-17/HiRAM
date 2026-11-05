@@ -11,10 +11,6 @@
 
 <div class="page-heading">
     <div>
-        <div class="eyebrow-line">
-            <span class="eyebrow-dot"></span>
-            EQUIPMENT MANAGEMENT
-        </div>
         <h1>Equipment management</h1>
         <p>Maintain inventory details, condition, availability, and storage locations.</p>
     </div>
@@ -51,11 +47,6 @@ else
 {
     <section class="stats-grid" aria-label="Equipment overview">
         <div class="stat-card">
-            <span class="stat-icon stat-icon-purple">
-                <svg class="icon">
-                    <use href="#i-box" />
-                </svg>
-            </span>
             <span class="stat-copy">
                 <span>Total equipment</span>
                 <strong>@Model.TotalEquipment</strong>
@@ -64,11 +55,6 @@ else
         </div>
 
         <div class="stat-card">
-            <span class="stat-icon stat-icon-teal">
-                <svg class="icon">
-                    <use href="#i-check" />
-                </svg>
-            </span>
             <span class="stat-copy">
                 <span>Available now</span>
                 <strong>@Model.AvailableCount</strong>
@@ -77,11 +63,6 @@ else
         </div>
 
         <div class="stat-card">
-            <span class="stat-icon stat-icon-blue">
-                <svg class="icon">
-                    <use href="#i-tools" />
-                </svg>
-            </span>
             <span class="stat-copy">
                 <span>Needs attention</span>
                 <strong>@Model.AttentionCount</strong>
@@ -163,17 +144,17 @@ else
                 </a>
             </form>
 
-            <div class="table-scroll" id="equipmentTable">
+            <div class="table-scroll" role="region" aria-label="Equipment inventory" tabindex="0" id="equipmentTable">
                 <table class="category-table">
                     <thead>
                         <tr>
-                            <th scope="col">EQUIPMENT</th>
-                            <th scope="col">CATEGORY</th>
-                            <th scope="col">BRAND / MODEL</th>
-                            <th scope="col">CONDITION</th>
-                            <th scope="col">STATUS</th>
-                            <th scope="col">LOCATION</th>
-                            <th scope="col" class="actions-column">ACTIONS</th>
+                            <th scope="col">Equipment</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Brand / model</th>
+                            <th scope="col">Condition</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Location</th>
+                            <th scope="col" class="actions-column">Actions</th>
                         </tr>
                     </thead>
 

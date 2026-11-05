@@ -9,10 +9,7 @@
     var categoryOptions = ViewBag.Categories as Microsoft.AspNetCore.Mvc.Rendering.SelectList;
     var selectedIds = ViewBag.SelectedIds as List<int> ?? new List<int>();
 
-    // Shown until real photos are connected.
-    // Change the file name here if your sample image is not a .jpg.
-    var placeholderUrl = Url.Content("~/images/equipment-placeholder.jpg");
-    const int placeholderPhotoCount = 4;
+    var placeholderUrl = Url.Content("~/images/equipment-placeholder.svg");
 
     var reservationId = (int?)ViewData["EditingReservationId"];
 }
@@ -23,7 +20,6 @@
 
 <div class="page-heading">
     <div>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>BORROWING</div>
         <h1>Find the right equipment</h1>
         <p>Search the school inventory, check availability, and select the items you need.</p>
     </div>
@@ -119,7 +115,6 @@ else
             {
                 var photos = item.ImageUrls ?? new List<string>();
                 var coverUrl = photos.Count > 0 ? photos[0] : placeholderUrl;
-                var photoCount = photos.Count > 0 ? photos.Count : placeholderPhotoCount;
                 var brandModel = string.Join(" ", new[] { item.Brand, item.Model }.Where(value => !string.IsNullOrWhiteSpace(value)));
 
                 <article class="equipment-card"
@@ -141,10 +136,13 @@ else
                          data-selectable="@(item.Status != EquipmentAvailability.Unavailable ? "true" : "false")"
                          data-availability-url="@Url.Action("Availability", "BrowseEquipment", new { id = item.EquipmentId, reservationId })">
                     <div class="equipment-photo">
-                        <span class="photo-fallback"><span class="photo-icon"></span>Photo placeholder</span>
+                        <span class="photo-fallback"><span class="photo-icon"></span>No equipment photo</span>
                         <img class="equipment-photo-img" src="@coverUrl" alt="@(photos.Count > 0 ? "Photo of " + item.EquipmentName : "")" loading="lazy" />
                         <span class="status-badge status-@item.StatusClass badge-on-photo"><span></span>@item.StatusLabel</span>
-                        <span class="equipment-photo-count">1 / @photoCount</span>
+                        @if (photos.Count > 1)
+                        {
+                            <span class="equipment-photo-count">@photos.Count photos</span>
+                        }
                     </div>
 
                     <div class="equipment-card-body">

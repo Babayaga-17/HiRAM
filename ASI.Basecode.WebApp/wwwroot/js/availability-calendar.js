@@ -184,14 +184,15 @@
         return "all day";
     }
 
-    const segmentText = (event, day) => event.type === "Maintenance"
-        ? event.code + " · Maintenance"
-        : event.code + " · " + spanText(event, day);
+    function segmentText(event, day) {
+        const label = (typeLabels[event.type] || event.type) + " · " + event.code;
+        return event.type === "Maintenance" ? label : label + " · " + spanText(event, day);
+    }
 
     function chip(event, day, detailed) {
         const button = el("button", "calendar-chip chip-" + event.type.toLowerCase());
         button.type = "button";
-        button.title = event.code + " · " + event.name;
+        button.title = segmentText(event, day) + " · " + event.name;
 
         if (detailed) {
             button.appendChild(el("strong", "", segmentText(event, day)));
@@ -214,6 +215,9 @@
         const start = viewRange()[0];
         const weeks = monthWeeks(cursor);
         const wrap = el("div", "calendar-scroll");
+        wrap.tabIndex = 0;
+        wrap.setAttribute("role", "region");
+        wrap.setAttribute("aria-label", "Calendar grid");
         const grid = el("div", "calendar-month");
 
         ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].forEach(name => grid.appendChild(el("div", "calendar-weekday", name)));
@@ -255,6 +259,9 @@
         const today = startOfDay(new Date());
         const start = viewRange()[0];
         const wrap = el("div", "calendar-scroll");
+        wrap.tabIndex = 0;
+        wrap.setAttribute("role", "region");
+        wrap.setAttribute("aria-label", "Calendar grid");
         const grid = el("div", "calendar-week");
 
         for (let index = 0; index < 7; index++) {
