@@ -1,0 +1,25 @@
+@model System.Collections.Generic.List<ASI.Basecode.Data.Models.MaintenanceRecord>
+@{ Layout = "_AppLayout"; ViewData["Title"] = "Maintenance records"; ViewData["TopbarPage"] = "Maintenance records"; }
+<div class="page-heading"><div><h1>Maintenance records</h1><p>Schedule equipment care and track work through completion.</p></div></div>
+@if (TempData["MaintenanceError"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }
+@if (TempData["MaintenanceSuccess"] is string success) { <div class="alert alert-success" role="status">@success</div> }
+<section class="content-card form-card">
+<h2>Schedule maintenance</h2>
+<form asp-action="Schedule" method="post" class="category-form">
+<div class="form-group"><label for="EquipmentId">Equipment</label><select id="EquipmentId" name="EquipmentId" required><option value="">Select equipment</option>@foreach (ASI.Basecode.Data.Models.Equipment e in ViewBag.Equipment) { <option value="@e.EquipmentId">@e.EquipmentCode · @e.EquipmentName</option> }</select></div>
+<div class="form-group"><label for="MaintenanceType">Maintenance type</label><input id="MaintenanceType" name="MaintenanceType" required maxlength="50" placeholder="Repair, inspection or preventive care" /></div>
+<div class="form-group"><label for="Description">Description</label><textarea id="Description" name="Description" required maxlength="500"></textarea></div>
+<div class="form-group"><label for="StartDateTime">Start</label><input id="StartDateTime" name="StartDateTime" type="datetime-local" required /></div>
+<div class="form-group"><label for="EndDateTime">Expected end (optional)</label><input id="EndDateTime" name="EndDateTime" type="datetime-local" /><small>Without an end, equipment stays blocked until maintenance is completed or cancelled.</small></div>
+<button class="btn btn-primary" type="submit">Schedule maintenance</button>
+</form></section>
+<section class="content-card" style="margin-top:24px"><h2>Maintenance history</h2>
+@if (Model.Count == 0) { <p>No maintenance scheduled. Choose equipment above to schedule its first service.</p> }
+else { <div style="overflow-x:auto"><table class="table"><thead><tr><th>Equipment</th><th>Work</th><th>Period</th><th>Status</th><th>Action</th></tr></thead><tbody>
+@foreach (var r in Model) { <tr><td>@r.Equipment.EquipmentCode<br />@r.Equipment.EquipmentName</td><td>@r.MaintenanceType<br />@r.Description<br />@r.Remarks</td><td>@r.StartDateTime.ToString("MMM d, yyyy HH:mm")<br />@(r.EndDateTime?.ToString("MMM d, yyyy HH:mm") ?? "Open ended")</td><td>@(r.Status == "InProgress" ? "In progress" : r.Status)</td><td>
+@if (r.Status == "Scheduled" || r.Status == "InProgress") { <form asp-action="Proceed" method="post"><input type="hidden" name="id" value="@r.MaintenanceId" /><label for="remarks-@r.MaintenanceId">Remarks</label><input id="remarks-@r.MaintenanceId" name="remarks" maxlength="500" value="@r.Remarks" />
+@if (r.Status == "Scheduled") { <button class="btn btn-primary" name="operation" value="start">Proceed with maintenance</button><button class="btn btn-secondary" name="operation" value="cancel">Cancel</button> }
+else { <button class="btn btn-primary" name="operation" value="complete">Complete maintenance</button> }</form> }
+</td></tr> }
+</tbody></table></div> }
+</section>

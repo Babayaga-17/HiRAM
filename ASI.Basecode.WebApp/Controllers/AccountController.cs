@@ -1,6 +1,6 @@
-﻿using ASI.Basecode.Data.Models;
-using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
+using ASI.Basecode.Data.Models;
+using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.WebApp.Authentication;
 using ASI.Basecode.WebApp.Models;
@@ -12,7 +12,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using static ASI.Basecode.Resources.Constants.Enums;
@@ -269,16 +268,29 @@ namespace ASI.Basecode.WebApp.Controllers
         [AllowAnonymous]
         public IActionResult Register()
         {
-            return View();
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            return View(new UserViewModel());
         }
 
         [HttpPost]
         [AllowAnonymous]
+        [ValidateAntiForgeryToken]
         public IActionResult Register(UserViewModel model)
         {
-            Debug.WriteLine(PasswordManager.EncryptPassword(model.Password));
+            if (ModelState.IsValid)
+            {
+                ModelState.AddModelError(string.Empty, "Contact your school administrator to complete account registration.");
+            }
 
-            return View();
+            ModelState.SetModelValue(nameof(model.Password), string.Empty, string.Empty);
+            ModelState.SetModelValue(nameof(model.ConfirmPassword), string.Empty, string.Empty);
+            model.Password = null;
+            model.ConfirmPassword = null;
+            return View(model);
         }
 
         [AllowAnonymous]

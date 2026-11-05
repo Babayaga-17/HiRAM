@@ -35,8 +35,6 @@
     </a>
 
     <nav class="sidebar-nav">
-        <span class="nav-caption">Overview</span>
-
         <a class="@(IsActive("Dashboard") ? "nav-link nav-link-active" : "nav-link")" title="Dashboard"
            asp-controller="Dashboard"
            asp-action="Index"
@@ -109,6 +107,14 @@
                 <svg class="icon" aria-hidden="true"><use href="#i-layers" /></svg>
                 <span>Categories</span>
             </a>
+
+            <a class="@(IsActive("Maintenance") ? "nav-link nav-link-active" : "nav-link")" title="Maintenance"
+               asp-controller="Maintenance"
+               asp-action="Index"
+               aria-current="@(IsActive("Maintenance") ? "page" : null)">
+                <svg class="icon" aria-hidden="true"><use href="#i-layers" /></svg>
+                <span>Maintenance Records</span>
+            </a>
         }
 
         @if (isAdmin)
@@ -154,3 +160,4 @@
         }
     </nav>
 </aside>
+

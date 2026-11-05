@@ -214,3 +214,9 @@ a { color: var(--link); text-underline-offset: 3px; }
     .auth-intro { grid-row: 2; padding-inline: 4px; }
     .lending-steps { display: none; }
 }
+
+.auth-switch { margin: 20px 0 0; color: var(--muted); text-align: center; }
+.auth-switch a { font-weight: 650; }
+.registration-shell { margin-top: 32px; }
+.registration-notice { margin: 0 0 18px; padding: 12px; background: var(--info-soft); color: var(--info-ink); border-radius: var(--radius-control); font-size: 13px; }
+.registration-shell .password-field input { padding-inline-start: 12px; }
