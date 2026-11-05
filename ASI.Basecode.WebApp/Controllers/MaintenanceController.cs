@@ -10,13 +10,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 namespace ASI.Basecode.WebApp.Controllers;
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Custodian,Admin")]
 public class MaintenanceController : Controller
 {
     private readonly HiramDbContext db;
     public MaintenanceController(HiramDbContext db) { this.db = db; }
-    public IActionResult Index()
+    public IActionResult Index(int? equipmentId)
     {
+        ViewBag.SelectedEquipmentId = equipmentId;
         ViewBag.Equipment = db.Equipments.AsNoTracking().Where(e => e.IsActive).OrderBy(e => e.EquipmentName).ToList();
         return View(db.MaintenanceRecords.AsNoTracking().Include(r => r.Equipment).OrderByDescending(r => r.CreatedAt).ToList());
     }
@@ -39,6 +40,7 @@ public class MaintenanceController : Controller
         return RedirectToAction(nameof(Index));
     }
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = "Admin")]
     public IActionResult Proceed(int id, string operation, string remarks)
     {
         using var transaction = db.Database.BeginTransaction(IsolationLevel.Serializable);
