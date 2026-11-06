@@ -19,6 +19,8 @@ public partial class User
 
     public string ContactNumber { get; set; }
 
+    public string ProfilePhotoStoragePath { get; set; }
+
     public string CreatedBy { get; set; }
 
     public DateTime CreatedAt { get; set; }
@@ -26,8 +28,6 @@ public partial class User
     public string UpdatedBy { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
-
-    public string ProfilePhotoStoragePath { get; set; }
 
     public virtual Account Account { get; set; }
 
@@ -38,6 +38,10 @@ public partial class User
     public virtual ICollection<MaintenanceRecord> MaintenanceRecordCompletedByUsers { get; set; } = new List<MaintenanceRecord>();
 
     public virtual ICollection<MaintenanceRecord> MaintenanceRecordReportedByUsers { get; set; } = new List<MaintenanceRecord>();
+
+    public virtual ICollection<Notification> NotificationRecipientUsers { get; set; } = new List<Notification>();
+
+    public virtual ICollection<Notification> NotificationRelatedUsers { get; set; } = new List<Notification>();
 
     public virtual ICollection<Reservation> ReservationApprovedByUsers { get; set; } = new List<Reservation>();
 
