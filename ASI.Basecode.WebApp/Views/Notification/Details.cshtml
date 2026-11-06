@@ -1,0 +1,21 @@
+@model NotificationDetailsViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Notification";
+}
+<div class="page-heading"><div><a class="back-link" asp-action="Index"><svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg>Back to notifications</a><h1>Notification</h1><p>Your full account or reservation update.</p></div></div>
+@if (!Model.IsAvailable)
+{
+    <div class="category-notice category-notice-error" role="alert">This notification isn’t available.</div>
+}
+else
+{
+    <article class="content-card notification-message" aria-labelledby="messageTitle">
+        <header><div class="notification-message-meta"><span>@Model.Category</span><time datetime="@Model.CreatedAt.ToString("s")">@Model.CreatedAt.ToString("MMM d, yyyy · h:mm tt")</time><span class="notification-read-state @(Model.ReadAt.HasValue ? "is-read" : "")">@(Model.ReadAt.HasValue ? "Read" : "Unread")</span></div><h2 id="messageTitle">@Model.Title</h2></header>
+        <div class="notification-message-body">@Model.Body</div>
+        @if (!string.IsNullOrWhiteSpace(Model.RelatedUrl) && Url.IsLocalUrl(Model.RelatedUrl))
+        {
+            <footer><a class="button button-primary" href="@Model.RelatedUrl">@Model.RelatedLabel <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></footer>
+        }
+    </article>
+}

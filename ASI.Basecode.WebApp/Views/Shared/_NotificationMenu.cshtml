@@ -1,0 +1,39 @@
+@model NotificationMenuViewModel
+<details class="notification-menu" name="topbar-menu">
+    <summary class="notification-toggle" aria-label="@(Model.UnreadCount > 0 && Model.IsAvailable ? $"Notifications, {Model.UnreadCount} unread" : "Notifications")">
+        <svg class="icon" aria-hidden="true"><use href="#i-bell" /></svg>
+        @if (Model.IsAvailable && Model.UnreadCount > 0)
+        {
+            <span class="notification-count" aria-hidden="true">@(Model.UnreadCount > 99 ? "99+" : Model.UnreadCount.ToString())</span>
+        }
+    </summary>
+    <div class="notification-dropdown">
+        <div class="notification-menu-heading"><h2>Notifications</h2>@if (Model.IsAvailable) { <span>@Model.UnreadCount unread</span> }</div>
+        @if (!Model.IsAvailable)
+        {
+            <div class="notification-menu-empty" role="status"><strong>Notifications unavailable</strong><p>Please try again later.</p></div>
+        }
+        else if (Model.Items.Count == 0)
+        {
+            <div class="notification-menu-empty"><strong>You’re all caught up</strong><p>Account and reservation updates will appear here.</p></div>
+        }
+        else
+        {
+            <ul class="notification-recent">
+                @foreach (var item in Model.Items)
+                {
+                    <li class="@(item.IsRead ? "" : "is-unread")">
+                        <a asp-controller="Notification" asp-action="Details" asp-route-id="@item.Id">
+                            <span class="notification-dot" aria-label="@(item.IsRead ? "Read" : "Unread")"></span>
+                            <span class="notification-recent-copy"><strong>@item.Title</strong><span>@item.Preview</span><time datetime="@item.CreatedAt.ToString("s")">@item.CreatedAt.ToString("MMM d, h:mm tt")</time></span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+        @if (Model.IsAvailable)
+        {
+            <a class="notification-view-all" asp-controller="Notification" asp-action="Index">View all notifications <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+        }
+    </div>
+</details>

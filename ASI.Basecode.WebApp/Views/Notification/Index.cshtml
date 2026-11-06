@@ -1,0 +1,61 @@
+@model NotificationListViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Notifications";
+    var first = Model.TotalCount == 0 ? 0 : (Model.Page - 1) * Model.PageSize + 1;
+    var last = first == 0 ? 0 : first + Model.Items.Count - 1;
+}
+<div class="page-heading">
+    <div><h1>Notifications</h1><p>Account and reservation updates, all in one place.</p></div>
+    @if (Model.IsAvailable) { <span class="notification-unread-total">@Model.UnreadCount unread</span> }
+</div>
+@if (!Model.IsAvailable)
+{
+    <div class="category-notice category-notice-error" role="alert">Notifications aren’t available right now. Please try again later.</div>
+}
+else
+{
+    <section class="content-card notification-list" aria-labelledby="notificationListHeading">
+        <div class="card-heading"><div><h2 id="notificationListHeading">Your notifications</h2><p>Open a notification to read its full message.</p></div><span class="count-pill">@Model.TotalCount</span></div>
+        <form method="get" asp-controller="Notification" asp-action="Index" class="list-toolbar notification-filters">
+            <label class="search-field"><svg class="icon" aria-hidden="true"><use href="#i-search" /></svg><span class="sr-only">Search notifications</span><input type="search" name="search" value="@Model.Search" placeholder="Search notifications…" /></label>
+            <label class="filter-field"><span>Status</span><select name="status"><option value="all" selected="@(Model.Status == "all")">All notifications</option><option value="unread" selected="@(Model.Status == "unread")">Unread</option><option value="read" selected="@(Model.Status == "read")">Read</option></select></label>
+            <button type="submit" class="button button-secondary">Apply filters</button>
+            @if (!string.IsNullOrWhiteSpace(Model.Search) || Model.Status != "all") { <a class="text-button" asp-action="Index">Clear</a> }
+        </form>
+        @if (Model.Items.Count == 0)
+        {
+            <div class="notification-empty"><svg class="icon" aria-hidden="true"><use href="#i-bell" /></svg><h3>@(Model.TotalCount == 0 && string.IsNullOrWhiteSpace(Model.Search) && Model.Status == "all" ? "No notifications yet" : "No matching notifications")</h3><p>Account and reservation updates will appear here. Try adjusting your filters if you expected a message.</p></div>
+        }
+        else
+        {
+            <div class="table-scroll" role="region" aria-label="Notifications" tabindex="0">
+                <table class="category-table notification-table">
+                    <thead><tr><th scope="col">Notification</th><th scope="col">Category</th><th scope="col">Received</th><th scope="col">Status</th><th scope="col" class="actions-column">Action</th></tr></thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr class="@(item.IsRead ? "" : "is-unread")">
+                                <td><div class="notification-subject"><span class="notification-dot" aria-hidden="true"></span><div><a asp-action="Details" asp-route-id="@item.Id">@item.Title</a><p>@item.Preview</p></div></div></td>
+                                <td>@item.Category</td>
+                                <td><time datetime="@item.CreatedAt.ToString("s")">@item.CreatedAt.ToString("MMM d, yyyy")<span class="notification-time">@item.CreatedAt.ToString("h:mm tt")</span></time></td>
+                                <td><span class="notification-read-state @(item.IsRead ? "is-read" : "")">@(item.IsRead ? "Read" : "Unread")</span></td>
+                                <td class="actions-column"><a class="icon-button" asp-action="Details" asp-route-id="@item.Id" aria-label="Read @item.Title" title="Read message"><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        <div class="table-footer"><span>Showing @first–@last of @Model.TotalCount notifications</span>
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="notification-pagination" aria-label="Notification pages">
+                    @if (Model.Page > 1) { <a class="button button-secondary" asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-page="@(Model.Page - 1)">Previous</a> }
+                    <span>Page @Model.Page of @Model.TotalPages</span>
+                    @if (Model.Page < Model.TotalPages) { <a class="button button-secondary" asp-action="Index" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-page="@(Model.Page + 1)">Next</a> }
+                </nav>
+            }
+        </div>
+    </section>
+}

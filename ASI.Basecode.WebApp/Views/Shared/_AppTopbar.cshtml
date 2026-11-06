@@ -17,7 +17,8 @@
     </div>
     <div class="topbar-end">
         <partial name="_ThemeToggle" />
-        <details class="profile-menu">
+        <partial name="_NotificationMenu" model="@(ViewData["NotificationMenu"] as NotificationMenuViewModel ?? new NotificationMenuViewModel())" />
+        <details class="profile-menu" name="topbar-menu">
             <summary aria-label="Account menu for @displayName">
                 <span class="avatar">@initial</span>
                 <span class="profile-copy">
