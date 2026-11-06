@@ -89,9 +89,9 @@ else
                     <span>Status</span>
                     <select id="statusFilter" aria-label="Filter by status">
                         <option value="all">All statuses</option>
-                        @foreach (var status in ASI.Basecode.Resources.Constants.AccountStatuses.All)
+                        @foreach (var status in ASI.Basecode.Resources.Constants.AccountStatuses.FilterOptions)
                         {
-                            <option value="@status.ToLowerInvariant()">@status</option>
+                            <option value="@status.ToLowerInvariant()">@(status == "PendingApproval" ? "Pending approval" : status)</option>
                         }
                     </select>
                 </label>
@@ -107,7 +107,7 @@ else
                                 <td>@account.Email</td>
                                 <td><span class="role-pill">@account.RoleName</span></td>
                                 <td>@LastActive(account.LastLoginAt)</td>
-                                <td><span class="status-badge status-@account.AccountStatus.ToLowerInvariant()"><span></span>@account.AccountStatus</span></td>
+                                <td><span class="status-badge status-@account.AccountStatus.ToLowerInvariant()"><span></span>@(account.AccountStatus == "PendingApproval" ? "Pending approval" : account.AccountStatus)</span></td>
                                 <td class="actions-column">
                                     <div class="row-actions">
                                         <a class="icon-button" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="View @account.FullName" title="View account"><svg class="icon"><use href="#i-eye" /></svg></a>

@@ -75,6 +75,24 @@ namespace ASI.Basecode.Data.Repositories
             UnitOfWork.SaveChanges();
         }
 
+        public bool UpdateRegistration(int userId, Action<Account> applyChanges)
+        {
+            using var transaction = Context.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);
+            // Serialize reviews of the same account before the service checks its state.
+            var account = GetDbSet<Account>()
+                .FromSqlInterpolated($"SELECT * FROM dbo.Accounts WITH (UPDLOCK, HOLDLOCK) WHERE user_id = {userId}")
+                .AsTracking()
+                .Include(a => a.Role)
+                .Include(a => a.User).ThenInclude(u => u.BorrowerProfileUser)
+                .SingleOrDefault();
+            if (account == null) return false;
+
+            applyChanges(account);
+            UnitOfWork.SaveChanges();
+            transaction.Commit();
+            return true;
+        }
+
         public async Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc)
         {
             await GetDbSet<Account>()

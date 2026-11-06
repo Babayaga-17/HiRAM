@@ -23,6 +23,7 @@ namespace ASI.Basecode.Resources.Constants
         public const string PendingApproval = "PendingApproval";
 
         public static readonly string[] All = { Active, Inactive, Suspended, Disabled };
+        public static readonly string[] FilterOptions = { PendingApproval, Active, Inactive, Suspended, Disabled };
     }
 
     /// <summary>

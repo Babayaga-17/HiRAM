@@ -63,3 +63,10 @@
 .access-table .access-cell {
     text-align: center
 }
+.registration-review { padding: 24px; margin-bottom: 24px; }
+.registration-review-heading { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+.registration-review-heading img { flex: none; border-radius: var(--radius-control); object-fit: cover; }
+.registration-review-heading h2 { margin: 0 0 8px; font-size: 18px; }
+.registration-review-heading p { margin: 0; color: var(--muted); line-height: 1.6; }
+.status-pendingapproval { background: var(--pending-soft); color: var(--pending-ink); }
+@media (max-width: 600px) { .registration-review-heading { align-items: flex-start; flex-direction: column; } }

@@ -74,6 +74,60 @@ try
     email.Fail = true;
     var sent = await Service().RegisterAsync(Form("EMAIL-FAIL"), null, null);
     Check(!sent && db.Users.Any(u => u.UserCode == "EMAIL-FAIL"), "Email failure does not undo saved registration");
+
+    var management = new UserAccountService(users, accounts, roles, new UnitOfWork(db));
+    var login = new AccountService(accounts, users, photos);
+    void RejectApproval(Action action, string name)
+    {
+        try { action(); }
+        catch (ASI.Basecode.Services.Exceptions.UserAccountValidationException) { db.ChangeTracker.Clear(); Check(true, name); return; }
+        throw new Exception(name);
+    }
+    var studentId = saved.UserId;
+    db.ChangeTracker.Clear();
+    Account loginAccount = null;
+    Check(login.AuthenticateAccount("STUDENT-1@example.test", "TestPass123", ref loginAccount) == ASI.Basecode.Resources.Constants.Enums.LoginResult.PendingApproval, "Pending registration cannot sign in");
+    db.ChangeTracker.Clear();
+    RejectApproval(() => management.SetUserAccountStatus(studentId, true, "0", 999, "admin", null), "Generic activation cannot bypass approval");
+    var editedPending = new UserAccountFormViewModel(management.GetUserAccountById(studentId));
+    editedPending.AccountStatus = "Active";
+    RejectApproval(() => management.EditUserAccount(editedPending, 999, "admin", null), "Edit cannot bypass pending approval");
+    RejectApproval(() => management.ApproveRegistration(studentId, "1", "admin"), "Stale approval rejected");
+    Check(management.ApproveRegistration(studentId, "0", "admin"), "Pending registration approved");
+    db.ChangeTracker.Clear();
+    var approved = users.GetProfileByUserId(studentId);
+    Check(approved.Account.AccountStatus == "Active" && approved.BorrowerProfileUser.EligibilityStatus == "Eligible", "Approval persists Active and Eligible together");
+    Check(approved.Account.UpdatedBy == "admin" && approved.BorrowerProfileUser.UpdatedBy == "admin", "Both records identify approving actor");
+    Check(login.AuthenticateAccount("STUDENT-1@example.test", "TestPass123", ref loginAccount) == ASI.Basecode.Resources.Constants.Enums.LoginResult.Success, "Approved account can authenticate");
+    RejectApproval(() => management.ApproveRegistration(studentId, approved.Account.UpdatedAt.Value.Ticks.ToString(), "admin"), "Already approved account cannot be approved again");
+    Check(!management.ApproveRegistration(int.MaxValue, "0", "admin"), "Missing account returns not found");
+
+    await Service().RegisterAsync(Form("APPROVAL-ROLLBACK"), null, null);
+    var rollbackId = db.Users.Single(u => u.UserCode == "APPROVAL-ROLLBACK").UserId;
+    db.ChangeTracker.Clear();
+    db.Database.ExecuteSqlRaw("CREATE TRIGGER dbo.ApprovalCheckFailure ON dbo.BorrowerProfiles AFTER UPDATE AS BEGIN THROW 51000, 'Simulated profile persistence failure', 1; END;");
+    try { management.ApproveRegistration(rollbackId, "0", "admin"); throw new Exception("Expected approval failure"); }
+    catch (DbUpdateException) { }
+    finally { db.ChangeTracker.Clear(); db.Database.ExecuteSqlRaw("DROP TRIGGER dbo.ApprovalCheckFailure;"); }
+    var rolledBack = users.GetProfileByUserId(rollbackId);
+    Check(rolledBack.Account.AccountStatus == "PendingApproval" && rolledBack.BorrowerProfileUser.EligibilityStatus == "Ineligible", "Database failure rolls back both approval changes");
+    var blocked = db.BorrowerProfiles.Single(p => p.UserId == rollbackId);
+    blocked.EligibilityStatus = "Suspended"; db.SaveChanges(); db.ChangeTracker.Clear();
+    RejectApproval(() => management.ApproveRegistration(rollbackId, "0", "admin"), "Approval cannot overwrite suspension");
+
+    await Service().RegisterAsync(Form("CONCURRENT-APPROVAL"), null, null);
+    var concurrentId = db.Users.Single(u => u.UserCode == "CONCURRENT-APPROVAL").UserId;
+    async Task<bool> ConcurrentApproval() => await Task.Run(() =>
+    {
+        using var context = new IsolatedTestDb(new DbContextOptionsBuilder<HiramDbContext>()
+            .UseSqlServer(db.Database.GetConnectionString()).Options);
+        var unit = new UnitOfWork(context);
+        var service = new UserAccountService(new UserRepository(unit), new AccountRepository(unit), new RoleRepository(unit), unit);
+        try { return service.ApproveRegistration(concurrentId, "0", "admin"); }
+        catch (ASI.Basecode.Services.Exceptions.UserAccountValidationException) { return false; }
+    });
+    var concurrentResults = await Task.WhenAll(ConcurrentApproval(), ConcurrentApproval());
+    Check(concurrentResults.Count(result => result) == 1, "Two concurrent approvals produce exactly one success");
 }
 finally {
     if (db.Database.GetDbConnection().Database != database || !database.StartsWith("HiRAM_RegistrationChecks_"))
@@ -110,6 +164,7 @@ class FailingUserRepository(IUserRepository inner) : IUserRepository
 {
     public IQueryable<User> GetUsers() => inner.GetUsers();
     public bool UserExists(int id) => inner.UserExists(id);
+    public User GetProfileByUserId(int id) => inner.GetProfileByUserId(id);
     public bool UserCodeExists(string code, int? exclude = null) => inner.UserCodeExists(code, exclude);
     public void AddUser(User user) => throw new InvalidOperationException("Simulated save failure");
 }

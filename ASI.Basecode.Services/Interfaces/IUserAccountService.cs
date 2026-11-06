@@ -16,6 +16,7 @@ namespace ASI.Basecode.Services.Interfaces
         int AddUserAccount(UserAccountFormViewModel model, int currentUserId, string createdBy, string ipAddress);
         bool EditUserAccount(UserAccountFormViewModel model, int currentUserId, string updatedBy, string ipAddress);
         bool SetUserAccountStatus(int userId, bool activate, string version, int currentUserId, string updatedBy, string ipAddress);
+        bool ApproveRegistration(int userId, string version, string updatedBy);
         string ResetUserAccountAccess(int userId, int currentUserId, string updatedBy, string ipAddress);
     }
 }
