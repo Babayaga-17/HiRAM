@@ -9,7 +9,53 @@
     const submit = get("registrationSubmit");
     const password = get("Password");
     const confirmation = get("ConfirmPassword");
-    const required = ["FirstName", "LastName", "UserCode", "DepartmentId", "Email", "Password", "ConfirmPassword"];
+    const photo = get("ProfilePhoto");
+    const preview = get("profilePhotoPreview");
+    const removePhoto = get("removeProfilePhoto");
+    let photoUrl;
+    function initials() {
+        const text = [get("FirstName").value, get("LastName").value].map(value => value.trim().slice(0, 1)).join("").toUpperCase() || "?";
+        get("profileInitials").textContent = text;
+        get("reviewInitials").textContent = text;
+    }
+    function clearPhoto() {
+        if (photoUrl) URL.revokeObjectURL(photoUrl);
+        photoUrl = null;
+        preview.hidden = true;
+        preview.removeAttribute("src");
+        get("reviewProfilePhoto").hidden = true;
+        get("reviewProfilePhoto").removeAttribute("src");
+        photo.value = "";
+        photo.setCustomValidity("");
+        removePhoto.hidden = true;
+        showFieldError(photo);
+    }
+    photo.addEventListener("change", () => {
+        if (photoUrl) URL.revokeObjectURL(photoUrl);
+        photoUrl = null;
+        preview.hidden = true;
+        const file = photo.files[0];
+        photo.setCustomValidity("");
+        removePhoto.hidden = !file;
+        if (file && (!/\.(jpe?g|png)$/i.test(file.name) || (file.type && !["image/jpeg", "image/png"].includes(file.type))))
+            photo.setCustomValidity("Choose a JPG or PNG profile picture.");
+        else if (file && file.size > 2 * 1024 * 1024) photo.setCustomValidity("Profile picture must be 2 MB or smaller.");
+        if (file && photo.validity.valid) {
+            photoUrl = URL.createObjectURL(file);
+            preview.src = photoUrl;
+            preview.hidden = false;
+        }
+        showFieldError(photo);
+    });
+    preview.addEventListener("error", () => {
+        preview.hidden = true;
+        photo.setCustomValidity("This picture could not be read. Choose another JPG or PNG.");
+        showFieldError(photo);
+    });
+    removePhoto.addEventListener("click", clearPhoto);
+    get("FirstName").addEventListener("input", initials);
+    get("LastName").addEventListener("input", initials);
+    initials();    const required = ["FirstName", "LastName", "UserCode", "DepartmentId", "Email", "Password", "ConfirmPassword"];
     required.forEach(id => { get(id).required = true; });
     function updateFields() {
         const student = type.value === "Student";
@@ -68,6 +114,9 @@
             validationSummary.classList.add("validation-summary-valid");
             validationSummary.querySelector("ul")?.replaceChildren();
         }
+        const reviewPhoto = get("reviewProfilePhoto");
+        reviewPhoto.hidden = !photoUrl;
+        if (photoUrl) reviewPhoto.src = photoUrl;
         const summary = get("registrationSummary");
         summary.replaceChildren();
         const value = id => get(id).value.trim() || "—";
@@ -96,5 +145,6 @@
     if (firstError?.closest("details")) firstError.closest("details").open = true;
     firstError?.focus();
 })();
+
 
 

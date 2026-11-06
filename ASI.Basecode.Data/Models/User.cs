@@ -29,9 +29,7 @@ public partial class User
 
     public string ProfilePhotoStoragePath { get; set; }
 
-    public virtual ICollection<Account> AccountReviewedByUsers { get; set; } = new List<Account>();
-
-    public virtual Account AccountUser { get; set; }
+    public virtual Account Account { get; set; }
 
     public virtual ICollection<BorrowerProfile> BorrowerProfileSuspendedByUsers { get; set; } = new List<BorrowerProfile>();
 

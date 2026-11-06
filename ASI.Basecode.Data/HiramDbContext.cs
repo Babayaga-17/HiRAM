@@ -83,12 +83,6 @@ public partial class HiramDbContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("password_hash");
-            entity.Property(e => e.ReviewRemarks)
-                .HasMaxLength(500)
-                .IsUnicode(false)
-                .HasColumnName("review_remarks");
-            entity.Property(e => e.ReviewedAt).HasColumnName("reviewed_at");
-            entity.Property(e => e.ReviewedByUserId).HasColumnName("reviewed_by_user_id");
             entity.Property(e => e.RoleId).HasColumnName("role_id");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.UpdatedBy)
@@ -97,16 +91,12 @@ public partial class HiramDbContext : DbContext
                 .HasColumnName("updated_by");
             entity.Property(e => e.UserId).HasColumnName("user_id");
 
-            entity.HasOne(d => d.ReviewedByUser).WithMany(p => p.AccountReviewedByUsers)
-                .HasForeignKey(d => d.ReviewedByUserId)
-                .HasConstraintName("FK_Accounts_ReviewedBy");
-
             entity.HasOne(d => d.Role).WithMany(p => p.Accounts)
                 .HasForeignKey(d => d.RoleId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Accounts_Roles");
 
-            entity.HasOne(d => d.User).WithOne(p => p.AccountUser)
+            entity.HasOne(d => d.User).WithOne(p => p.Account)
                 .HasForeignKey<Account>(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Accounts_Users");
@@ -123,7 +113,6 @@ public partial class HiramDbContext : DbContext
                 .HasColumnName("user_id");
             entity.Property(e => e.BorrowerType)
                 .HasMaxLength(20)
-                .IsUnicode(false)
                 .HasColumnName("borrower_type");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("(sysdatetime())")

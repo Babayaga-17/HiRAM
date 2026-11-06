@@ -1,0 +1,92 @@
+@model ASI.Basecode.Services.ServiceModels.MyProfileViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "My profile";
+    var fullName = string.IsNullOrWhiteSpace(Model.FullName) ? "HiRAM user" : Model.FullName;
+    var initial = fullName.Substring(0, 1).ToUpperInvariant();
+    var status = Model.AccountStatus == "PendingApproval" ? "Pending approval" : Model.AccountStatus;
+    var isActive = string.Equals(Model.AccountStatus, "Active", System.StringComparison.OrdinalIgnoreCase);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/my-profile.css" asp-append-version="true" />
+}
+
+<div class="my-profile">
+    <header class="my-profile-header">
+        <div>
+            <h1>My profile</h1>
+            <p>Your identity and account details in HiRAM.</p>
+        </div>
+        <a class="my-profile-back" asp-controller="Dashboard" asp-action="Index">Back to workspace <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+    </header>
+
+    <div class="my-profile-sheet">
+        <section class="my-profile-identity" aria-labelledby="profile-name">
+            <div class="my-profile-portrait">
+                <span aria-hidden="true">@initial</span>
+                @if (!string.IsNullOrWhiteSpace(Model.ProfilePhotoUrl))
+                {
+                    <img src="@Model.ProfilePhotoUrl" alt="Profile photo of @fullName" referrerpolicy="no-referrer" />
+                }
+            </div>
+            <h2 id="profile-name">@fullName</h2>
+            <p class="my-profile-role">@(string.IsNullOrWhiteSpace(Model.RoleName) ? "Role not assigned" : Model.RoleName)</p>
+            <div class="my-profile-id">
+                <span>School / employee ID</span>
+                <strong>@(string.IsNullOrWhiteSpace(Model.UserCode) ? "Not provided" : Model.UserCode)</strong>
+            </div>
+        </section>
+
+        <div class="my-profile-details">
+            <section aria-labelledby="contact-heading">
+                <h2 id="contact-heading">Contact details</h2>
+                <dl class="my-profile-fields">
+                    <div><dt>Email address</dt><dd>@(string.IsNullOrWhiteSpace(Model.Email) ? "Not provided" : Model.Email)</dd></div>
+                    <div><dt>Contact number</dt><dd>@(string.IsNullOrWhiteSpace(Model.ContactNumber) ? "Not provided" : Model.ContactNumber)</dd></div>
+                </dl>
+            </section>
+            <section aria-labelledby="account-heading">
+                <h2 id="account-heading">Account</h2>
+                <dl class="my-profile-fields">
+                    <div><dt>Role</dt><dd>@(string.IsNullOrWhiteSpace(Model.RoleName) ? "Not assigned" : Model.RoleName)</dd></div>
+                    <div><dt>Account status</dt><dd><span class="my-profile-status @(isActive ? "is-active" : "")">@(string.IsNullOrWhiteSpace(status) ? "Not available" : status)</span></dd></div>
+                </dl>
+            </section>
+            @if (Model.HasBorrowerProfile)
+            {
+                <section aria-labelledby="borrower-heading">
+                    <div class="my-profile-section-title">
+                        <h2 id="borrower-heading">Borrower details</h2>
+                        <span class="my-profile-eligibility">@(string.IsNullOrWhiteSpace(Model.EligibilityStatus) ? "Eligibility not available" : Model.EligibilityStatus)</span>
+                    </div>
+                    <dl class="my-profile-fields">
+                        <div><dt>Borrower type</dt><dd>@(string.IsNullOrWhiteSpace(Model.BorrowerType) ? "Not provided" : Model.BorrowerType)</dd></div>
+                        <div><dt>Department</dt><dd>@(string.IsNullOrWhiteSpace(Model.DepartmentName) ? "Not provided" : Model.DepartmentName)</dd></div>
+                        @if (Model.BorrowerType != "Faculty")
+                        {
+                            <div><dt>Program</dt><dd>@(string.IsNullOrWhiteSpace(Model.Program) ? "Not provided" : Model.Program)</dd></div>
+                            <div><dt>Year level</dt><dd>@(Model.YearLevel?.ToString() ?? "Not provided")</dd></div>
+                        }
+                    </dl>
+                    @if (Model.EligibilityStatus == "Suspended")
+                    {
+                        <div class="my-profile-suspension">
+                            <h3>Borrowing suspended</h3>
+                            <p>@(string.IsNullOrWhiteSpace(Model.SuspensionReason) ? "Contact your HiRAM administrator for details." : Model.SuspensionReason)</p>
+                            @if (Model.SuspendedUntil.HasValue)
+                            {
+                                <p>Suspended until @Model.SuspendedUntil.Value.ToString("MMM d, yyyy h:mm tt")</p>
+                            }
+                        </div>
+                    }
+                </section>
+            }
+            <p class="my-profile-note">Need to correct your details? Contact your HiRAM administrator.</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/my-profile.js" asp-append-version="true"></script>
+}

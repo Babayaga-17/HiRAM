@@ -22,13 +22,26 @@
     </aside>
     <section class="form-panel registration-panel" aria-labelledby="registerHeading">
         <header class="form-head"><h1 id="registerHeading">Request an account</h1><p>Register as a borrower. An administrator must approve your access.</p></header>
-        <p class="registration-notice">Registration is being set up. This form does not save or submit requests yet.</p>
+        <p class="registration-notice">Your request will be reviewed by an administrator. Approval is required before you can sign in.</p>
         @if (TempData["ErrorMessage"] is string error) { <p class="alert" role="alert">@error</p> }
-        <form asp-controller="Account" asp-action="Register" method="post" id="registrationForm">
+        <form asp-controller="Account" asp-action="Register" method="post" enctype="multipart/form-data" id="registrationForm">
             <div asp-validation-summary="All" class="validation-summary" role="alert"></div>
             <div id="registrationFields">
             <div class="registration-type"><div class="field"><label asp-for="BorrowerType">I am registering as</label><select asp-for="BorrowerType"><option value="Student">Student</option><option value="Faculty">Faculty</option></select><span asp-validation-for="BorrowerType"></span></div></div>
-            <fieldset class="registration-section">
+            <section class="registration-photo-section" aria-labelledby="photoHeading">
+                <h2 id="photoHeading">Profile picture <span>(optional)</span></h2>
+                <div class="registration-photo-row">
+                    <div class="registration-avatar"><span id="profileInitials" aria-hidden="true">?</span><img id="profilePhotoPreview" alt="Selected profile picture" hidden /></div>
+                    <div class="registration-photo-controls">
+                        <label for="ProfilePhoto">Choose a picture</label>
+                        <input id="ProfilePhoto" name="ProfilePhoto" type="file" accept="image/jpeg,image/png" aria-describedby="profilePhotoHelp profilePhotoError" />
+                        <small id="profilePhotoHelp">JPG or PNG, up to 2 MB and 4096 × 4096 pixels. Your photo is private and visible to authorized staff.</small>
+                        <span id="profilePhotoError" data-valmsg-for="ProfilePhoto" data-valmsg-replace="true" class="field-validation-valid"></span>
+                        <button type="button" id="removeProfilePhoto" class="registration-edit" hidden>Remove picture</button>
+                    </div>
+                </div>
+                @if (ViewData["PhotoReselectMessage"] is string photoMessage) { <p class="registration-help" role="status">@photoMessage</p> }
+            </section>            <fieldset class="registration-section">
                 <legend>Personal information</legend>
                 <div class="registration-grid">
                     <div class="field"><label asp-for="FirstName">First name</label><input asp-for="FirstName" autocomplete="given-name" maxlength="100" /><span asp-validation-for="FirstName"></span></div>
@@ -79,9 +92,10 @@
             <section id="registrationReview" class="registration-review" aria-labelledby="reviewHeading" hidden>
                 <h2 id="reviewHeading" tabindex="-1">Review your details</h2>
                 <p>Check your school and contact information before requesting approval.</p>
+                <div class="registration-avatar registration-review-avatar"><span id="reviewInitials" aria-hidden="true">?</span><img id="reviewProfilePhoto" alt="Profile picture to submit" hidden /></div>
                 <dl id="registrationSummary" class="registration-summary"></dl>
                 <p class="registration-help">Your password is kept out of this summary.</p>
-                <p class="registration-review-note">Submitting will request administrator approval once registration is connected. No request is saved yet.</p>
+                <p class="registration-review-note">Confirm to submit your registration for administrator approval. You cannot sign in until your request is approved.</p>
                 <button class="registration-edit" id="editRegistration" type="button">Edit details</button>
             </section>
             <button class="sign-in-button" id="registrationSubmit" type="submit">Review registration</button>
@@ -95,3 +109,4 @@
     <script src="~/js/password-toggle.js" asp-append-version="true"></script>
     <script src="~/js/registration.js" asp-append-version="true"></script>
 }
+

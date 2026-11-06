@@ -18,7 +18,7 @@ try
 {
     db.Database.EnsureCreated();
     var user = new User { UserCode = "TEST", FirstName = "Test", LastName = "Borrower", CreatedBy = "test" };
-    user.AccountUser = new Account { Email = "reservation-test@example.invalid", PasswordHash = "unused",
+    user.Account = new Account { Email = "reservation-test@example.invalid", PasswordHash = "unused",
         AccountStatus = AccountStatuses.Active, CreatedBy = "test",
         Role = new Role { RoleName = "Borrower", IsActive = true, CreatedBy = "test" } };
     user.BorrowerProfileUser = new BorrowerProfile { EligibilityStatus = EligibilityStatuses.Eligible, CreatedBy = "test",

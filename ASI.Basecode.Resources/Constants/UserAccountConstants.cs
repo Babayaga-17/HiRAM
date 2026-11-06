@@ -20,6 +20,7 @@ namespace ASI.Basecode.Resources.Constants
         public const string Inactive = "Inactive";
         public const string Suspended = "Suspended";
         public const string Disabled = "Disabled";
+        public const string PendingApproval = "PendingApproval";
 
         public static readonly string[] All = { Active, Inactive, Suspended, Disabled };
     }
@@ -37,3 +38,4 @@ namespace ASI.Basecode.Resources.Constants
         public const string AccessReset = "USER_ACCESS_RESET";
     }
 }
+

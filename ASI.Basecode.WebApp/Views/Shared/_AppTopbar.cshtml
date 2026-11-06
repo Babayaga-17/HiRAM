@@ -26,7 +26,11 @@
                 </span>
                 <svg class="icon profile-chevron"><use href="#i-chevron" /></svg>
             </summary>
-            <div class="profile-dropdown"><div class="profile-dropdown-heading">@displayName</div><a asp-controller="Account" asp-action="SignOutUser"><svg class="icon"><use href="#i-logout"/></svg>Sign out</a></div>
+            <div class="profile-dropdown">
+                <div class="profile-dropdown-heading">@displayName</div>
+                <a asp-controller="Account" asp-action="MyProfile"><svg class="icon" aria-hidden="true"><use href="#i-user" /></svg>My profile</a>
+                <a asp-controller="Account" asp-action="SignOutUser"><svg class="icon" aria-hidden="true"><use href="#i-logout" /></svg>Sign out</a>
+            </div>
         </details>
     </div>
 </header>

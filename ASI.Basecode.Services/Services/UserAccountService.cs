@@ -32,20 +32,20 @@ namespace ASI.Basecode.Services.Services
         private readonly IUserRepository _userRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly IRoleRepository _roleRepository;
-        private readonly IAuditLogRepository _auditLogRepository;
+        //private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUnitOfWork _unitOfWork;
 
         public UserAccountService(
             IUserRepository userRepository,
             IAccountRepository accountRepository,
             IRoleRepository roleRepository,
-            IAuditLogRepository auditLogRepository,
+            //IAuditLogRepository auditLogRepository,
             IUnitOfWork unitOfWork)
         {
             _userRepository = userRepository;
             _accountRepository = accountRepository;
             _roleRepository = roleRepository;
-            _auditLogRepository = auditLogRepository;
+            //_auditLogRepository = auditLogRepository;
             _unitOfWork = unitOfWork;
         }
 
@@ -133,7 +133,7 @@ namespace ASI.Basecode.Services.Services
                 ContactNumber = model.ContactNumber,
                 CreatedBy = createdBy,
                 CreatedAt = now,
-                AccountUser = new Account
+                Account = new Account
                 {
                     RoleId = role.RoleId,
                     Email = model.Email,
@@ -149,7 +149,7 @@ namespace ASI.Basecode.Services.Services
             {
                 _userRepository.AddUser(user); // inserts Users + Accounts together
                 AddAudit(currentUserId, createdBy, ipAddress, UserAccountAuditActions.Created, user.UserId,
-                    $"Created {user.UserCode} ({user.AccountUser.Email}) with role {role.RoleName} and status {user.AccountUser.AccountStatus}.");
+                    $"Created {user.UserCode} ({user.Account.Email}) with role {role.RoleName} and status {user.Account.AccountStatus}.");
             });
 
             return user.UserId;
@@ -354,17 +354,17 @@ namespace ASI.Basecode.Services.Services
 
         private void AddAudit(int currentUserId, string createdBy, string ipAddress, string action, int targetUserId, string details)
         {
-            _auditLogRepository.AddAuditLog(new AuditLog
-            {
-                UserId = currentUserId > 0 ? currentUserId : null,
-                Action = action,
-                EntityName = "Accounts",
-                EntityId = targetUserId.ToString(CultureInfo.InvariantCulture),
-                Details = details,
-                IpAddress = ipAddress != null && ipAddress.Length > 45 ? ipAddress.Substring(0, 45) : ipAddress,
-                CreatedBy = createdBy ?? Const.System,
-                CreatedAt = DateTime.Now
-            });
+            //_auditLogRepository.AddAuditLog(new AuditLog
+            //{
+            //    UserId = currentUserId > 0 ? currentUserId : null,
+            //    Action = action,
+            //    EntityName = "Accounts",
+            //    EntityId = targetUserId.ToString(CultureInfo.InvariantCulture),
+            //    Details = details,
+            //    IpAddress = ipAddress != null && ipAddress.Length > 45 ? ipAddress.Substring(0, 45) : ipAddress,
+            //    CreatedBy = createdBy ?? Const.System,
+            //    CreatedAt = DateTime.Now
+            //});
         }
 
         /// <summary>

@@ -43,7 +43,7 @@ public class EquipmentReservationRepository : BaseRepository, IEquipmentReservat
     public BorrowerProfile GetBorrowerProfile(int borrowerUserId)
     {
         return GetDbSet<BorrowerProfile>().AsNoTracking()
-            .Include(item => item.User).ThenInclude(user => user.AccountUser).ThenInclude(account => account.Role)
+            .Include(item => item.User).ThenInclude(user => user.Account).ThenInclude(account => account.Role)
             .SingleOrDefault(item => item.UserId == borrowerUserId);
     }
 

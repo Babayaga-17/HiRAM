@@ -59,3 +59,19 @@
 .registration-optional { margin-bottom: 16px; }
 .registration-optional summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--link); padding: 4px 0 12px; }
 .registration-optional summary span { font-weight: 400; color: var(--muted); }
+
+.registration-photo-section { margin: 24px 0; }
+.registration-photo-section h2 { font-size: 16px; margin: 0 0 16px; }
+.registration-photo-section h2 span { font-size: 12px; font-weight: 400; color: var(--muted); }
+.registration-photo-row { display: flex; gap: 20px; align-items: flex-start; }
+.registration-avatar { position: relative; width: 80px; height: 80px; flex: none; border-radius: 50%; background: var(--raised); color: var(--link); display: grid; place-items: center; overflow: hidden; font-size: 24px; font-weight: 650; }
+.registration-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.registration-avatar img[hidden] { display: none; }
+.registration-photo-controls { display: grid; gap: 8px; min-width: 0; flex: 1; }
+.registration-photo-controls label { font-size: 13px; font-weight: 600; }
+.registration-photo-controls input { max-width: 100%; font: inherit; color: var(--muted); }
+.registration-photo-controls input::file-selector-button { border: 1px solid var(--control-line); border-radius: var(--radius-control); padding: 8px 12px; margin-right: 10px; background: var(--raised); color: var(--ink); cursor: pointer; }
+.registration-photo-controls .registration-edit { margin: 0; justify-self: start; }
+.registration-photo-controls [hidden] { display: none; }
+.registration-review-avatar { margin: 20px 0; }
+@media(max-width:520px) { .registration-photo-row { flex-direction: column; gap: 16px; } }
