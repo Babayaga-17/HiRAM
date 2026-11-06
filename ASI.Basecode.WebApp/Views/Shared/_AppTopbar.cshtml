@@ -17,7 +17,7 @@
     </div>
     <div class="topbar-end">
         <partial name="_ThemeToggle" />
-        <partial name="_NotificationMenu" model="@(ViewData["NotificationMenu"] as NotificationMenuViewModel ?? new NotificationMenuViewModel())" />
+        @await Component.InvokeAsync("NotificationMenu")
         <details class="profile-menu" name="topbar-menu">
             <summary aria-label="Account menu for @displayName">
                 <span class="avatar">@initial</span>

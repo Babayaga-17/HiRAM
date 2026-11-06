@@ -3,7 +3,7 @@
     Layout = "_AppLayout";
     ViewData["Title"] = "Notification";
 }
-<div class="page-heading"><div><a class="back-link" asp-action="Index"><svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg>Back to notifications</a><h1>Notification</h1><p>Your full account or reservation update.</p></div></div>
+<div class="page-heading"><div><a class="back-link" asp-action="Index" asp-route-search="@ViewData["NotificationSearch"]" asp-route-status="@ViewData["NotificationStatus"]" asp-route-page="@ViewData["NotificationPage"]"><svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg>Back to notifications</a><h1>Notification</h1><p>Your full account or reservation update.</p></div></div>
 @if (!Model.IsAvailable)
 {
     <div class="category-notice category-notice-error" role="alert">This notification isn’t available.</div>

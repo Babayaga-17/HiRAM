@@ -1,4 +1,11 @@
 .notification-menu { position: relative; }
+.notification-recent form, .notification-subject form, .notification-table .actions-column form { margin: 0; }
+.notification-recent-open { display: flex; width: 100%; align-items: flex-start; gap: 12px; padding: 18px 20px; border: 0; background: transparent; color: var(--ink); text-align: left; font: inherit; cursor: pointer; }
+.notification-recent-open:hover { background: var(--raised); }
+.notification-title-open { padding: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; }
+.is-unread .notification-title-open { font-weight: 650; }
+.notification-title-open:hover { color: var(--link); text-decoration: underline; }
+.notification-title-open:focus-visible, .notification-recent-open:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
 .notification-menu:not([open]) .notification-dropdown { display: none; }
 .notification-toggle { position: relative; display: grid; place-items: center; width: 40px; height: 44px; border-radius: var(--radius-control); cursor: pointer; list-style: none; color: var(--muted); }
 .notification-toggle::-webkit-details-marker { display: none; }

@@ -189,7 +189,7 @@ TestDb Open() => new(new DbContextOptionsBuilder<HiramDbContext>().UseSqlServer(
 Equipment NewEquipment(string code) => new() { EquipmentCode = code, EquipmentName = "Test " + code,
     ConditionStatus = EquipmentConditions.Good, IsActive = true, CreatedBy = "test" };
 EquipmentReservationService Service(HiramDbContext context) => new(new EquipmentReservationRepository(new UnitOfWork(context)),
-    new EquipmentService(new EquipmentRepository(new UnitOfWork(context)), null));
+    new EquipmentService(new EquipmentRepository(new UnitOfWork(context)), null), new NotificationService(new NotificationRepository(new UnitOfWork(context))));
 
 sealed class TestDb(DbContextOptions<HiramDbContext> options) : HiramDbContext(options)
 {

@@ -6,6 +6,8 @@ using Basecode.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
+using System;
+using ASI.Basecode.Data.Exceptions;
 
 namespace ASI.Basecode.Data.Repositories
 {
@@ -85,6 +87,23 @@ namespace ASI.Basecode.Data.Repositories
         public void SaveChanges()
         {
             UnitOfWork.SaveChanges();
+        }
+
+        public (bool Ok, string Message) Review(int id, Func<Reservation, (bool Ok, string Message)> applyChanges)
+        {
+            using var transaction = Context.Database.BeginTransaction(System.Data.IsolationLevel.Serializable);
+            try
+            {
+                var reservation = GetDbSet<Reservation>()
+                    .FromSqlInterpolated($"SELECT * FROM dbo.Reservations WITH (UPDLOCK, HOLDLOCK) WHERE reservation_id = {id}")
+                    .AsTracking().Include(r => r.BorrowerUser).SingleOrDefault();
+                var result = applyChanges(reservation);
+                if (!result.Ok) return result;
+                UnitOfWork.SaveChanges();
+                transaction.Commit();
+                return result;
+            }
+            catch (DbUpdateConcurrencyException exception) { throw new ReservationConcurrencyException(exception); }
         }
 
         private IQueryable<Reservation> PendingQuery()

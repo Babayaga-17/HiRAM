@@ -54,6 +54,10 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
 
             // Repositories
+            this._services.AddScoped<INotificationRepository, NotificationRepository>();
+            this._services.AddScoped<INotificationService, NotificationService>();
+            this._services.AddScoped<INotificationEmailDispatcher, NotificationEmailDispatcher>();
+            this._services.AddHostedService<Workers.NotificationEmailWorker>();
             this._services.AddScoped<IBorrowerProfileRepository, BorrowerProfileRepository>();
             this._services.AddScoped<IEquipmentReservationRepository, EquipmentReservationRepository>();
             this._services.AddScoped<IUserRepository, UserRepository>();

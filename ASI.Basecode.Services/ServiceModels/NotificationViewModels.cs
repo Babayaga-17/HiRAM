@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 
-namespace ASI.Basecode.WebApp.Models;
+namespace ASI.Basecode.Services.ServiceModels;
 
-// Presentation contracts only. Retrieval and recipient authorization will be connected separately.
+// Read-only notification presentation contracts; recipient filtering is enforced in the repository.
 public class NotificationItemViewModel
 {
     public long Id { get; set; }
@@ -41,6 +41,9 @@ public class NotificationDetailsViewModel
     public DateTime CreatedAt { get; set; }
     public DateTime? ReadAt { get; set; }
     // Only a server-generated, authorized local destination may populate this.
+    public string EventType { get; set; }
+    public int? RelatedUserId { get; set; }
+    public int? ReservationId { get; set; }
     public string RelatedUrl { get; set; }
     public string RelatedLabel { get; set; }
 }

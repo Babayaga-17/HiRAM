@@ -22,6 +22,7 @@ namespace ASI.Basecode.Services.Services
     public class BorrowerProfileService : IBorrowerProfileService
     {
         private readonly IBorrowerProfileRepository _repository;
+        private readonly INotificationService _notifications;
         private readonly IUserRepository users;
         private readonly IAccountRepository accounts;
         private readonly IRoleRepository roles;
@@ -31,9 +32,10 @@ namespace ASI.Basecode.Services.Services
 
         public BorrowerProfileService(IBorrowerProfileRepository repository, IUserRepository users,
             IAccountRepository accounts, IRoleRepository roles, IProfilePhotoService photos,
-            IEmailManager email, ILogger<BorrowerProfileService> logger)
+            IEmailManager email, ILogger<BorrowerProfileService> logger, INotificationService notifications)
         {
             _repository = repository;
+            _notifications = notifications;
             this.users = users;
             this.accounts = accounts;
             this.roles = roles;
@@ -241,6 +243,7 @@ namespace ASI.Basecode.Services.Services
                 if (photo != null) path = await photos.UploadProfileAsync(photo, fileName, cancellationToken);
                 user.ProfilePhotoStoragePath = path;
                 // One SaveChanges inserts this complete related graph in an EF transaction.
+                _notifications.RegistrationSubmitted(user);
                 users.AddUser(user);
             }
             catch (Exception exception)

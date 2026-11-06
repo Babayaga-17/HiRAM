@@ -57,7 +57,7 @@ try
     var roles = new RoleRepository(new UnitOfWork(db));
     var profiles = new BorrowerProfileRepository(new UnitOfWork(db));
     var photos = new FakePhoto(); var email = new FakeEmail();
-    BorrowerProfileService Service(IUserRepository repository = null) => new(profiles, repository ?? users, accounts, roles, photos, email, NullLogger<BorrowerProfileService>.Instance);
+    BorrowerProfileService Service(IUserRepository repository = null) => new(profiles, repository ?? users, accounts, roles, photos, email, NullLogger<BorrowerProfileService>.Instance, new NotificationService(new NotificationRepository(new UnitOfWork(db))));
     BorrowerRegistrationViewModel Form(string code, string type = "Student") => new() { UserCode = code, BorrowerType = type, FirstName = "Mara", LastName = "Reyes", DepartmentId = department.DepartmentId, Program = "Computer Science", YearLevel = 2, Email = code + "@example.test", Password = "TestPass123", ConfirmPassword = "TestPass123" };
     await Service().RegisterAsync(Form("STUDENT-1"), new MemoryStream(new byte[] { 1 }), "test.png");
     var saved = db.Users.Include(u => u.Account).Include(u => u.BorrowerProfileUser).Single();
@@ -78,7 +78,7 @@ try
     Check(!sent && db.Users.Any(u => u.UserCode == "EMAIL-FAIL"), "Email failure does not undo saved registration");
 
     email.Fail = false;
-    var management = new UserAccountService(users, accounts, roles, new UnitOfWork(db), email, NullLogger<UserAccountService>.Instance);
+    var management = new UserAccountService(users, accounts, roles, new UnitOfWork(db), new NotificationService(new NotificationRepository(new UnitOfWork(db))));
     var login = new AccountService(accounts, users, photos);
     bool Approve(int id, string version, string actor) => management.ApproveRegistrationAsync(id, version, actor).GetAwaiter().GetResult().Found;
     void RejectApproval(Action action, string name)
@@ -111,7 +111,10 @@ try
     RejectApproval(() => Approve(studentId, "1", "admin"), "Stale approval rejected");
     Check(email.Attempts == approvalEmailAttempts, "Rejected approvals do not send email");
     var approvalResult = await management.ApproveRegistrationAsync(studentId, "0", "admin");
-    Check(approvalResult.Found && approvalResult.EmailSent, "Pending registration approved and email accepted");
+    Check(approvalResult.Found && approvalResult.EmailQueued, "Pending registration approved and email queued");
+    Check(email.Attempts == approvalEmailAttempts, "Approval does not send SMTP within its request");
+    var dispatcher = new NotificationEmailDispatcher(new NotificationRepository(new UnitOfWork(db)), email, NullLogger<NotificationEmailDispatcher>.Instance);
+    await dispatcher.DispatchNextAsync(CancellationToken.None);
     Check(committedBeforeEmail && email.Attempts == approvalEmailAttempts + 1, "Approval email runs after both records commit");
     Check(email.LastRecipient == "STUDENT-1@example.test" && email.LastSubject == "Your HiRAM registration is approved", "Approval notification targets registered email");
     email.BeforeSend = null;
@@ -146,7 +149,7 @@ try
         using var context = new IsolatedTestDb(new DbContextOptionsBuilder<HiramDbContext>()
             .UseSqlServer(db.Database.GetConnectionString()).Options);
         var unit = new UnitOfWork(context);
-        var service = new UserAccountService(new UserRepository(unit), new AccountRepository(unit), new RoleRepository(unit), unit, email, NullLogger<UserAccountService>.Instance);
+        var service = new UserAccountService(new UserRepository(unit), new AccountRepository(unit), new RoleRepository(unit), unit, new NotificationService(new NotificationRepository(unit)));
         try { return service.ApproveRegistrationAsync(concurrentId, "0", "admin").GetAwaiter().GetResult().Found; }
         catch (ASI.Basecode.Services.Exceptions.UserAccountValidationException) { return false; }
     });
@@ -158,7 +161,9 @@ try
     db.ChangeTracker.Clear();
     email.Fail = true;
     var emailFailure = await management.ApproveRegistrationAsync(emailFailId, "0", "admin");
-    Check(emailFailure.Found && !emailFailure.EmailSent, "Email failure is reported separately from saved approval");
+    Check(emailFailure.Found && emailFailure.EmailQueued, "Approval queues email independently of provider failures");
+    while (await dispatcher.DispatchNextAsync(CancellationToken.None)) { }
+    Check(db.NotificationEmails.Any(e => e.Notification.RecipientUserId == emailFailId && e.DeliveryStatus == "Pending" && e.AttemptCount == 1), "Email failure schedules a retry");
     db.ChangeTracker.Clear();
     var emailFailedUser = users.GetProfileByUserId(emailFailId);
     Check(emailFailedUser.Account.AccountStatus == "Active" && emailFailedUser.BorrowerProfileUser.EligibilityStatus == "Eligible", "Email failure preserves both approval changes");

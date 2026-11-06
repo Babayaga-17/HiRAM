@@ -206,8 +206,8 @@ public class UserAccountController : ControllerBase<UserAccountController>
                 return RedirectToAction(nameof(Index));
             }
             TempData["UserAccountSuccess"] = "Registration approved. The account is active and the borrower is eligible.";
-            if (!result.EmailSent)
-                TempData["UserAccountWarning"] = "Registration approved, but the notification email could not be sent. Please inform the user separately.";
+            if (!result.EmailQueued)
+                TempData["UserAccountWarning"] = "Registration approved, but no email could be queued. Please inform the user separately.";
         }
         catch (UserAccountValidationException exception)
         {
