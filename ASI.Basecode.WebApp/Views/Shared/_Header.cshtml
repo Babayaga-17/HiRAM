@@ -1,9 +1,7 @@
 <header class="@((ViewBag.LoginView == true) ? "hide-navbar" : "")">
-    <div class="logosec hover-pointer">
-        <img src="~/img/asi-logo-invert.svg"
-             style="width: 185px;" alt="logo"
-             onclick="window.location.href = '@Url.Action("Index", "Home")';">
-    </div>
+    <a class="logosec brand-lockup" asp-controller="Home" asp-action="Index" aria-label="HiRAM home">
+        <partial name="_Brand" />
+    </a>
     <div class="logosec">
         @HttpContextAccessor.HttpContext.Session.GetString("UserName")
         <div class="mr-20 hover-pointer" style="position: relative">

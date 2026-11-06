@@ -18,6 +18,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@(Model.FileName).pdf | HiRAM</title>
     <partial name="_ThemeAssets" />
+    <partial name="_BrandFavicon" />
     <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/reports.css" asp-append-version="true" />
     <style>@@page { size: A4 @(landscape ? "landscape" : "portrait"); margin: 0; }</style>
@@ -42,8 +43,8 @@
             <section class="pv-sheet @(landscape ? "is-landscape" : "is-portrait")">
                 <header class="pv-head">
                     <div class="pv-brand">
-                        <span class="pv-logo">H</span>
-                        <div><strong>HiRAM</strong><small>SCHOOL RESOURCE MANAGEMENT</small></div>
+                        <span class="brand-lockup"><partial name="_Brand" /></span>
+                        <small>SCHOOL RESOURCE MANAGEMENT</small>
                     </div>
                     <div class="pv-title">
                         <strong>@Model.Title</strong>

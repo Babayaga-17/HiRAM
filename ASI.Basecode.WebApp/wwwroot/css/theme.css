@@ -116,34 +116,21 @@ h1, h2, h3, h4 {
     text-decoration: none;
 }
 
-.brand-mark {
-    display: grid;
-    flex: none;
-    place-items: center;
-    width: 36px;
-    height: 36px;
-    color: var(--on-primary);
-    background: var(--primary);
-    border-radius: var(--radius-control);
+.brand-mark { display: block; flex: none; width: 36px; height: 36px; }
+.brand-mark img { display: block; width: 100%; height: 100%; }
+.brand-name { display: block; flex: none; width: 103px; line-height: 1; }
+.brand-name img { display: block; width: 100%; height: auto; }
+.brand-mark .brand-dark, .brand-name .brand-dark { display: none; }
+@media screen {
+    :root[data-theme="dark"] .brand-light { display: none; }
+    :root[data-theme="dark"] .brand-dark { display: block; }
+    /* Report paper remains white in either screen theme. */
+    :root[data-theme="dark"] .pv-sheet .brand-light { display: block; }
+    :root[data-theme="dark"] .pv-sheet .brand-dark { display: none; }
 }
-
-.brand-mark svg {
-    width: 25px;
-    height: 25px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2.2;
-    stroke-linecap: round;
-}
-
-.brand-mark circle {
-    stroke: var(--accent);
-    fill: var(--accent);
-}
-
-.brand-name {
-    font: 800 22px/1 var(--font-heading);
-    letter-spacing: -.04em;
+@media print {
+    .brand-mark .brand-light, .brand-name .brand-light { display: block; }
+    .brand-mark .brand-dark, .brand-name .brand-dark { display: none; }
 }
 
 .theme-toggle {
