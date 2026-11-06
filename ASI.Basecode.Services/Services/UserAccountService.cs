@@ -7,6 +7,8 @@ using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -34,19 +36,25 @@ namespace ASI.Basecode.Services.Services
         private readonly IRoleRepository _roleRepository;
         //private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IEmailManager _email;
+        private readonly ILogger<UserAccountService> _logger;
 
         public UserAccountService(
             IUserRepository userRepository,
             IAccountRepository accountRepository,
             IRoleRepository roleRepository,
             //IAuditLogRepository auditLogRepository,
-            IUnitOfWork unitOfWork)
+            IUnitOfWork unitOfWork,
+            IEmailManager email,
+            ILogger<UserAccountService> logger)
         {
             _userRepository = userRepository;
             _accountRepository = accountRepository;
             _roleRepository = roleRepository;
             //_auditLogRepository = auditLogRepository;
             _unitOfWork = unitOfWork;
+            _email = email;
+            _logger = logger;
         }
 
         #region View
@@ -284,9 +292,10 @@ namespace ASI.Basecode.Services.Services
         /// <summary>
         /// Approves the pending account and borrower eligibility in a repository-owned transaction.
         /// </summary>
-        public bool ApproveRegistration(int userId, string version, string updatedBy)
+        public async Task<(bool Found, bool EmailSent)> ApproveRegistrationAsync(int userId, string version, string updatedBy)
         {
-            return _accountRepository.UpdateRegistration(userId, account =>
+            string recipient = null;
+            var found = _accountRepository.UpdateRegistration(userId, account =>
             {
                 EnsureNotChanged(account, version);
                 if (account.AccountStatus != AccountStatuses.PendingApproval)
@@ -308,7 +317,24 @@ namespace ASI.Basecode.Services.Services
                 profile.EligibilityStatus = EligibilityStatuses.Eligible;
                 profile.UpdatedBy = updatedBy;
                 profile.UpdatedAt = now;
+                recipient = account.Email;
             });
+            if (!found) return (false, false);
+
+            // UpdateRegistration has committed and disposed its transaction before SMTP starts.
+            try
+            {
+                await _email.SendAsync(recipient, "Your HiRAM registration is approved",
+                    "Your HiRAM registration has been approved. Your account is now active, your workspace is unlocked, and you are eligible to request equipment. " +
+                    "You can sign in to HiRAM using the email address and password you registered with. " +
+                    "Equipment requests remain subject to availability and approval. If you need help, contact your HiRAM administrator.");
+                return (true, true);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "Registration approved but approval email failed for user {UserId}.", userId);
+                return (true, false);
+            }
         }
 
         /// <summary>Issues a temporary password and clears failed attempts and lockout.</summary>

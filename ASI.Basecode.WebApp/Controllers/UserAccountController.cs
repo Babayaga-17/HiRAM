@@ -190,7 +190,7 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult Approve(int id, string version)
+    public async Task<IActionResult> Approve(int id, string version)
     {
         if (!ModelState.IsValid || string.IsNullOrWhiteSpace(version))
         {
@@ -199,12 +199,15 @@ public class UserAccountController : ControllerBase<UserAccountController>
         }
         try
         {
-            if (!_userAccountService.ApproveRegistration(id, version, UserId))
+            var result = await _userAccountService.ApproveRegistrationAsync(id, version, UserId);
+            if (!result.Found)
             {
                 TempData["UserAccountError"] = "The account no longer exists.";
                 return RedirectToAction(nameof(Index));
             }
             TempData["UserAccountSuccess"] = "Registration approved. The account is active and the borrower is eligible.";
+            if (!result.EmailSent)
+                TempData["UserAccountWarning"] = "Registration approved, but the notification email could not be sent. Please inform the user separately.";
         }
         catch (UserAccountValidationException exception)
         {

@@ -31,6 +31,10 @@
 {
     <div class="category-notice category-notice-error" role="alert">@errorMessage</div>
 }
+@if (TempData["UserAccountWarning"] is string warningMessage)
+{
+    <div class="category-notice" role="status">@warningMessage</div>
+}
 
 @if (isPending && registration != null)
 {
