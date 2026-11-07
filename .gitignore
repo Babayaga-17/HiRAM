@@ -199,3 +199,4 @@ node_modules
 */src/*/Scripts/**/*.js.map
 docs/
 .taste-skill/
+output/
