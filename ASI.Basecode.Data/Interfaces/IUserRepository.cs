@@ -13,5 +13,7 @@ namespace ASI.Basecode.Data.Interfaces
         bool UserExists(int userId);
         void AddUser(User user);
         bool UserCodeExists(string userCode, int? excludeUserId = null);
+        User GetProfileByUserId(int userId);
+
     }
 }

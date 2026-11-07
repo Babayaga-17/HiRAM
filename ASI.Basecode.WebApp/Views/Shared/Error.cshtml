@@ -1,16 +1,20 @@
 @model ErrorViewModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = "Error | HiRAM";
+    ViewData["IsAccountPage"] = true;
+    ViewData["UseLegacyAssets"] = false;
 }
 
-<h1 class="text-danger">Something went wrong.</h1>
-<p>An error occurred while processing your request. Please try again.</p>
+<main class="auth-shell">
+    <section class="form-panel">
+        <h1>Something went wrong.</h1>
+        <p>An error occurred while processing your request. Please try again.</p>
 
-@if (Model.ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
-}
+        @if (Model.ShowRequestId)
+        {
+            <p><strong>Request ID:</strong> <code>@Model.RequestId</code></p>
+        }
 
-<p>If the problem continues, contact your administrator and include the request ID if shown.</p>
+        <p>If the problem continues, contact your administrator and include the request ID if shown.</p>
+    </section>
+</main>

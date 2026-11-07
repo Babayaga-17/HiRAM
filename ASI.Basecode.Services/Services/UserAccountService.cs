@@ -7,6 +7,8 @@ using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -32,21 +34,24 @@ namespace ASI.Basecode.Services.Services
         private readonly IUserRepository _userRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly IRoleRepository _roleRepository;
-        private readonly IAuditLogRepository _auditLogRepository;
+        //private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationService _notifications;
 
         public UserAccountService(
             IUserRepository userRepository,
             IAccountRepository accountRepository,
             IRoleRepository roleRepository,
-            IAuditLogRepository auditLogRepository,
-            IUnitOfWork unitOfWork)
+            //IAuditLogRepository auditLogRepository,
+            IUnitOfWork unitOfWork,
+            INotificationService notifications)
         {
             _userRepository = userRepository;
             _accountRepository = accountRepository;
             _roleRepository = roleRepository;
-            _auditLogRepository = auditLogRepository;
+            //_auditLogRepository = auditLogRepository;
             _unitOfWork = unitOfWork;
+            _notifications = notifications;
         }
 
         #region View
@@ -165,6 +170,10 @@ namespace ASI.Basecode.Services.Services
 
             EnsureNotChanged(account, model.Version);
 
+            if ((account.AccountStatus == AccountStatuses.PendingApproval || model.AccountStatus == AccountStatuses.PendingApproval)
+                && (model.AccountStatus != account.AccountStatus || model.RoleId != account.RoleId))
+                throw new UserAccountValidationException(string.Empty, "Use registration approval to activate a pending borrower. Its role cannot be changed while pending.");
+
             var errors = GetDuplicateErrors(model.UserCode, model.Email, model.UserId);
             var role = GetAssignableRole(model.RoleId, account.RoleId, errors);
             if (errors.Count > 0)
@@ -237,6 +246,9 @@ namespace ASI.Basecode.Services.Services
 
             EnsureNotChanged(account, version);
 
+            if (account.AccountStatus == AccountStatuses.PendingApproval)
+                throw new UserAccountValidationException(string.Empty, "Review and approve this registration instead of changing its account status.");
+
             var newStatus = activate ? AccountStatuses.Active : AccountStatuses.Inactive;
             if (account.AccountStatus == newStatus)
                 return true;
@@ -275,9 +287,39 @@ namespace ASI.Basecode.Services.Services
         }
 
         /// <summary>
-        /// Reset access = new one-time temporary password + clear failed attempts and lockout.
-        /// Returns the temporary password (shown once to the admin, never logged), or null if the user does not exist.
+        /// Approves the pending account and borrower eligibility in a repository-owned transaction.
         /// </summary>
+        public Task<(bool Found, bool EmailQueued)> ApproveRegistrationAsync(int userId, string version, string updatedBy)
+        {
+            var queued = false;
+            var found = _accountRepository.UpdateRegistration(userId, account =>
+            {
+                EnsureNotChanged(account, version);
+                if (account.AccountStatus != AccountStatuses.PendingApproval)
+                    throw new UserAccountValidationException(string.Empty, "Only pending registrations can be approved. Refresh the account details.");
+                if (account.Role?.RoleName != RoleNames.Borrower || !account.Role.IsActive)
+                    throw new UserAccountValidationException(string.Empty, "Registration approval requires an active Borrower role.");
+                var profile = account.User?.BorrowerProfileUser;
+                if (profile == null || profile.EligibilityStatus != EligibilityStatuses.Ineligible
+                    || profile.SuspendedAt.HasValue || profile.SuspendedUntil.HasValue
+                    || profile.SuspendedByUserId.HasValue || !string.IsNullOrWhiteSpace(profile.SuspensionReason))
+                    throw new UserAccountValidationException(string.Empty, "The borrower profile is missing or requires separate eligibility review. Approval was not saved.");
+
+                var now = DateTime.Now;
+                account.AccountStatus = AccountStatuses.Active;
+                account.FailedLoginAttempts = 0;
+                account.LockoutEndAt = null;
+                account.UpdatedBy = updatedBy;
+                account.UpdatedAt = now;
+                profile.EligibilityStatus = EligibilityStatuses.Eligible;
+                profile.UpdatedBy = updatedBy;
+                profile.UpdatedAt = now;
+                queued = _notifications.RegistrationApproved(account);
+            });
+            return Task.FromResult((found, found && queued));
+        }
+
+        /// <summary>Issues a temporary password and clears failed attempts and lockout.</summary>
         public string ResetUserAccountAccess(int userId, int currentUserId, string updatedBy, string ipAddress)
         {
             var account = _accountRepository.GetAccountByUserId(userId);
@@ -354,17 +396,17 @@ namespace ASI.Basecode.Services.Services
 
         private void AddAudit(int currentUserId, string createdBy, string ipAddress, string action, int targetUserId, string details)
         {
-            _auditLogRepository.AddAuditLog(new AuditLog
-            {
-                UserId = currentUserId > 0 ? currentUserId : null,
-                Action = action,
-                EntityName = "Accounts",
-                EntityId = targetUserId.ToString(CultureInfo.InvariantCulture),
-                Details = details,
-                IpAddress = ipAddress != null && ipAddress.Length > 45 ? ipAddress.Substring(0, 45) : ipAddress,
-                CreatedBy = createdBy ?? Const.System,
-                CreatedAt = DateTime.Now
-            });
+            //_auditLogRepository.AddAuditLog(new AuditLog
+            //{
+            //    UserId = currentUserId > 0 ? currentUserId : null,
+            //    Action = action,
+            //    EntityName = "Accounts",
+            //    EntityId = targetUserId.ToString(CultureInfo.InvariantCulture),
+            //    Details = details,
+            //    IpAddress = ipAddress != null && ipAddress.Length > 45 ? ipAddress.Substring(0, 45) : ipAddress,
+            //    CreatedBy = createdBy ?? Const.System,
+            //    CreatedAt = DateTime.Now
+            //});
         }
 
         /// <summary>

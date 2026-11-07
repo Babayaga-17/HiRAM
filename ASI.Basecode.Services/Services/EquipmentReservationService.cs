@@ -16,13 +16,15 @@ public class EquipmentReservationService : IEquipmentReservationService
 {
     private readonly IEquipmentReservationRepository _reservationRepository;
     private readonly IEquipmentService _equipmentService;
+    private readonly INotificationService _notifications;
 
     public EquipmentReservationService(
         IEquipmentReservationRepository reservationRepository,
-        IEquipmentService equipmentService)
+        IEquipmentService equipmentService, INotificationService notifications)
     {
         _reservationRepository = reservationRepository;
         _equipmentService = equipmentService;
+        _notifications = notifications;
     }
 
     public (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId)
@@ -50,7 +52,7 @@ public class EquipmentReservationService : IEquipmentReservationService
 
             var now = PhilippineTimeNow();
             var actor = borrowerUserId.ToString();
-            _reservationRepository.AddReservation(new Reservation
+            var reservation = new Reservation
             {
                 ReservationNumber = number,
                 BorrowerUserId = borrowerUserId,
@@ -65,7 +67,9 @@ public class EquipmentReservationService : IEquipmentReservationService
                 {
                     EquipmentId = id, CreatedAt = now, CreatedBy = actor
                 }).ToList()
-            });
+            };
+            _reservationRepository.AddReservation(reservation);
+            _notifications.ReservationChanged(reservation, NotificationEvents.ReservationSubmitted);
             return null;
         }, "Equipment availability changed while submitting. Please try again.");
 
@@ -162,6 +166,7 @@ public class EquipmentReservationService : IEquipmentReservationService
             reservation.CancellationReason = string.IsNullOrWhiteSpace(form.Reason) ? null : form.Reason.Trim();
             reservation.UpdatedBy = borrowerUserId.ToString();
             reservation.UpdatedAt = now;
+            _notifications.ReservationChanged(reservation, NotificationEvents.ReservationCancelled);
             return null;
         }, "This reservation changed while you were cancelling. Reload it and try again.");
     }

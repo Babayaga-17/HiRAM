@@ -16,10 +16,12 @@ namespace ASI.Basecode.Services.Services
         private static readonly string[] Tabs = { ReservationStatuses.Pending, ReservationStatuses.Approved, ReservationStatuses.Borrowed, ReservationStatuses.Returned, ReservationStatuses.Rejected, ReservationFilters.All };
 
         private readonly IReservationRepository _reservationRepository;
+        private readonly INotificationService _notifications;
 
-        public ReservationService(IReservationRepository reservationRepository)
+        public ReservationService(IReservationRepository reservationRepository, INotificationService notifications)
         {
             _reservationRepository = reservationRepository;
+            _notifications = notifications;
         }
 
         // ---------------------------------------------------------------- existing (pending only)
@@ -155,23 +157,25 @@ namespace ASI.Basecode.Services.Services
 
         public (bool ok, string message) Approve(int reservationId, int? actorUserId, string actorName, string remarks)
         {
-            var reservation = _reservationRepository.GetReservationForUpdate(reservationId);
-            if (reservation == null)
-                return (false, "That request was not found.");
-            if (reservation.Status != ReservationStatuses.Pending)
-                return (false, "Only pending requests can be approved. This one was already reviewed.");
-            if (reservation.BorrowerUser?.EligibilityStatus != EligibilityStatuses.Eligible)
-                return (false, "This borrower is not eligible to borrow, so the request can't be approved.");
+            return Review(reservationId, reservation =>
+            {
+                if (reservation == null)
+                    return (false, "That request was not found.");
+                if (reservation.Status != ReservationStatuses.Pending)
+                    return (false, "Only pending requests can be approved. This one was already reviewed.");
+                if (reservation.BorrowerUser?.EligibilityStatus != EligibilityStatuses.Eligible)
+                    return (false, "This borrower is not eligible to borrow, so the request can't be approved.");
 
-            var now = DateTime.Now;
-            reservation.Status = ReservationStatuses.Approved;
-            reservation.ApprovedByUserId = ResolveUser(actorUserId);
-            reservation.ApprovedAt = now;
-            reservation.UpdatedBy = actorName;
-            reservation.UpdatedAt = now;
+                var now = DateTime.Now;
+                reservation.Status = ReservationStatuses.Approved;
+                reservation.ApprovedByUserId = ResolveUser(actorUserId);
+                reservation.ApprovedAt = now;
+                reservation.UpdatedBy = actorName;
+                reservation.UpdatedAt = now;
 
-            _reservationRepository.SaveChanges();
-            return (true, $"{reservation.ReservationNumber} was approved. It is now ready for release.");
+                _notifications.ReservationChanged(reservation, NotificationEvents.ReservationApproved);
+                return (true, $"{reservation.ReservationNumber} was approved. It is now ready for release.");
+            });
         }
 
         public (bool ok, string message) Reject(int reservationId, int? actorUserId, string actorName, string reason)
@@ -179,22 +183,24 @@ namespace ASI.Basecode.Services.Services
             if (string.IsNullOrWhiteSpace(reason))
                 return (false, "Enter a reason for rejecting this request.");
 
-            var reservation = _reservationRepository.GetReservationForUpdate(reservationId);
-            if (reservation == null)
-                return (false, "That request was not found.");
-            if (reservation.Status != ReservationStatuses.Pending)
-                return (false, "Only pending requests can be rejected. This one was already reviewed.");
+            return Review(reservationId, reservation =>
+            {
+                if (reservation == null)
+                    return (false, "That request was not found.");
+                if (reservation.Status != ReservationStatuses.Pending)
+                    return (false, "Only pending requests can be rejected. This one was already reviewed.");
 
-            var now = DateTime.Now;
-            reservation.Status = ReservationStatuses.Rejected;
-            reservation.RejectedByUserId = ResolveUser(actorUserId);
-            reservation.RejectedAt = now;
-            reservation.RejectionReason = reason.Trim();
-            reservation.UpdatedBy = actorName;
-            reservation.UpdatedAt = now;
+                var now = DateTime.Now;
+                reservation.Status = ReservationStatuses.Rejected;
+                reservation.RejectedByUserId = ResolveUser(actorUserId);
+                reservation.RejectedAt = now;
+                reservation.RejectionReason = reason.Trim();
+                reservation.UpdatedBy = actorName;
+                reservation.UpdatedAt = now;
 
-            _reservationRepository.SaveChanges();
-            return (true, $"{reservation.ReservationNumber} was rejected.");
+                _notifications.ReservationChanged(reservation, NotificationEvents.ReservationRejected);
+                return (true, $"{reservation.ReservationNumber} was rejected.");
+            });
         }
 
         public (bool ok, string message) Release(ReleaseReservationRequest request, string actorName)
@@ -235,6 +241,13 @@ namespace ASI.Basecode.Services.Services
 
             _reservationRepository.SaveChanges();
             return (true, $"{reservation.ReservationNumber} was released and marked as borrowed.");
+        }
+
+        private (bool ok, string message) Review(int id, Func<Reservation, (bool Ok, string Message)> operation)
+        {
+            try { return _reservationRepository.Review(id, operation); }
+            catch (ASI.Basecode.Data.Exceptions.ReservationConcurrencyException)
+            { return (false, "This reservation changed during review. Reload it and try again."); }
         }
 
         // ---------------------------------------------------------------- helpers

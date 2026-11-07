@@ -23,7 +23,6 @@
 
 <div class="page-heading">
     <div>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMINISTRATION</div>
         <h1>Users &amp; roles</h1>
         <p>Manage system access and role assignments for HiRAM users.</p>
     </div>
@@ -47,15 +46,12 @@ else
 {
     <section class="stats-grid" aria-label="User overview">
         <div class="stat-card">
-            <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-users" /></svg></span>
             <span class="stat-copy"><span>Total users</span><strong>@Model.Count</strong><small>Accounts in HiRAM</small></span>
         </div>
         <div class="stat-card">
-            <span class="stat-icon stat-icon-teal"><svg class="icon"><use href="#i-check" /></svg></span>
             <span class="stat-copy"><span>Active accounts</span><strong>@activeCount</strong><small>Can sign in</small></span>
         </div>
         <div class="stat-card">
-            <span class="stat-icon stat-icon-blue"><svg class="icon"><use href="#i-shield" /></svg></span>
             <span class="stat-copy"><span>Roles</span><strong>@roles.Count</strong><small><a asp-controller="UserAccount" asp-action="RoleAccess">View role access</a></small></span>
         </div>
     </section>
@@ -93,16 +89,16 @@ else
                     <span>Status</span>
                     <select id="statusFilter" aria-label="Filter by status">
                         <option value="all">All statuses</option>
-                        @foreach (var status in ASI.Basecode.Resources.Constants.AccountStatuses.All)
+                        @foreach (var status in ASI.Basecode.Resources.Constants.AccountStatuses.FilterOptions)
                         {
-                            <option value="@status.ToLowerInvariant()">@status</option>
+                            <option value="@status.ToLowerInvariant()">@(status == "PendingApproval" ? "Pending approval" : status)</option>
                         }
                     </select>
                 </label>
             </div>
-            <div class="table-scroll">
+            <div class="table-scroll" role="region" aria-label="User accounts" tabindex="0">
                 <table class="category-table">
-                    <thead><tr><th scope="col">USER</th><th scope="col">EMAIL</th><th scope="col">ROLE</th><th scope="col">LAST ACTIVE</th><th scope="col">STATUS</th><th scope="col" class="actions-column">ACTIONS</th></tr></thead>
+                    <thead><tr><th scope="col">User</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Last active</th><th scope="col">Status</th><th scope="col" class="actions-column">Actions</th></tr></thead>
                     <tbody id="userRows">
                         @foreach (var account in Model)
                         {
@@ -111,7 +107,7 @@ else
                                 <td>@account.Email</td>
                                 <td><span class="role-pill">@account.RoleName</span></td>
                                 <td>@LastActive(account.LastLoginAt)</td>
-                                <td><span class="status-badge status-@account.AccountStatus.ToLowerInvariant()"><span></span>@account.AccountStatus</span></td>
+                                <td><span class="status-badge status-@account.AccountStatus.ToLowerInvariant()"><span></span>@(account.AccountStatus == "PendingApproval" ? "Pending approval" : account.AccountStatus)</span></td>
                                 <td class="actions-column">
                                     <div class="row-actions">
                                         <a class="icon-button" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="View @account.FullName" title="View account"><svg class="icon"><use href="#i-eye" /></svg></a>

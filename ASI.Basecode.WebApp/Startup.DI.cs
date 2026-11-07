@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Data;
+using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Interfaces;
@@ -45,10 +45,20 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IReservationService, ReservationService>();
             this._services.AddScoped<IReportService, ReportService>();
             this._services.AddHttpClient<IEquipmentPhotoService, EquipmentPhotoService>();
+            this._services.AddHttpClient<IProfilePhotoService, ProfilePhotoService>();
 
             this._services.Configure<SupabaseStorageOptions>(this.Configuration.GetSection(SupabaseStorageOptions.SectionName));
 
+            this._services.AddScoped<IMaintenanceService, MaintenanceService>();
+            this._services.AddScoped<IEmailManager, ASI.Basecode.Services.Manager.EmailManager>();
+            this._services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
+
             // Repositories
+            this._services.AddScoped<INotificationRepository, NotificationRepository>();
+            this._services.AddScoped<INotificationService, NotificationService>();
+            this._services.AddScoped<INotificationEmailDispatcher, NotificationEmailDispatcher>();
+            this._services.AddHostedService<Workers.NotificationEmailWorker>();
+            this._services.AddScoped<IBorrowerProfileRepository, BorrowerProfileRepository>();
             this._services.AddScoped<IEquipmentReservationRepository, EquipmentReservationRepository>();
             this._services.AddScoped<IUserRepository, UserRepository>();
             this._services.AddScoped<IAccountRepository, AccountRepository>();
@@ -57,7 +67,6 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IReservationRepository, ReservationRepository>();
             this._services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
             this._services.AddScoped<IRoleRepository, RoleRepository>();
-            this._services.AddScoped<IAuditLogRepository, AuditLogRepository>();
             this._services.AddScoped<IReportRepository, ReportRepository>();
 
             // Manager Class
@@ -67,3 +76,4 @@ namespace ASI.Basecode.WebApp
         }
     }
 }
+

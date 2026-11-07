@@ -5,12 +5,13 @@
     ViewData["Title"] = Model.EquipmentName;
     ViewData["TopbarPage"] = "Browse equipment › " + Model.EquipmentName;
     var reservationId = (int?)ViewData["EditingReservationId"];
-    var backUrl = Url.Action("Index", "BrowseEquipment", new { reservationId });
+    var canManage = User.IsInRole("Custodian") || User.IsInRole("Admin");
+    var backUrl = canManage ? Url.Action("Index", "Equipment") : Url.Action("Index", "BrowseEquipment", new { reservationId });
     var selected = ViewBag.IsSelected is bool value && value;
     var selectable = Model.Status != EquipmentAvailability.Unavailable;
     var brandModel = string.Join(" ", new[] { Model.Brand, Model.Model }.Where(value => !string.IsNullOrWhiteSpace(value)));
     var photos = Model.ImageUrls ?? new List<string>();
-    var placeholder = Url.Content("~/images/equipment-placeholder.jpg");
+    var placeholder = Url.Content("~/images/equipment-placeholder.svg");
     var galleryPhotos = photos.Count > 0 ? photos : new List<string> { placeholder };
     var note = !Model.IsActive ? "This equipment is inactive and cannot be borrowed right now." : Model.ConditionStatus switch
     {
@@ -34,10 +35,18 @@
      data-selectable="@(selectable ? "true" : "false")"
      data-select-url="@Url.Action("Select", "BrowseEquipment", new { reservationId })"
      data-deselect-url="@Url.Action("Deselect", "BrowseEquipment", new { reservationId })"
-     data-availability-url="@Url.Action("Availability", "BrowseEquipment", new { id = Model.EquipmentId, reservationId })"
-     data-schedule-url="@Url.Action("Schedule", "BrowseEquipment", new { id = Model.EquipmentId, reservationId })">
+     data-availability-url="@Url.Action("Availability", canManage ? "Equipment" : "BrowseEquipment", new { id = Model.EquipmentId, reservationId })"
+     data-schedule-url="@Url.Action("Schedule", canManage ? "Equipment" : "BrowseEquipment", new { id = Model.EquipmentId, reservationId })">
+    @if (TempData["EquipmentSuccess"] is string success)
+    {
+        <div class="alert alert-success" role="status">@success</div>
+    }
+    @if (TempData["EquipmentError"] is string error)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
     @Html.AntiForgeryToken()
-    <a class="details-back" href="@backUrl">‹ Back to browse equipment</a>
+    <a class="details-back" href="@backUrl">‹ Back to equipment</a>
 
     <section class="content-card details-summary" aria-labelledby="detailsTitle">
         <div class="details-layout">
@@ -76,12 +85,41 @@
                     <div><dt>Next reservation</dt><dd>@(Model.NextReservationStart?.ToString("MMM d, yyyy h:mm tt") ?? "None scheduled")</dd></div>
                 </dl>
                 <p class="condition-note">@note</p>
-                <div class="details-page-actions">
-                    <a class="button button-secondary" href="@backUrl">Back</a>
-                    <button type="button" class="button button-primary" id="detailsSelect" disabled="@(!selectable)">
-                        @(!selectable ? "Not available" : selected ? "Remove from selection" : "Select this item")
-                    </button>
-                </div>
+                @if (canManage)
+                {
+                    <div class="details-management-actions" aria-label="Equipment actions">
+                        <div class="details-action-row">
+                            <a class="button button-primary" asp-controller="Equipment" asp-action="Edit" asp-route-id="@Model.EquipmentId">Edit equipment</a>
+                            <a class="button button-secondary" asp-controller="Maintenance" asp-action="Create" asp-route-equipmentId="@Model.EquipmentId">Schedule maintenance</a>
+                        </div>
+                        <div class="details-lifecycle-actions" aria-label="Equipment status and deletion">
+                            <div>
+                                <strong>@(Model.IsActive ? "Active equipment" : "Inactive equipment")</strong>
+                                <p>@(Model.IsActive ? "Deactivate before deleting this equipment." : "Activate to make this equipment available for use, or permanently delete it.")</p>
+                            </div>
+                            <div class="details-action-row">
+                                <form asp-controller="Equipment" asp-action="@(Model.IsActive ? "Deactivate" : "Activate")" method="post">
+                                    <input type="hidden" name="returnToDetails" value="true" />
+                                    <input type="hidden" name="id" value="@Model.EquipmentId" />
+                                    <button type="submit" class="button button-secondary">@(Model.IsActive ? "Deactivate" : "Activate")</button>
+                                </form>
+                                @if (!Model.IsActive)
+                                {
+                                    <button type="button" class="button button-danger" id="openDetailsDelete">Delete equipment</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="details-page-actions">
+                        <a class="button button-secondary" href="@backUrl">Back</a>
+                        <button type="button" class="button button-primary" id="detailsSelect" disabled="@(!selectable)">
+                            @(!selectable ? "Not available" : selected ? "Remove from selection" : "Select this item")
+                        </button>
+                    </div>
+                }
                 <p id="selectionMessage" class="details-feedback" role="status"></p>
             </div>
         </div>
@@ -142,6 +180,20 @@
     </div>
 </div>
 
+@if (canManage && !Model.IsActive)
+{
+    <dialog class="app-dialog" id="detailsDeleteDialog" aria-labelledby="detailsDeleteTitle">
+        <h2 id="detailsDeleteTitle">Delete equipment</h2>
+        <p>Permanently delete <strong>@Model.EquipmentName</strong>? This cannot be undone.</p>
+        <form asp-controller="Equipment" asp-action="Delete" method="post">
+            <input type="hidden" name="id" value="@Model.EquipmentId" />
+            <div class="dialog-actions">
+                <button type="button" class="button button-secondary" id="closeDetailsDelete">Cancel</button>
+                <button type="submit" class="button button-danger">Delete equipment</button>
+            </div>
+        </form>
+    </dialog>
+}
 @section Scripts {
     <script src="~/js/equipment-details.js" asp-append-version="true"></script>
 }

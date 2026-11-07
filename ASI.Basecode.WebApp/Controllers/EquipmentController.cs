@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Custodian, Admin")]
+[Authorize(Roles = "Borrower, Custodian, Admin")]
 public class EquipmentController : ControllerBase<EquipmentController>
 {
     private readonly IEquipmentService _equipmentService;
@@ -39,7 +39,9 @@ public class EquipmentController : ControllerBase<EquipmentController>
         _equipmentPhotoService = equipmentPhotoService;
     }
 
+
     [HttpGet]
+    [Authorize(Roles = "Custodian,Admin")]
     public async Task<IActionResult> Index(EquipmentListRequest request)
     {
         try
@@ -76,6 +78,121 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpGet]
+    [Authorize(Roles = "Custodian,Admin")]
+    public IActionResult Schedule(int id, DateTime? from, DateTime? to, int? reservationId)
+    {
+        if (_equipmentService.GetEquipmentById(id) == null)
+            return NotFound();
+        if (!from.HasValue || !to.HasValue || to <= from || (to.Value - from.Value).TotalDays > 62)
+            return BadRequest(new { message = "Choose a calendar range of up to 62 days." });
+
+        try
+        {
+            if (_equipmentService.GetEquipmentById(id) == null)
+                return NotFound();
+
+            var periods = _equipmentService.GetSchedule(id, from.Value, to.Value);
+            return Json(new
+            {
+                periods = periods.Select(period => new
+                {
+                    type = period.Type,
+                    label = period.Label,
+                    startIso = period.Start.ToString("yyyy-MM-dd'T'HH:mm:ss"),
+                    endIso = period.End.ToString("yyyy-MM-dd'T'HH:mm:ss")
+                })
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to load equipment schedule.");
+            return StatusCode(500, new { message = "Unable to load the calendar. Please try again." });
+        }
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Custodian,Admin")]
+    public IActionResult Availability(int id, DateTime? from, DateTime? to, int? reservationId)
+    {
+        if (_equipmentService.GetEquipmentById(id) == null)
+            return NotFound();
+
+        try
+        {
+            var start = from ?? DateTime.Now;
+            var end = to ?? start.AddDays(14);
+            var result = _equipmentService.GetAvailability(id, start, end);
+
+            return Json(new
+            {
+                isAvailable = result.IsAvailable,
+                reason = result.Reason,
+                periods = result.Periods.Select(period => new
+                {
+                    type = period.Type,
+                    label = period.Label,
+                    start = period.Start.ToString("MMM d, yyyy h:mm tt"),
+                    end = period.End.ToString("MMM d, yyyy h:mm tt")
+                }),
+                slots = result.Slots.Select(slot => new
+                {
+                    start = slot.Start.ToString("MMM d, yyyy h:mm tt"),
+                    end = slot.End.ToString("MMM d, yyyy h:mm tt")
+                })
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to load equipment availability.");
+            return StatusCode(500, new { message = "Unable to load availability." });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(int id, int? reservationId)
+    {
+        var isBorrower = User.IsInRole("Borrower");
+
+        // Reservation editing remains on the borrower route until
+        // its ownership checks are migrated.
+        if (isBorrower && reservationId.HasValue)
+            return RedirectToAction(
+                "Details",
+                "BrowseEquipment",
+                new { id, reservationId });
+
+        var equipment = isBorrower
+            ? _equipmentService.GetBorrowableEquipmentById(id)
+            : _equipmentService.GetEquipmentById(id);
+
+        if (equipment == null)
+            return NotFound();
+
+        var cancellationToken = HttpContext.RequestAborted;
+
+        foreach (var photo in _equipmentService.GetEquipmentPhotos(id))
+        {
+            try
+            {
+                equipment.ImageUrls.Add(
+                    await _equipmentPhotoService.CreateReadUrlAsync(
+                        photo.StoragePath, cancellationToken));
+            }
+            catch (Exception exception)
+                when (!cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogWarning(
+                    exception,
+                    "Unable to load photo {PhotoId} for equipment {EquipmentId}.",
+                    photo.PhotoId, id);
+            }
+        }
+
+        return View(equipment);
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Custodian,Admin")]
     public IActionResult Create()
     {
         LoadCategories(null);
@@ -84,6 +201,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Custodian,Admin")]
     public async Task<IActionResult> Create(EquipmentFormViewModel equipment, List<IFormFile> photos)
     {
         var uploads = PreparePhotoUploads(photos, EquipmentPhotoPolicy.MaxPhotosPerEquipment);
@@ -189,6 +307,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpGet]
+    [Authorize(Roles = "Custodian, Admin")]
     public async Task<IActionResult> Edit(int id)
     {
         try
@@ -212,6 +331,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Custodian, Admin")]
     public async Task<IActionResult> Edit(EquipmentFormViewModel equipment, List<IFormFile> photos, List<int> removedPhotoIds)
     {
         var attemptedPaths = new List<string>();
@@ -284,19 +404,22 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpPost]
-    public IActionResult Activate(int id, EquipmentListRequest request)
+    [Authorize(Roles = "Custodian, Admin")]
+    public IActionResult Activate(int id, EquipmentListRequest request, bool returnToDetails = false)
     {
-        return SetStatus(id, true, request);
+        return SetStatus(id, true, request, returnToDetails);
     }
 
     [HttpPost]
-    public IActionResult Deactivate(int id, EquipmentListRequest request)
+    [Authorize(Roles = "Custodian, Admin")]
+    public IActionResult Deactivate(int id, EquipmentListRequest request, bool returnToDetails = false)
     {
-        return SetStatus(id, false, request);
+        return SetStatus(id, false, request, returnToDetails);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Custodian, Admin")]
     public async Task<IActionResult> Delete(int id, EquipmentListRequest request)
     {
         try
@@ -338,7 +461,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
         return RedirectToList(request);
     }
 
-    private IActionResult SetStatus(int id, bool isActive, EquipmentListRequest request)
+    private IActionResult SetStatus(int id, bool isActive, EquipmentListRequest request, bool returnToDetails)
     {
         try
         {
@@ -357,7 +480,9 @@ public class EquipmentController : ControllerBase<EquipmentController>
             TempData["EquipmentError"] = "Unable to change the equipment status. Please try again.";
         }
 
-        return RedirectToList(request);
+        return returnToDetails && _equipmentService.GetEquipmentById(id) != null
+            ? RedirectToAction(nameof(Details), new { id })
+            : RedirectToList(request);
     }
 
     // Builds Category dropdown. The form lists active categories (plus the item's current one);
@@ -450,3 +575,4 @@ public class EquipmentController : ControllerBase<EquipmentController>
         return null;
     }
 }
+

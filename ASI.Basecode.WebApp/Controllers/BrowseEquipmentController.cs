@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Borrower")]
+[Authorize(Roles = "Borrower, Admin")]
 public class BrowseEquipmentController : ControllerBase<BrowseEquipmentController>
 {
     private const string SelectionKey = "SelectedEquipmentIds";
@@ -127,7 +127,7 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
 
         ViewData["EditingReservationId"] = reservationId;
         ViewBag.IsSelected = GetSelectedIds(reservationId).Contains(id);
-        return View(equipment);
+        return View("~/Views/Equipment/Details.cshtml", equipment);
     }
 
     [HttpGet]

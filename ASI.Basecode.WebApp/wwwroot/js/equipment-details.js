@@ -3,6 +3,9 @@
     const root = document.getElementById("equipmentDetailsRoot");
     if (!root) return;
     const get = id => document.getElementById(id);
+    const deleteDialog = get("detailsDeleteDialog");
+    get("openDetailsDelete")?.addEventListener("click", () => deleteDialog.showModal());
+    get("closeDetailsDelete")?.addEventListener("click", () => deleteDialog.close());
     const pad = value => String(value).padStart(2, "0");
     const inputValue = date => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
     const dayStart = date => new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -68,10 +71,11 @@
     [get("galleryPrev"), get("galleryNext"), get("galleryCount"), get("galleryThumbs")].forEach(element => { element.hidden = thumbs.length <= 1; });
 
     function syncSelect() {
+        if (!select) return;
         select.disabled = root.dataset.selectable !== "true";
         select.textContent = select.disabled ? "Not available" : selected ? "Remove from selection" : "Select this item";
     }
-    select.addEventListener("click", async () => {
+    select?.addEventListener("click", async () => {
         select.disabled = true;
         get("selectionMessage").textContent = "Updating selection…";
         try {

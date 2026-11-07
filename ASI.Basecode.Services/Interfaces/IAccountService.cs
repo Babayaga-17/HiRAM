@@ -1,8 +1,10 @@
 ﻿using ASI.Basecode.Data.Models;
+using ASI.Basecode.Services.ServiceModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using static ASI.Basecode.Resources.Constants.Enums;
 
@@ -12,5 +14,6 @@ namespace ASI.Basecode.Services.Interfaces
     {
         LoginResult AuthenticateAccount(string email, string password, ref Account account);
         Task RecordSuccessfulLoginAsync(int accountId);
+        Task<MyProfileViewModel> GetProfileAsync(int userId, CancellationToken cancellationToken = default);
     }
 }

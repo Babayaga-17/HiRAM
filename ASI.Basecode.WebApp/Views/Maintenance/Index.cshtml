@@ -1,0 +1,62 @@
+@using ASI.Basecode.Services.ServiceModels
+@model MaintenancePageViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Maintenance records";
+    ViewData["TopbarPage"] = "Maintenance records";
+    var isAdmin = User.IsInRole("Admin");
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/maintenance.css" asp-append-version="true" />
+}
+<div class="maintenance-page">
+    <div class="page-heading">
+        <div><h1>Maintenance records</h1><p>Keep equipment out of circulation until it is ready to use again.</p></div>
+        <a class="button button-primary heading-action" asp-action="Create"><svg class="icon" aria-hidden="true"><use href="#i-plus" /></svg>Schedule maintenance</a>
+    </div>
+
+    @if (TempData["MaintenanceError"] is string error) { <div class="category-notice category-notice-error" role="alert">@error</div> }
+    @if (TempData["MaintenanceSuccess"] is string success) { <div class="category-notice category-notice-success" role="status">@success</div> }
+    <section class="content-card maintenance-workflow" aria-label="Maintenance workflow">
+        <div><span class="maintenance-dot scheduled"></span><div><strong>Scheduled</strong><p>Custodian reports work and sets the start.</p></div></div>
+        <div><span class="maintenance-dot inprogress"></span><div><strong>In progress</strong><p>Admin proceeds with maintenance.</p></div></div>
+        <div><span class="maintenance-dot completed"></span><div><strong>Operational again</strong><p>Admin confirms completion; the end is recorded.</p></div></div>
+    </section>
+    <section class="content-card maintenance-records" aria-labelledby="recordsHeading">
+        <div class="maintenance-section-heading"><div><h2 id="recordsHeading">Maintenance history</h2><p>@(isAdmin ? "Review scheduled work and follow equipment through completion." : "Track equipment schedules and their progress.")</p></div></div>
+        <form asp-action="Index" method="get" class="maintenance-filters">
+            <label for="maintenanceSearch">Search equipment<input id="maintenanceSearch" name="search" value="@Model.Search" type="search" placeholder="Equipment name or code" /></label>
+            <label for="maintenanceStatus">Status<select id="maintenanceStatus" name="status"><option value="">All statuses</option><option value="Scheduled" selected="@(Model.Status == "Scheduled")">Scheduled</option><option value="InProgress" selected="@(Model.Status == "InProgress")">In progress</option><option value="Completed" selected="@(Model.Status == "Completed")">Completed</option><option value="Cancelled" selected="@(Model.Status == "Cancelled")">Cancelled</option></select></label>
+        <button class="button button-secondary" type="submit">Apply filters</button></form>
+        @if (!Model.RecordsAvailable)
+        {
+            <div class="maintenance-empty"><svg class="icon" aria-hidden="true"><use href="#i-box" /></svg><h3>Maintenance unavailable</h3><p>Records could not be loaded. Check the database update and try again.</p><a class="button button-secondary" asp-action="Create">Prepare a schedule</a></div>
+        }
+        else if (Model.Records.Count == 0)
+        {
+            <div class="maintenance-empty"><h3>No maintenance recorded</h3><p>Schedule equipment care to start its maintenance history.</p><a class="button button-secondary" asp-action="Create">Schedule maintenance</a></div>
+        }
+        else
+        {
+            <div class="maintenance-table-scroll" tabindex="0" role="region" aria-label="Maintenance records"><table class="maintenance-table"><thead><tr><th>Equipment</th><th>Maintenance</th><th>Scheduled start</th><th>Completed</th><th>Status</th><th>Action</th></tr></thead><tbody>
+            @foreach (var record in Model.Records)
+            {
+                <tr>
+                    <td><a asp-controller="Equipment" asp-action="Details" asp-route-id="@record.EquipmentId">@record.Equipment?.EquipmentName</a><small>@record.Equipment?.EquipmentCode</small></td>
+                    <td><strong>@record.MaintenanceType</strong><small>@record.Description</small></td>
+                    <td>@record.StartDateTime.ToString("MMM d, yyyy")<small>@record.StartDateTime.ToString("h:mm tt")</small></td>
+                    <td>@(record.EndDateTime?.ToString("MMM d, yyyy h:mm tt") ?? "Not completed")</td>
+                    <td><span class="maintenance-status @record.Status.ToLowerInvariant()">@(record.Status == "InProgress" ? "In progress" : record.Status)</span></td>
+                    <td>@if (isAdmin && (record.Status == "Scheduled" || record.Status == "InProgress")) { <a class="button button-secondary" asp-action="Details" asp-route-id="@record.MaintenanceId" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-page="@Model.Page">Review</a> } else { <a asp-action="Details" asp-route-id="@record.MaintenanceId" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-page="@Model.Page">View details</a> }</td>
+                </tr>
+            }
+            </tbody></table></div>
+
+        }
+    </section>
+</div>
+<nav class="maintenance-pagination" aria-label="Maintenance pages">
+    <span>@Model.TotalCount record(s) · Page @Model.Page of @Model.TotalPages</span>
+    @if (Model.Page > 1) { <a class="button button-secondary" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status">Previous</a> }
+    @if (Model.Page < Model.TotalPages) { <a class="button button-secondary" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status">Next</a> }
+</nav>

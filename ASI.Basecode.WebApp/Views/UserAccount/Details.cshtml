@@ -5,6 +5,8 @@
     ViewData["Title"] = "User Account";
     ViewData["TopbarPage"] = "User account";
     var isSelf = ViewData["IsSelf"] as bool? == true;
+    var isPending = Model.AccountStatus == ASI.Basecode.Resources.Constants.AccountStatuses.PendingApproval;
+    var registration = ViewData["RegistrationProfile"] as MyProfileViewModel;
     var isLocked = Model.LockoutEndAt.HasValue && Model.LockoutEndAt.Value > DateTime.Now;
     string Stamp(DateTime? value) => value.HasValue ? value.Value.ToString("MMM d, yyyy h:mm tt") : "—";
 }
@@ -15,7 +17,6 @@
 <div class="page-heading form-page-heading">
     <div>
         <a class="back-link" asp-controller="UserAccount" asp-action="Index"><svg class="icon"><use href="#i-chevron" /></svg>Back to users</a>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMINISTRATION</div>
         <h1>@Model.FullName</h1>
         <p>@Model.UserCode · @Model.Email</p>
     </div>
@@ -30,6 +31,33 @@
 {
     <div class="category-notice category-notice-error" role="alert">@errorMessage</div>
 }
+@if (TempData["UserAccountWarning"] is string warningMessage)
+{
+    <div class="category-notice" role="status">@warningMessage</div>
+}
+
+@if (isPending && registration != null)
+{
+    <section class="content-card registration-review" aria-labelledby="registrationReviewHeading">
+        <div class="registration-review-heading">
+            @if (!string.IsNullOrWhiteSpace(registration.ProfilePhotoUrl))
+            {
+                <img src="@registration.ProfilePhotoUrl" alt="Profile photo of @registration.FullName" referrerpolicy="no-referrer" width="80" height="80" />
+            }
+            <div><h2 id="registrationReviewHeading">Registration review</h2><p>Pending approval. Check these details before granting sign-in and borrowing access.</p></div>
+        </div>
+        <dl class="details-list">
+            <div><dt>Borrower type</dt><dd>@(registration.BorrowerType ?? "Not provided")</dd></div>
+            <div><dt>Department</dt><dd>@(registration.DepartmentName ?? "Not provided")</dd></div>
+            <div><dt>Eligibility</dt><dd>@(registration.EligibilityStatus ?? "No borrower profile")</dd></div>
+            @if (registration.BorrowerType != "Faculty")
+            {
+                <div><dt>Program</dt><dd>@(registration.Program ?? "Not provided")</dd></div>
+                <div><dt>Year level</dt><dd>@(registration.YearLevel?.ToString() ?? "Not provided")</dd></div>
+            }
+        </dl>
+    </section>
+}
 
 <div class="form-page-grid">
     <section class="content-card form-card" aria-label="Account details">
@@ -43,7 +71,7 @@
             <div><dt>Email</dt><dd>@Model.Email</dd></div>
             <div><dt>Contact number</dt><dd>@(string.IsNullOrEmpty(Model.ContactNumber) ? "—" : Model.ContactNumber)</dd></div>
             <div><dt>Role</dt><dd><span class="role-pill">@Model.RoleName</span></dd></div>
-            <div><dt>Status</dt><dd><span class="status-badge status-@Model.AccountStatus.ToLowerInvariant()"><span></span>@Model.AccountStatus</span></dd></div>
+            <div><dt>Status</dt><dd><span class="status-badge status-@Model.AccountStatus.ToLowerInvariant()"><span></span>@(isPending ? "Pending approval" : Model.AccountStatus)</span></dd></div>
             <div><dt>Last sign-in</dt><dd>@Stamp(Model.LastLoginAt)</dd></div>
             <div><dt>Failed sign-in attempts</dt><dd>@Model.FailedLoginAttempts</dd></div>
             <div><dt>Locked until</dt><dd>@(isLocked ? Stamp(Model.LockoutEndAt) : "Not locked")</dd></div>
@@ -59,6 +87,14 @@
         @if (isSelf)
         {
             <p>This is your own account. You cannot deactivate it or change its role.</p>
+        }
+        else if (isPending)
+        {
+            <p>Approval activates this account and makes the borrower eligible to request equipment.</p>
+            <form asp-controller="UserAccount" asp-action="Approve" asp-route-id="@Model.UserId" method="post">
+                <input type="hidden" name="version" value="@Model.Version" />
+                <button type="submit" class="button button-primary">Approve registration</button>
+            </form>
         }
         else if (Model.IsActive)
         {

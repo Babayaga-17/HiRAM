@@ -11,112 +11,77 @@
     var email = ViewBag.Email as string;
 }
 
-@section Styles {
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;650;700&display=swap" rel="stylesheet" />
-
-    <link rel="stylesheet" href="~/css/hiram-auth.css" asp-append-version="true" />
-}
-
 <main class="auth-shell"
       id="verifyCodePage"
       data-server-now="@Model.ServerNowUtc.ToString("O")"
       data-expires-at="@(Model.ExpiresAtUtc?.ToString("O"))"
       data-resend-available-at="@(Model.ResendAvailableAtUtc?.ToString("O"))">
-    <section class="brand-panel">
-        <div class="brand-row">
-            <div class="brand-mark">H</div>
-            <span class="brand-name">HiRAM</span>
-        </div>
-        <div class="brand-copy">
-            <p class="eyebrow">School resource management</p>
-            <h1>Check your email for the code.</h1>
-            <p>
-                The code expires in @PasswordResetPolicy.CodeExpiryMinutes minutes. 
-                Enter it to continue to your new password.
-            </p>
-        </div>
-        <div class="glass-card">
-            <div>
-                <strong>Code sent</strong>
-                <span>@email</span>
-            </div>
-            <span class="badge">Sent</span>
-        </div>
-        <div class="brand-foot">Equipment Borrowing &amp; Reservation System</div>
-    </section>
-
     <section class="form-panel">
-        <div class="form-box">
-            <div class="form-head">
-                <h2>Verify your code</h2>
-                <p>Enter the 6-digit code we sent to your email.</p>
-            </div>
-            <p id="codeExpiryText">Checking code expiry...</p>
-
-            @if (!string.IsNullOrEmpty(error))
-            {
-                <div class="alert" role="alert">@error</div>
-            }
-
-            @if (TempData["ResendSuccess"] is string resendSuccess)
-            {
-                <div class="alert" role="status">@resendSuccess</div>
-            }
-
-            @if (TempData["ResendError"] is string resendError)
-            {
-                <div class="alert" role="alert">@resendError</div>
-            }
-
-            <form asp-controller="Account" asp-action="VerifyCode" method="post">
-                <input type="hidden" name="email" value="@email" />
-
-                <div class="field">
-                    <label for="code">Verification code</label>
-                    <div class="input-wrap">
-                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.2 7.7 8 9 4.8-1.3 8-4.5 8-9V6l-8-3Z" /><path d="m9 12 2 2 4-4" /></svg>
-                        <input id="code" name="code" class="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="one-time-code" required autofocus />
-                    </div>
-                </div>
-
-                <div class="btn-row">
-                    <a class="btn-secondary" asp-controller="Account" asp-action="CancelReset">Cancel</a>
-                    <button type="submit" class="btn-primary">Verify code</button>
-                </div>
-            </form>
-
-            <form id="resendCodeForm"
-                  class="form-links"
-                  asp-controller="Account"
-                  asp-action="ResendCode"
-                  method="post">
-                @Html.AntiForgeryToken()
-
-                <input type="hidden" name="email" value="@email" />
-
-                <span>Didn't get a code?</span>
-
-                <button id="resendCodeButton"
-                        type="submit"
-                        class="resend-code">
-                    Send a new code
-                </button>
-            </form>
-
-            <p id="resendCooldownText"></p>
-
-            <span id="resendCodeStatus" class="send-code-status" role="status"></span>
-
-            <p class="form-links">
-                <a asp-controller="Account" asp-action="ForgotPassword">
-                    Change email
-                </a>
-            </p>
+        <div class="form-head">
+            <h1>Verify your code</h1>
+            <p>Enter the 6-digit code sent to <strong>@email</strong>. The code expires in @PasswordResetPolicy.CodeExpiryMinutes minutes.</p>
         </div>
-        <div class="form-foot">Secure access for the HiRAM school community</div>
+        <p id="codeExpiryText">Checking code expiry...</p>
+
+        @if (!string.IsNullOrEmpty(error))
+        {
+            <div class="alert" role="alert">@error</div>
+        }
+
+        @if (TempData["ResendSuccess"] is string resendSuccess)
+        {
+            <div class="alert" role="status">@resendSuccess</div>
+        }
+
+        @if (TempData["ResendError"] is string resendError)
+        {
+            <div class="alert" role="alert">@resendError</div>
+        }
+
+        <form asp-controller="Account" asp-action="VerifyCode" method="post">
+            <input type="hidden" name="email" value="@email" />
+
+            <div class="field">
+                <label for="code">Verification code</label>
+                <div class="input-wrap">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4.5 3.2 7.7 8 9 4.8-1.3 8-4.5 8-9V6l-8-3Z" /><path d="m9 12 2 2 4-4" /></svg>
+                    <input id="code" name="code" class="code" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" autocomplete="one-time-code" required autofocus />
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <a class="btn-secondary" asp-controller="Account" asp-action="CancelReset">Cancel</a>
+                <button type="submit" class="btn-primary">Verify code</button>
+            </div>
+        </form>
+
+        <form id="resendCodeForm"
+              class="form-links"
+              asp-controller="Account"
+              asp-action="ResendCode"
+              method="post">
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" name="email" value="@email" />
+
+            <span>Didn't get a code?</span>
+
+            <button id="resendCodeButton"
+                    type="submit"
+                    class="resend-code">
+                Send a new code
+            </button>
+        </form>
+
+        <p id="resendCooldownText"></p>
+
+        <span id="resendCodeStatus" class="send-code-status" role="status"></span>
+
+        <p class="form-links">
+            <a asp-controller="Account" asp-action="ForgotPassword">
+                Change email
+            </a>
+        </p>
     </section>
 </main>
 

@@ -84,6 +84,9 @@ namespace ASI.Basecode.WebApp.Authentication
                 throw new ArgumentNullException(nameof(account));
             }
 
+            if (account.AccountStatus != AccountStatuses.Active)
+                throw new InvalidOperationException("Only approved, active accounts can sign in.");
+
             if (account.User == null)
             {
                 throw new InvalidOperationException(
@@ -108,13 +111,15 @@ namespace ASI.Basecode.WebApp.Authentication
                 new Claim(ClaimTypes.NameIdentifier, account.UserId.ToString(), ClaimValueTypes.String, Const.Issuer),
                 new Claim(ClaimTypes.Name, fullName, ClaimValueTypes.String, Const.Issuer),
                 new Claim(ClaimTypes.Email, account.Email ?? string.Empty, ClaimValueTypes.String, Const.Issuer),
-                new Claim(ClaimTypes.Role, account.Role.RoleName, ClaimValueTypes.String, Const.Issuer),
+                new Claim("AccountStatus", account.AccountStatus, ClaimValueTypes.String, Const.Issuer),
 
                 new Claim("AccountId", account.AccountId.ToString(), ClaimValueTypes.String, Const.Issuer),
                 new Claim("UserId", account.UserId.ToString(), ClaimValueTypes.String, Const.Issuer),
                 new Claim("UserCode", account.User.UserCode ?? string.Empty, ClaimValueTypes.String, Const.Issuer)
             };
 
+            if (account.AccountStatus == AccountStatuses.Active)
+                claims.Add(new Claim(ClaimTypes.Role, account.Role.RoleName, ClaimValueTypes.String, Const.Issuer));
             return new ClaimsIdentity(claims, Const.AuthenticationScheme);
         }
 

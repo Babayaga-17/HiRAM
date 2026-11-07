@@ -8,56 +8,39 @@
     var pending = Model ?? new List<PendingReservationListItem>();
 }
 
-<div class="page-heading">
+<header class="page-heading">
     <div>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>CUSTODIAN OVERVIEW</div>
-        <h1>Welcome, @User.Identity?.Name</h1>
-        <p>Stay on top of approvals, equipment pickups, and returns.</p>
+        <h1>Equipment desk dashboard</h1>
+        <p>Review borrowing requests and track equipment due back.</p>
     </div>
-</div>
+    <a class="button button-primary heading-action" asp-controller="Reservation" asp-action="Pending">
+        Review requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+    </a>
+</header>
 
-<section class="custodian-stats" aria-label="Equipment borrowing overview">
-    <article class="stat-card">
-        <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-calendar" /></svg></span>
-        <span class="stat-copy"><span>Pending approvals</span><strong>@pending.Count</strong><small>Requests waiting for review</small></span>
-    </article>
-    <article class="stat-card">
-        <span class="stat-icon stat-icon-teal"><svg class="icon"><use href="#i-box" /></svg></span>
-        <span class="stat-copy"><span>Pickups today</span><strong>&mdash;</strong><small>Approved reservations scheduled today</small></span>
-    </article>
-    <article class="stat-card">
-        <span class="stat-icon stat-icon-blue"><svg class="icon"><use href="#i-check" /></svg></span>
-        <span class="stat-copy"><span>Returns due today</span><strong>&mdash;</strong><small>Borrowed items due back today</small></span>
-    </article>
-    <article class="stat-card">
-        <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-info" /></svg></span>
-        <span class="stat-copy"><span>Overdue items</span><strong>&mdash;</strong><small>Outstanding items past their deadline</small></span>
-    </article>
-</section>
-
-<section class="content-card custodian-list" aria-labelledby="approvalsHeading">
-    <div class="card-heading">
+<section class="dashboard-queue" aria-labelledby="approvalsHeading">
+    <div class="dashboard-queue-heading">
         <div>
             <h2 id="approvalsHeading">Pending approval queue</h2>
-            <p class="custodian-description">Reservation requests awaiting your review.</p>
+            <p>@pending.Count @(pending.Count == 1 ? "request" : "requests") awaiting review.</p>
         </div>
-        <a class="button button-primary" asp-controller="Reservation" asp-action="Pending">View all</a>
+        <a class="button button-secondary" asp-controller="Reservation" asp-action="Returns">View returns</a>
     </div>
     @if (pending.Count == 0)
     {
-        <p class="custodian-empty">There are no pending requests right now.</p>
+        <p class="dashboard-empty">There are no pending requests right now.</p>
     }
     else
     {
-        <div class="table-scroll">
+        <div class="table-scroll" role="region" aria-label="Pending approval queue" tabindex="0">
             <table class="category-table">
                 <thead>
                     <tr>
-                        <th scope="col">REQUEST</th>
-                        <th scope="col">BORROWER</th>
-                        <th scope="col">EQUIPMENT</th>
-                        <th scope="col">SCHEDULE</th>
-                        <th scope="col" class="actions-column">ACTIONS</th>
+                        <th scope="col">Request</th>
+                        <th scope="col">Borrower</th>
+                        <th scope="col">Equipment</th>
+                        <th scope="col">Schedule</th>
+                        <th scope="col" class="actions-column">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -89,32 +72,4 @@
     }
 </section>
 
-<div class="custodian-lists">
-    <section class="content-card custodian-list" aria-labelledby="pickupsHeading">
-        <h2 id="pickupsHeading">Today's pickups</h2>
-        <p class="custodian-description">Approved reservations scheduled for equipment release today.</p>
-        <p class="custodian-empty">Borrowers, equipment, and scheduled pickup times will appear here.</p>
-    </section>
-    <section class="content-card custodian-list" aria-labelledby="returnsHeading">
-        <h2 id="returnsHeading">Outstanding returns</h2>
-        <p class="custodian-description">Equipment awaiting return, including overdue items.</p>
-        <p class="custodian-empty">Borrowers, borrowed equipment, and return deadlines will appear here.</p>
-    </section>
-</div>
-
-<section class="content-card dashboard-panel" aria-labelledby="inventoryHeading">
-    <div>
-        <h2 id="inventoryHeading">Equipment and categories</h2>
-        <p>Maintain equipment details and availability, and keep category groups up to date.</p>
-    </div>
-    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <a class="button button-primary" asp-controller="Equipment" asp-action="Index">
-            <svg class="icon"><use href="#i-box" /></svg>
-            Manage equipment
-        </a>
-        <a class="button button-primary" asp-controller="EquipmentCategory" asp-action="Index">
-            <svg class="icon"><use href="#i-layers" /></svg>
-            Manage categories
-        </a>
-    </div>
-</section>
+<partial name="_InventoryLinks" />

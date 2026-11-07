@@ -95,6 +95,12 @@ try
     Check(Submit(Form(start.AddDays(1), start.AddDays(1).AddHours(1))).Error != null, "Suspended borrower is rejected");
     user.BorrowerProfileUser.EligibilityStatus = EligibilityStatuses.Eligible; db.SaveChanges();
 
+    Check(Submit(Form(start.AddDays(2), start.AddDays(2).AddHours(1), second.EquipmentId)).Error != null,
+        "Unfinished maintenance blocks after its former planned end");
+    var completedMaintenance = db.MaintenanceRecords.Single();
+    completedMaintenance.Status = MaintenanceStatuses.Completed;
+    db.SaveChanges();
+
     var editStart = start.AddDays(3);
     var editable = Submit(Form(editStart, editStart.AddHours(2), first.EquipmentId, second.EquipmentId));
     Check(editable.Error == null, "Editable reservation is created through repository");
@@ -183,7 +189,7 @@ TestDb Open() => new(new DbContextOptionsBuilder<HiramDbContext>().UseSqlServer(
 Equipment NewEquipment(string code) => new() { EquipmentCode = code, EquipmentName = "Test " + code,
     ConditionStatus = EquipmentConditions.Good, IsActive = true, CreatedBy = "test" };
 EquipmentReservationService Service(HiramDbContext context) => new(new EquipmentReservationRepository(new UnitOfWork(context)),
-    new EquipmentService(new EquipmentRepository(new UnitOfWork(context)), null));
+    new EquipmentService(new EquipmentRepository(new UnitOfWork(context)), null), new NotificationService(new NotificationRepository(new UnitOfWork(context))));
 
 sealed class TestDb(DbContextOptions<HiramDbContext> options) : HiramDbContext(options)
 {

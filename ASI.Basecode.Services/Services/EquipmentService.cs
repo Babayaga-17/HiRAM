@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Data.Repositories;
@@ -352,8 +352,7 @@ namespace ASI.Basecode.Services.Services
                 .Where(equipment => equipment.IsActive)
                 .SelectMany(equipment => equipment.MaintenanceRecords)
                 .Where(record => (record.Status == MaintenanceStatuses.Scheduled || record.Status == MaintenanceStatuses.InProgress)
-                    && record.StartDateTime < end
-                    && (record.EndDateTime == null || record.EndDateTime > start))
+                    && record.StartDateTime < end)
                 .Select(record => new
                 {
                     record.EquipmentId,
@@ -374,7 +373,7 @@ namespace ASI.Basecode.Services.Services
                     Type = AvailabilityPeriodTypes.Maintenance,
                     Status = row.Status,
                     Start = row.StartDateTime,
-                    End = row.EndDateTime ?? end
+                    End = end
                 })
                 .ToList();
 
@@ -418,14 +417,13 @@ namespace ASI.Basecode.Services.Services
                 .Where(item => item.EquipmentId == equipmentId)
                 .SelectMany(item => item.MaintenanceRecords)
                 .Where(record => (record.Status == MaintenanceStatuses.Scheduled || record.Status == MaintenanceStatuses.InProgress)
-                    && record.StartDateTime < end
-                    && (record.EndDateTime == null || record.EndDateTime > start))
+                    && record.StartDateTime < end)
                 .Select(record => new { record.StartDateTime, record.EndDateTime })
                 .ToList()
                 .Select(record => new EquipmentBusyPeriod
                 {
                     Start = record.StartDateTime,
-                    End = record.EndDateTime ?? end,
+                    End = end,
                     Type = AvailabilityPeriodTypes.Maintenance,
                     Label = "Under maintenance"
                 })
@@ -491,8 +489,7 @@ namespace ASI.Basecode.Services.Services
                         ? EquipmentAvailability.Unavailable
                     : equipment.MaintenanceRecords.Any(record =>
                             (record.Status == MaintenanceStatuses.InProgress || record.Status == MaintenanceStatuses.Scheduled)
-                            && record.StartDateTime <= now
-                            && (record.EndDateTime == null || record.EndDateTime > now))
+                            && record.StartDateTime <= now)
                         ? EquipmentAvailability.UnderMaintenance
                     : equipment.ReservationItems.Any(item => !item.IsReturned
                             && (item.Reservation.Status == ReservationStatuses.Borrowed || item.Reservation.Status == ReservationStatuses.Overdue))

@@ -8,7 +8,6 @@
 
 <div class="page-heading">
     <div>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>EQUIPMENT MANAGEMENT</div>
         <h1>Equipment categories</h1>
         <p>Organize equipment into clear groups so it is easier to manage and find.</p>
     </div>
@@ -35,11 +34,6 @@ else
 {
     <section class="stats-grid" aria-label="Category overview">
         <div class="stat-card">
-            <span class="stat-icon stat-icon-purple">
-                <svg class="icon">
-                    <use href="#i-layers" />
-                </svg>
-            </span>
             <span class="stat-copy">
                 <span>Total categories</span>
                 <strong>@Model.TotalCategories</strong>
@@ -47,11 +41,6 @@ else
             </span>
         </div>
         <div class="stat-card">
-            <span class="stat-icon stat-icon-teal">
-                <svg class="icon">
-                    <use href="#i-check" />
-                </svg>
-            </span>
             <span class="stat-copy">
                 <span>Active categories</span>
                 <strong>@Model.ActiveCategories</strong>
@@ -59,11 +48,6 @@ else
             </span>
         </div>
         <div class="stat-card">
-            <span class="stat-icon stat-icon-blue">
-                <svg class="icon">
-                    <use href="#i-box" />
-                </svg>
-            </span>
             <span class="stat-copy">
                 <span>Equipment organized</span>
                 <strong>@Model.TotalEquipment</strong>
@@ -135,15 +119,15 @@ else
                     Clear
                 </a>
             </form>
-            <div class="table-scroll">
+            <div class="table-scroll" role="region" aria-label="Equipment categories" tabindex="0">
                 <table class="category-table">
                     <thead>
                         <tr>
-                            <th scope="col">CATEGORY</th>
-                            <th scope="col">CODE</th>
-                            <th scope="col">EQUIPMENT</th>
-                            <th scope="col">STATUS</th>
-                            <th scope="col" class="actions-column">ACTIONS</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Code</th>
+                            <th scope="col">Equipment</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" class="actions-column">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="categoryRows">
