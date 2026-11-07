@@ -2,6 +2,7 @@
 using ASI.Basecode.Data.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System;
 
 namespace ASI.Basecode.Data.Interfaces
 {
@@ -17,5 +18,6 @@ namespace ASI.Basecode.Data.Interfaces
         Dictionary<string, int> CountByStatus();
         bool UserExists(int userId);
         void SaveChanges();
+        (bool Ok, string Message) Review(int id, Func<Reservation, (bool Ok, string Message)> applyChanges);
     }
 }

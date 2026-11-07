@@ -6,4 +6,5 @@ public class SupabaseStorageOptions
     public string ProjectUrl { get; set; } = string.Empty;
     public string SecretKey { get; set; } = string.Empty;
     public string Bucket { get; set; } = "equipment-images";
+    public string ProfileBucket { get; set; } = "profile-images";
 }

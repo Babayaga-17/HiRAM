@@ -22,6 +22,7 @@
         {
             Success = 0,
             Failed = 1,
+            PendingApproval = 2,
         }
 
         public enum SendResetCodeStatus

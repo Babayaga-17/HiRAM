@@ -1,56 +1,12 @@
-.bp, .bp-modal {
-    --navy: #0F1F3D;
-    --navy2: #12294D;
-    --teal-navy: #123C54;
-    --indigo: #4F46E5;
-    --indigo-d: #4338CA;
-    --indigo-2: #5B54E8;
-    --indigo-h: #5048DF;
-    --teal: #20B8A6;
-    --teal-l: #70DED1;
-    --purple: #8B5CF6;
-    --blue-teal: #2D9EC7;
-    --bg: #F3F5F9;
-    --surface: #fff;
-    --input: #FBFCFE;
-    --text: #172033;
-    --muted: #697386;
-    --ph: #99A3B3;
-    --border: #DCE2EB;
-    --icon: #8791A5;
-    --danger: #DC2626;
-    font-family: 'Poppins',sans-serif;
-    color: var(--text)
-}
+.bp, .bp-modal { color: var(--ink); }
 
 .bp {
     width: 100%;
     box-sizing: border-box
 }
 
-:root[data-theme="dark"] .bp, :root[data-theme="dark"] .bp-modal {
-    --bg: #0A1220;
-    --surface: #111D2F;
-    --input: #152337;
-    --text: #EDF2F8;
-    --muted: #9CA9BB;
-    --border: #2A3A50;
-    --icon: #8999AE;
-    --ph: #6F7F95
-}
-
-:root[data-theme="light"] .bp, :root[data-theme="light"] .bp-modal {
-    --bg: #F3F5F9;
-    --surface: #fff;
-    --input: #FBFCFE;
-    --text: #172033;
-    --muted: #697386;
-    --border: #DCE2EB
-}
-
 .bp *, .bp-modal * {
-    box-sizing: border-box;
-    font-family: inherit
+    box-sizing: border-box
 }
 
 .bp-head {
@@ -60,14 +16,6 @@
     gap: 16px;
     flex-wrap: wrap;
     margin-bottom: 22px
-}
-
-.bp-eyebrow {
-    font-size: .73rem;
-    font-weight: 700;
-    letter-spacing: .13em;
-    text-transform: uppercase;
-    color: var(--teal)
 }
 
 .bp-title {
@@ -90,26 +38,25 @@
     padding: 10px 18px;
     font-size: .88rem;
     font-weight: 650;
-    color: #fff;
+    color: var(--on-primary);
     cursor: pointer;
-    background: linear-gradient(100deg,#4F46E5,#5B54E8);
-    box-shadow: 0 8px 20px rgba(79,70,229,.24);
-    transition: .2s
+    background: var(--primary);
+    transition: background-color var(--motion)
 }
 
     .bp-btn:hover {
-        background: linear-gradient(100deg,#4338CA,#5048DF)
+        background: var(--primary-hover)
     }
 
     .bp-btn.ghost {
         background: transparent;
-        color: var(--text);
-        border: 1px solid var(--border);
+        color: var(--ink);
+        border: 1px solid var(--line);
         box-shadow: none
     }
 
         .bp-btn.ghost:hover {
-            background: var(--input)
+            background: var(--raised)
         }
 
     .bp-btn.danger {
@@ -127,31 +74,17 @@
 .bp-stat {
     border-radius: 16px;
     padding: 18px 20px;
-    color: #fff;
-    background: linear-gradient(145deg,#0F1F3D,#12294D 65%,#123C54);
-    border: 1px solid rgba(73,211,194,.20);
+    color: var(--ink);
+    background: var(--raised);
+    border: 1px solid var(--line);
     position: relative;
     overflow: hidden
 }
 
-    .bp-stat::after {
-        content: "";
-        position: absolute;
-        right: -30px;
-        top: -30px;
-        width: 110px;
-        height: 110px;
-        border-radius: 50%;
-        background: rgba(139,92,246,.34);
-        filter: blur(40px)
-    }
-
     .bp-stat small {
         font-size: .73rem;
         font-weight: 700;
-        letter-spacing: .13em;
-        text-transform: uppercase;
-        color: var(--teal-l)
+        color: var(--muted)
     }
 
     .bp-stat strong {
@@ -163,7 +96,7 @@
 
 .bp-card {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--line);
     border-radius: 16px;
     overflow: hidden
 }
@@ -172,7 +105,7 @@
     display: flex;
     gap: 12px;
     padding: 16px 20px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--line);
     flex-wrap: wrap;
     align-items: center
 }
@@ -186,9 +119,9 @@
 
 .bp-input, .bp-select, .bp-textarea {
     width: 100%;
-    background: var(--input);
-    color: var(--text);
-    border: 1px solid var(--border);
+    background: var(--raised);
+    color: var(--ink);
+    border: 1px solid var(--line);
     border-radius: 10px;
     padding: 10px 12px;
     font-size: .86rem;
@@ -196,12 +129,12 @@
 }
 
     .bp-input::placeholder, .bp-textarea::placeholder {
-        color: var(--ph)
+        color: var(--muted)
     }
 
     .bp-input:focus, .bp-select:focus, .bp-textarea:focus {
-        border-color: var(--indigo);
-        box-shadow: 0 0 0 4px rgba(79,70,229,.12)
+        border-color: var(--link);
+        box-shadow: 0 0 0 4px var(--primary-soft)
     }
 
 .bp-table-wrap {
@@ -222,14 +155,14 @@ table.bp-table {
     text-transform: uppercase;
     color: var(--muted);
     padding: 12px 14px;
-    background: var(--input);
-    border-bottom: 1px solid var(--border);
+    background: var(--raised);
+    border-bottom: 1px solid var(--line);
     white-space: nowrap
 }
 
 .bp-table td {
     padding: 14px 14px;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--line);
     vertical-align: middle
 }
 
@@ -238,7 +171,7 @@ table.bp-table {
 }
 
 .bp-table tbody tr:hover {
-    background: var(--input)
+    background: var(--raised)
 }
 
 .bp-user {
@@ -255,8 +188,8 @@ table.bp-table {
     place-items: center;
     font-weight: 700;
     font-size: .8rem;
-    color: #fff;
-    background: linear-gradient(135deg,#20B8A6,#2D9EC7);
+    color: var(--on-primary);
+    background: var(--primary);
     flex: none
 }
 
@@ -280,17 +213,17 @@ table.bp-table {
 }
 
     .bp-badge.active {
-        background: rgba(32,184,166,.15);
-        color: #0E8F80
+        background: var(--success-soft);
+        color: var(--success-ink)
     }
 
     .bp-badge.other {
-        background: rgba(139,92,246,.14);
-        color: var(--purple)
+        background: var(--neutral-soft);
+        color: var(--link)
     }
 
     .bp-badge.suspended {
-        background: rgba(220,38,38,.12);
+        background: var(--danger-soft);
         color: var(--danger)
     }
 
@@ -303,9 +236,9 @@ table.bp-table {
 }
 
 .bp-icon-btn {
-    border: 1px solid var(--border);
+    border: 1px solid var(--line);
     background: transparent;
-    color: var(--text);
+    color: var(--ink);
     border-radius: 8px;
     padding: 5px 10px;
     font-size: .75rem;
@@ -315,8 +248,8 @@ table.bp-table {
 }
 
     .bp-icon-btn:hover {
-        border-color: var(--indigo);
-        color: var(--indigo)
+        border-color: var(--link);
+        color: var(--link)
     }
 
     .bp-icon-btn.del:hover {
@@ -340,22 +273,21 @@ table.bp-table {
 }
 
     .bp-alert.ok {
-        background: rgba(32,184,166,.1);
-        border-color: rgba(73,211,194,.3);
-        color: var(--teal)
+        background: var(--success-soft);
+        border-color: var(--success-soft);
+        color: var(--link)
     }
 
     .bp-alert.err {
-        background: rgba(220,38,38,.08);
-        border-color: rgba(220,38,38,.3);
+        background: var(--danger-soft);
+        border-color: var(--danger-soft);
         color: var(--danger)
     }
 
 .bp-modal {
     position: fixed;
     inset: 0;
-    background: rgba(10,18,32,.6);
-    backdrop-filter: blur(4px);
+    background: var(--scrim);
     display: none;
     align-items: center;
     justify-content: center;
@@ -369,7 +301,7 @@ table.bp-table {
 
 .bp-dialog {
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1px solid var(--line);
     border-radius: 18px;
     width: 100%;
     max-width: 620px;
@@ -421,7 +353,7 @@ table.bp-table {
     gap: 12px;
     flex-wrap: wrap;
     padding: 14px 20px;
-    border-top: 1px solid var(--border)
+    border-top: 1px solid var(--line)
 }
 
 .bp-pages {
@@ -437,23 +369,23 @@ table.bp-table {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--border);
+    border: 1px solid var(--line);
     border-radius: 8px;
     font-size: .8rem;
     font-weight: 600;
-    color: var(--text);
+    color: var(--ink);
     text-decoration: none;
     background: var(--surface)
 }
 
     .bp-page:hover {
-        border-color: var(--indigo);
-        color: var(--indigo)
+        border-color: var(--link);
+        color: var(--link)
     }
 
     .bp-page.active {
-        background: linear-gradient(100deg,#4F46E5,#5B54E8);
-        color: #fff;
+        background: var(--primary);
+        color: var(--on-primary);
         border-color: transparent
     }
 
@@ -467,7 +399,7 @@ table.bp-table {
 .bp-input[readonly] {
     opacity: .75;
     cursor: not-allowed;
-    background: var(--bg)
+    background: var(--background)
 }
 
 .bp-toolbar .bp-select {
@@ -483,5 +415,5 @@ table.bp-table {
 .bp-dialog.bp-suspend-dialog { max-width: 440px; }
 .bp-dialog.bp-history-dialog { max-width: 920px; }
 .bp-stats.bp-history-stats { margin: 18px 0; }
-.bp-history-table { border: 1px solid var(--border); border-radius: 12px; }
+.bp-history-table { border: 1px solid var(--line); border-radius: 12px; }
 .bp-history-footer { margin-top: 18px; }

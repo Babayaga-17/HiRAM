@@ -1,0 +1,59 @@
+@model ASI.Basecode.Data.Models.MaintenanceRecord
+@{
+    Layout = "_AppLayout"; ViewData["Title"] = "Maintenance details"; ViewData["TopbarPage"] = "Maintenance details";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/maintenance.css" asp-append-version="true" />
+}
+
+<div class="page-heading"><div><a class="back-link" asp-action="Index" asp-route-search="@ViewData["ListSearch"]" asp-route-status="@ViewData["ListStatus"]" asp-route-page="@ViewData["ListPage"]">‹ Back to maintenance records</a><h1>Maintenance #@Model.MaintenanceId</h1><p>@Model.Equipment.EquipmentCode · @Model.Equipment.EquipmentName</p></div></div>
+@if (TempData["MaintenanceError"] is string error)
+{
+    <div class="category-notice category-notice-error" role="alert">@error</div>
+}
+@if (TempData["MaintenanceSuccess"] is string success)
+{
+    <div class="category-notice category-notice-success" role="status">@success</div>
+}
+<section class="content-card maintenance-create">
+    <h2>@Model.MaintenanceType</h2><p>@Model.Description</p>
+    <dl class="maintenance-summary">
+        <dt>Status</dt>
+        <dd>@Model.Status</dd>
+        <dt>Start</dt>
+        <dd>@Model.StartDateTime.ToString("MMM d, yyyy h:mm tt")</dd>
+        <dt>Expected completion</dt>
+        <dd>@(Model.ExpectedCompletionDateTime?.ToString("MMM d, yyyy h:mm tt") ?? "Not estimated")</dd>
+        <dt>Actual completion</dt>
+        <dd>@(Model.EndDateTime?.ToString("MMM d, yyyy h:mm tt") ?? "Not completed")</dd>
+        <dt>Remarks</dt>
+        <dd>@(Model.Remarks ?? "—")</dd>
+    </dl>
+    <a class="button button-secondary" asp-controller="Equipment" asp-action="Details" asp-route-id="@Model.EquipmentId">View equipment</a>
+    @if (User.IsInRole("Admin") && (Model.Status == "Scheduled" || Model.Status == "InProgress"))
+    {
+        <h2>Update maintenance</h2>
+        <form asp-action="Update" method="post" class="maintenance-form">
+            <input type="hidden" name="search" value="@ViewData["ListSearch"]" />
+            <input type="hidden" name="status" value="@ViewData["ListStatus"]" />
+            <input type="hidden" name="page" value="@ViewData["ListPage"]" />
+            <input type="hidden" name="Id" value="@Model.MaintenanceId" />
+            <div class="form-group"><label for="estimate">Expected completion</label><input id="estimate" type="datetime-local" name="ExpectedCompletionDateTime" value="@Model.ExpectedCompletionDateTime?.ToString("yyyy-MM-ddTHH:mm")" /><small>Required to proceed or update the estimate. It does not release equipment automatically.</small></div>
+            <div class="form-group"><label for="remarks">Remarks</label><textarea id="remarks" name="Remarks" maxlength="500" rows="3">@Model.Remarks</textarea></div>
+            <div class="dialog-actions">
+                @if (Model.Status == "Scheduled")
+                {
+                    <button class="button button-secondary" name="Operation" value="cancel">Cancel schedule</button>
+                    <button class="button button-primary" name="Operation" value="start">Proceed with maintenance</button>
+                }
+                else
+                {
+                    <button class="button button-secondary" name="Operation" value="estimate">Update estimate</button>
+                    <button class="button button-primary" name="Operation" value="complete">Confirm equipment is operational</button>
+                }
+            </div>
+        </form>
+    }
+</section>
+

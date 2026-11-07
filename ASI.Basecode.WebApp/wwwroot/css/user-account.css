@@ -4,21 +4,21 @@
     display: inline-flex;
     padding: 5px 9px;
     border-radius: 999px;
-    background: #efedff;
-    color: var(--purple-dark);
+    background: var(--raised);
+    color: var(--primary-hover);
     font-size: 11px;
     font-weight: 700
 }
 
 /* Account statuses beyond Active/Inactive (CK_Accounts_status). */
 .status-suspended {
-    color: #b26b00;
-    background: #fff4dc
+    color: var(--pending-ink);
+    background: var(--pending-soft)
 }
 
 .status-disabled {
-    color: #c23b4a;
-    background: #ffedef
+    color: var(--danger-ink);
+    background: var(--danger-soft)
 }
 
 .account-actions-card .button {
@@ -63,3 +63,10 @@
 .access-table .access-cell {
     text-align: center
 }
+.registration-review { padding: 24px; margin-bottom: 24px; }
+.registration-review-heading { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+.registration-review-heading img { flex: none; border-radius: var(--radius-control); object-fit: cover; }
+.registration-review-heading h2 { margin: 0 0 8px; font-size: 18px; }
+.registration-review-heading p { margin: 0; color: var(--muted); line-height: 1.6; }
+.status-pendingapproval { background: var(--pending-soft); color: var(--pending-ink); }
+@media (max-width: 600px) { .registration-review-heading { align-items: flex-start; flex-direction: column; } }

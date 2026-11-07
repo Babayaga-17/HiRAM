@@ -14,6 +14,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
@@ -26,15 +27,18 @@ namespace ASI.Basecode.WebApp.Controllers;
 public class UserAccountController : ControllerBase<UserAccountController>
 {
     private readonly IUserAccountService _userAccountService;
+    private readonly IAccountService _accountService;
 
     public UserAccountController(
                             IHttpContextAccessor httpContextAccessor,
                             ILoggerFactory loggerFactory,
                             IConfiguration configuration,
                             IUserAccountService userAccountService,
+                            IAccountService accountService,
                             IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
         this._userAccountService = userAccountService;
+        this._accountService = accountService;
     }
 
     // 5.12 View user accounts
@@ -57,7 +61,7 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
     // 5.12 View user account
     [HttpGet]
-    public IActionResult Details(int id)
+    public async Task<IActionResult> Details(int id)
     {
         try
         {
@@ -67,6 +71,8 @@ public class UserAccountController : ControllerBase<UserAccountController>
                 return NotFound();
 
             ViewData["IsSelf"] = userAccount.UserId == CurrentUserId;
+            if (userAccount.AccountStatus == AccountStatuses.PendingApproval)
+                ViewData["RegistrationProfile"] = await _accountService.GetProfileAsync(id, HttpContext.RequestAborted);
             return View(userAccount);
         }
         catch (Exception exception)
@@ -181,6 +187,39 @@ public class UserAccountController : ControllerBase<UserAccountController>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult Activate(int id, string version) => ChangeStatus(id, version, true);
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Approve(int id, string version)
+    {
+        if (!ModelState.IsValid || string.IsNullOrWhiteSpace(version))
+        {
+            TempData["UserAccountError"] = "Refresh the account details before approving.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        try
+        {
+            var result = await _userAccountService.ApproveRegistrationAsync(id, version, UserId);
+            if (!result.Found)
+            {
+                TempData["UserAccountError"] = "The account no longer exists.";
+                return RedirectToAction(nameof(Index));
+            }
+            TempData["UserAccountSuccess"] = "Registration approved. The account is active and the borrower is eligible.";
+            if (!result.EmailQueued)
+                TempData["UserAccountWarning"] = "Registration approved, but no email could be queued. Please inform the user separately.";
+        }
+        catch (UserAccountValidationException exception)
+        {
+            TempData["UserAccountError"] = string.Join(" ", exception.Errors.Values);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to approve registration for user {UserId}.", id);
+            TempData["UserAccountError"] = "Approval could not be saved. Reload the account details and try again.";
+        }
+        return RedirectToAction(nameof(Details), new { id });
+    }
 
     // 5.17 Deactivate user account
     [HttpPost]

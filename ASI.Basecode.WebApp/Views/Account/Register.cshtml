@@ -1,70 +1,112 @@
-﻿@using ASI.Basecode.Services.ServiceModels
-@model UserViewModel
+@using ASI.Basecode.Services.ServiceModels
+@model BorrowerRegistrationViewModel
 @{
-    ViewBag.LoginView = true;
-    ViewData["Title"] = "Register Page";
+    ViewData["IsAccountPage"] = true;
+    ViewData["UseLegacyAssets"] = false;
+    ViewData["Title"] = "Register | HiRAM";
 }
-@section styles {
-    <link rel="stylesheet" href="~/css/login.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/password-toggle.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/registration.css" asp-append-version="true" />
 }
-<div class="container py-5 h-100 register-box">
-    <div class="row d-flex justify-content-center align-items-center h-100">
-        <div class="col-xl-10">
-            <div class="card rounded-3 text-black">
-                <div class="row g-0">
-                    <div class="card-body p-md-5 mx-md-4">
-
-                        <div class="text-center">
-                            <img src="https://www.alliance.com.ph/images/asi-logo-invert.svg"
-                                 style="width: 185px;" alt="logo">
-                        </div>
-
-                        <form method="post" action="/Account/Register">
-                            <div class="form-outline mb-4">
-                                <label class="form-label" for="userId">UserId</label>
-                                <input type="text" id="userId" class="form-control"
-                                       asp-for="UserId" placeholder="Enter userid" />
-                                <span asp-validation-for="UserId" class="text-danger"></span>
-                            </div>
-                            <div class="form-outline mb-4">
-                                <label class="form-label" for="name">Name</label>
-                                <input type="text" id="name" class="form-control"
-                                       asp-for="Name" placeholder="Enter name" />
-                                <span asp-validation-for="Name" class="text-danger"></span>
-                            </div>
-                            <div class="form-outline mb-4">
-                                <label class="form-label" for="password">Password</label>
-                                <input type="password" id="password" class="form-control"
-                                       asp-for="Password" placeholder="Enter password" />
-                                <span asp-validation-for="Password" class="text-danger"></span>
-                            </div>
-                            <div class="form-outline mb-4">
-                                <label class="form-label" for="confirmpassword">Confirm Password</label>
-                                <input type="password" id="confirmpassword" class="form-control" 
-                                       asp-for="ConfirmPassword" placeholder="Confirm Password" />
-                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
-                            </div>
-                            <div class="text-center pt-1 mb-5 pb-1 d-flex flex-column align-items-center">
-                                <button class="btn btn-primary btn-block login-btn gradient-custom-2 mb-3" type="submit">
-                                    Register
-                                </button>
-                                <a asp-controller="Account" asp-action="Login">
-                                    &#8592 Back
-                                </a>
-                            </div>
-                        </form>
+<main class="auth-shell registration-page">
+    <aside class="registration-intro" aria-labelledby="registrationIntroTitle">
+        <h2 id="registrationIntroTitle">Borrow with HiRAM</h2>
+        <p>Equipment access for students and faculty, with your school details in one place.</p>
+        <ol class="registration-journey">
+            <li><strong>Request an account</strong><span>Use your student or employee ID and email.</span></li>
+            <li><strong>Wait for admin review</strong><span>Your administrator checks your registration before access is granted.</span></li>
+            <li><strong>Start borrowing</strong><span>Once approved, sign in to explore equipment and make reservations.</span></li>
+        </ol>
+        <p class="registration-login">Already registered? <a asp-action="Login">Sign in</a></p>
+    </aside>
+    <section class="form-panel registration-panel" aria-labelledby="registerHeading">
+        <header class="form-head"><h1 id="registerHeading">Request an account</h1><p>Register as a borrower. An administrator must approve your access.</p></header>
+        <p class="registration-notice">Your request will be reviewed by an administrator. Approval is required before you can sign in.</p>
+        @if (TempData["ErrorMessage"] is string error) { <p class="alert" role="alert">@error</p> }
+        <form asp-controller="Account" asp-action="Register" method="post" enctype="multipart/form-data" id="registrationForm">
+            <div asp-validation-summary="All" class="validation-summary" role="alert"></div>
+            <div id="registrationFields">
+            <div class="registration-type"><div class="field"><label asp-for="BorrowerType">I am registering as</label><select asp-for="BorrowerType"><option value="Student">Student</option><option value="Faculty">Faculty</option></select><span asp-validation-for="BorrowerType"></span></div></div>
+            <section class="registration-photo-section" aria-labelledby="photoHeading">
+                <h2 id="photoHeading">Profile picture <span>(optional)</span></h2>
+                <div class="registration-photo-row">
+                    <div class="registration-avatar"><span id="profileInitials" aria-hidden="true">?</span><img id="profilePhotoPreview" alt="Selected profile picture" hidden /></div>
+                    <div class="registration-photo-controls">
+                        <label for="ProfilePhoto">Choose a picture</label>
+                        <input id="ProfilePhoto" name="ProfilePhoto" type="file" accept="image/jpeg,image/png" aria-describedby="profilePhotoHelp profilePhotoError" />
+                        <small id="profilePhotoHelp">JPG or PNG, up to 2 MB and 4096 × 4096 pixels. Your photo is private and visible to authorized staff.</small>
+                        <span id="profilePhotoError" data-valmsg-for="ProfilePhoto" data-valmsg-replace="true" class="field-validation-valid"></span>
+                        <button type="button" id="removeProfilePhoto" class="registration-edit" hidden>Remove picture</button>
                     </div>
                 </div>
+                @if (ViewData["PhotoReselectMessage"] is string photoMessage) { <p class="registration-help" role="status">@photoMessage</p> }
+            </section>            <fieldset class="registration-section">
+                <legend>Personal information</legend>
+                <div class="registration-grid">
+                    <div class="field"><label asp-for="FirstName">First name</label><input asp-for="FirstName" autocomplete="given-name" maxlength="100" /><span asp-validation-for="FirstName"></span></div>
+                    <div class="field"><label asp-for="LastName">Last name</label><input asp-for="LastName" autocomplete="family-name" maxlength="100" /><span asp-validation-for="LastName"></span></div>
+                </div>
+                <details class="registration-optional" open="@(!string.IsNullOrWhiteSpace(Model.MiddleName) || !string.IsNullOrWhiteSpace(Model.Suffix))"><summary>Additional name details <span>(optional)</span></summary>
+                <div class="registration-grid">
+                    <div class="field"><label asp-for="MiddleName">Middle name <span>(optional)</span></label><input asp-for="MiddleName" autocomplete="additional-name" maxlength="100" /><span asp-validation-for="MiddleName"></span></div>
+                    <div class="field"><label asp-for="Suffix">Suffix <span>(optional)</span></label><input asp-for="Suffix" autocomplete="honorific-suffix" maxlength="20" placeholder="e.g. Jr." /><span asp-validation-for="Suffix"></span></div>
+                </div>
+                </details>
+                <div class="field"><label asp-for="ContactNumber">Contact number <span>(optional)</span></label><input asp-for="ContactNumber" type="tel" autocomplete="tel" maxlength="30" /><span asp-validation-for="ContactNumber"></span></div>
+            </fieldset>
+            <fieldset class="registration-section">
+                <legend>School details</legend>
+
+                <div class="registration-grid">
+                    <div class="field"><label asp-for="UserCode" id="schoolIdLabel">Student / employee ID</label><input asp-for="UserCode" maxlength="30" aria-describedby="schoolIdHelp" /><small id="schoolIdHelp">Use your school-issued ID, not your email.</small><span asp-validation-for="UserCode"></span></div>
+                    <div class="field"><label asp-for="DepartmentId">Department</label><select asp-for="DepartmentId"><option value="">Select department</option>@foreach (var department in Model.Departments) { <option value="@department.DepartmentId">@department.DepartmentName</option> }</select><span asp-validation-for="DepartmentId"></span></div>
+                </div>
+                @if (Model.DepartmentError != null) { <p class="registration-notice" role="alert">@Model.DepartmentError</p> }
+                <div class="registration-grid" id="studentFields">
+                    <div class="field"><label asp-for="Program">Program</label><input asp-for="Program" maxlength="150" placeholder="e.g. BS Computer Science" /><span asp-validation-for="Program"></span></div>
+                    <div class="field"><label asp-for="YearLevel">Year level</label><select asp-for="YearLevel"><option value="">Select year level</option>@for (var year = 1; year <= 6; year++) { <option value="@year">Year @year</option> }</select><span asp-validation-for="YearLevel"></span></div>
+                </div>
+                <noscript><p class="registration-help">Faculty may leave program and year level blank.</p></noscript>
+            </fieldset>
+            <fieldset class="registration-section">
+                <legend>Account access</legend>
+                <div class="field"><label asp-for="Email">Email</label><input asp-for="Email" type="email" autocomplete="email" maxlength="255" placeholder="you@school.edu" /><span asp-validation-for="Email"></span></div>
+                <div class="registration-grid">
+                    <div class="field"><label asp-for="Password">Password</label>
+                        <div class="password-field"><input asp-for="Password" type="password" autocomplete="new-password" required maxlength="64" aria-describedby="registrationPasswordHelp PasswordError" />
+                            <button type="button" class="password-toggle js-password-toggle" data-target="Password" aria-controls="Password" data-password-label="Password" aria-label="Show Password"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true" hidden><use href="#i-eye" /></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye-closed" /></svg></button>
+                        </div>
+                        <span asp-validation-for="Password" id="PasswordError"></span>
+                    </div>                    <div class="field"><label asp-for="ConfirmPassword">Confirm password</label>
+                        <div class="password-field"><input asp-for="ConfirmPassword" type="password" autocomplete="new-password" required maxlength="64" aria-describedby="registrationPasswordHelp ConfirmPasswordError" />
+                            <button type="button" class="password-toggle js-password-toggle" data-target="ConfirmPassword" aria-controls="ConfirmPassword" data-password-label="Confirm password" aria-label="Show Confirm password"><svg class="eye-open" viewBox="0 0 24 24" aria-hidden="true" hidden><use href="#i-eye" /></svg><svg class="eye-closed" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye-closed" /></svg></button>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" id="ConfirmPasswordError"></span>
+                    </div>
+                </div>
+                <p class="registration-help" id="registrationPasswordHelp">@UserAccountFormViewModel.PasswordRuleText</p>
+            </fieldset>
+            <p class="registration-review-note">Approval is required before you can sign in. Your school administrator reviews Student and Faculty registrations.</p>
             </div>
-        </div>
-    </div>
-</div>
-@section scripts {
-    <script>
-        // Check for error message and display Toastr notification
-        var errorMessage = '@TempData["ErrorMessage"]';
-        if (errorMessage) {
-            toastr.error(errorMessage);
-        }
-    </script>
+            <section id="registrationReview" class="registration-review" aria-labelledby="reviewHeading" hidden>
+                <h2 id="reviewHeading" tabindex="-1">Review your details</h2>
+                <p>Check your school and contact information before requesting approval.</p>
+                <div class="registration-avatar registration-review-avatar"><span id="reviewInitials" aria-hidden="true">?</span><img id="reviewProfilePhoto" alt="Profile picture to submit" hidden /></div>
+                <dl id="registrationSummary" class="registration-summary"></dl>
+                <p class="registration-help">Your password is kept out of this summary.</p>
+                <p class="registration-review-note">Confirm to submit your registration for administrator approval. You cannot sign in until your request is approved.</p>
+                <button class="registration-edit" id="editRegistration" type="button">Edit details</button>
+            </section>
+            <button class="sign-in-button" id="registrationSubmit" type="submit">Review registration</button>
+        </form>
+        <p class="auth-switch">Already have an account? <a asp-action="Login">Sign in</a></p>
+    </section>
+</main>
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/password-toggle.js" asp-append-version="true"></script>
+    <script src="~/js/registration.js" asp-append-version="true"></script>
 }
+

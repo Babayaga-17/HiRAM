@@ -1,70 +1,74 @@
 // ASI.Basecode.Services/Services/BorrowerProfileService.cs
-using ASI.Basecode.Resources.Constants;
-using ASI.Basecode.Data;
+using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
+using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace ASI.Basecode.Services.Services
 {
-   
-
-    public interface IBorrowerProfileService
-    {
-        BorrowerPageViewModel GetPage(string search, string status, int page, int pageSize);
-        List<Department> GetDepartments();
-        BorrowerHistoryViewModel GetHistory(int userId);
-        (bool ok, string message) Save(BorrowerFormModel m, string actor);
-        (bool ok, string message) SetStatus(int userId, bool suspend, string reason, DateTime? until, string actor);
-        (bool ok, string message) Delete(int userId);
-    }
 
     public class BorrowerProfileService : IBorrowerProfileService
     {
-        private readonly HiramDbContext _db;
-        public BorrowerProfileService(HiramDbContext db) => _db = db;
+        private readonly IBorrowerProfileRepository _repository;
+        private readonly INotificationService _notifications;
+        private readonly IUserRepository users;
+        private readonly IAccountRepository accounts;
+        private readonly IRoleRepository roles;
+        private readonly IProfilePhotoService photos;
+        private readonly IEmailManager email;
+        private readonly ILogger<BorrowerProfileService> logger;
+
+        public BorrowerProfileService(IBorrowerProfileRepository repository, IUserRepository users,
+            IAccountRepository accounts, IRoleRepository roles, IProfilePhotoService photos,
+            IEmailManager email, ILogger<BorrowerProfileService> logger, INotificationService notifications)
+        {
+            _repository = repository;
+            _notifications = notifications;
+            this.users = users;
+            this.accounts = accounts;
+            this.roles = roles;
+            this.photos = photos;
+            this.email = email;
+            this.logger = logger;
+        }
 
         public List<Department> GetDepartments() =>
-            _db.Departments.AsNoTracking().Where(d => d.IsActive).OrderBy(d => d.DepartmentName).ToList();
+            _repository.GetActiveDepartments();
 
         public BorrowerPageViewModel GetPage(string search, string status, int page, int pageSize)
         {
             if (pageSize < 1) pageSize = 5;
-            var all = _db.BorrowerProfiles.AsNoTracking();
+            var filterStatus = status == EligibilityStatuses.Eligible || status == EligibilityStatuses.Suspended ? status : null;
+            var filterSearch = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
 
             var vm = new BorrowerPageViewModel
             {
                 Search = search,
                 Status = status,
                 PageSize = pageSize,
-                OverallTotal = all.Count(),
-                OverallEligible = all.Count(b => b.EligibilityStatus == EligibilityStatuses.Eligible),
-                OverallSuspended = all.Count(b => b.EligibilityStatus == EligibilityStatuses.Suspended)
+                Departments = GetDepartments(),
+                OverallTotal = _repository.CountProfiles(),
+                OverallEligible = _repository.CountProfiles(EligibilityStatuses.Eligible),
+                OverallSuspended = _repository.CountProfiles(EligibilityStatuses.Suspended)
             };
 
-            var q = all.Include(b => b.User).Include(b => b.Department).AsQueryable();
-
-            if (status == EligibilityStatuses.Eligible || status == EligibilityStatuses.Suspended)
-                q = q.Where(b => b.EligibilityStatus == status);
-
-            if (!string.IsNullOrWhiteSpace(search))
-            {
-                var s = search.Trim();
-                q = q.Where(b => b.User.FirstName.Contains(s) || b.User.LastName.Contains(s)
-                              || b.User.UserCode.Contains(s) || b.Program.Contains(s)
-                              || b.Department.DepartmentName.Contains(s));
-            }
-
-            vm.TotalCount = q.Count();
+            vm.TotalCount = _repository.CountMatchingProfiles(filterSearch, filterStatus);
             vm.TotalPages = Math.Max(1, (int)Math.Ceiling(vm.TotalCount / (double)pageSize));
             vm.Page = Math.Min(Math.Max(page, 1), vm.TotalPages);
 
-            vm.Rows = q.OrderBy(b => b.User.LastName).ThenBy(b => b.User.FirstName).ThenBy(b => b.UserId)
-                       .Skip((vm.Page - 1) * pageSize).Take(pageSize)
-                       .ToList()
+            vm.Rows = _repository.GetPage(filterSearch, filterStatus, (vm.Page - 1) * pageSize, pageSize)
                        .Select(b => new BorrowerRowViewModel
                        {
                            UserId = b.UserId,
@@ -86,14 +90,10 @@ namespace ASI.Basecode.Services.Services
 
         public BorrowerHistoryViewModel GetHistory(int userId)
         {
-            var b = _db.BorrowerProfiles.AsNoTracking().Include(x => x.User).FirstOrDefault(x => x.UserId == userId);
+            var b = _repository.GetForHistory(userId);
             if (b == null) return null;
 
-            var reservations = _db.Reservations.AsNoTracking()
-                .Where(r => r.BorrowerUserId == userId)
-                .Include(r => r.ReservationItems).ThenInclude(i => i.Equipment)
-                .OrderByDescending(r => r.RequestedAt)
-                .ToList();
+            var reservations = _repository.GetReservations(userId);
 
             return new BorrowerHistoryViewModel
             {
@@ -128,7 +128,7 @@ namespace ASI.Basecode.Services.Services
             if (m.UserId == 0) return (false, "Select an existing borrower to edit.");
             if (m.DepartmentId == 0) return (false, "Department is required.");
 
-            var profile = _db.BorrowerProfiles.FirstOrDefault(x => x.UserId == m.UserId);
+            var profile = _repository.GetForUpdate(m.UserId);
             if (profile == null) return (false, "Borrower not found.");
 
             var now = DateTime.Now;
@@ -153,13 +153,13 @@ namespace ASI.Basecode.Services.Services
             }
 
             profile.UpdatedBy = actor; profile.UpdatedAt = now;
-            _db.SaveChanges();
+            _repository.SaveChanges();
             return (true, "Borrower updated.");
         }
 
         public (bool ok, string message) SetStatus(int userId, bool suspend, string reason, DateTime? until, string actor)
         {
-            var e = _db.BorrowerProfiles.FirstOrDefault(b => b.UserId == userId);
+            var e = _repository.GetForUpdate(userId);
             if (e == null) return (false, "Borrower not found.");
             var now = DateTime.Now;
             if (suspend)
@@ -178,19 +178,92 @@ namespace ASI.Basecode.Services.Services
                 e.SuspendedByUserId = null;
             }
             e.UpdatedBy = actor; e.UpdatedAt = now;
-            _db.SaveChanges();
+            _repository.SaveChanges();
             return (true, suspend ? "Borrower suspended." : "Borrower activated.");
         }
 
         public (bool ok, string message) Delete(int userId)
         {
-            var e = _db.BorrowerProfiles.Include(b => b.Reservations).FirstOrDefault(b => b.UserId == userId);
+            var e = _repository.GetForUpdate(userId);
             if (e == null) return (false, "Borrower not found.");
-            if (e.Reservations.Any())
+            if (_repository.HasReservations(userId))
                 return (false, "This borrower has reservations and can't be deleted. Suspend them instead.");
-            _db.BorrowerProfiles.Remove(e);   // removes the borrower profile only; the User row is kept
-            _db.SaveChanges();
+            _repository.Delete(e);   // removes the borrower profile only; the User row is kept
             return (true, "Borrower profile removed. The user record was kept.");
+        }
+
+        public async Task<bool> RegisterAsync(BorrowerRegistrationViewModel model, Stream photo, string fileName, CancellationToken cancellationToken = default)
+        {
+            model.UserCode = model.UserCode?.Trim(); model.Email = model.Email?.Trim();
+            Validator.ValidateObject(model, new ValidationContext(model), true);
+
+            if (users.UserCodeExists(model.UserCode)) 
+                throw new ValidationException("That student or employee ID is already registered.");
+
+            if (accounts.EmailExists(model.Email)) 
+                throw new ValidationException("That email is already registered.");
+
+            if (!GetDepartments().Any(d => d.DepartmentId == model.DepartmentId)) throw new ValidationException("Select an active department.");
+            var role = roles.GetRoles().SingleOrDefault(r => r.RoleName == "Borrower" && r.IsActive);
+            if (role == null) throw new ValidationException("Borrower registration is currently unavailable. Contact your administrator.");
+            var now = DateTime.Now;
+            var user = new User
+            {
+                UserCode = model.UserCode,
+                FirstName = model.FirstName.Trim(),
+                LastName = model.LastName.Trim(),
+                MiddleName = model.MiddleName?.Trim(),
+                Suffix = model.Suffix?.Trim(),
+                ContactNumber = model.ContactNumber?.Trim(),
+                CreatedBy = "Registration",
+                CreatedAt = now,
+                Account = new Account
+                {
+                    RoleId = role.RoleId,
+                    Email = model.Email,
+                    PasswordHash = PasswordManager.EncryptPassword(model.Password),
+                    AccountStatus = AccountStatuses.PendingApproval,
+                    CreatedBy = "Registration",
+                    CreatedAt = now
+                },
+                BorrowerProfileUser = new BorrowerProfile
+                {
+                    DepartmentId = model.DepartmentId.Value,
+                    BorrowerType = model.BorrowerType,
+                    Program = model.BorrowerType == "Student" ? model.Program.Trim() : null,
+                    YearLevel = model.BorrowerType == "Student" ? model.YearLevel : null,
+                    EligibilityStatus = EligibilityStatuses.Ineligible,
+                    CreatedBy = "Registration",
+                    CreatedAt = now
+                }
+            };
+            string path = null;
+            try
+            {
+                if (photo != null) path = await photos.UploadProfileAsync(photo, fileName, cancellationToken);
+                user.ProfilePhotoStoragePath = path;
+                // One SaveChanges inserts this complete related graph in an EF transaction.
+                _notifications.RegistrationSubmitted(user);
+                users.AddUser(user);
+            }
+            catch (Exception exception)
+            {
+                if (path != null)
+                {
+                    try { await photos.DeleteAsync(path, CancellationToken.None); }
+                    catch (Exception cleanup) { logger.LogWarning(cleanup, "Unable to clean up registration photo after a failed save."); }
+                }
+                if (exception is DbUpdateException && exception.InnerException is SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
+                    throw new ValidationException("That email or school ID was just registered. Please sign in or contact your administrator.");
+                throw;
+            }
+            try
+            {
+                await email.SendAsync(model.Email, "HiRAM registration awaiting approval",
+                    "Your registration has been received and is awaiting administrator approval. You cannot sign in until it is approved. Please do not register again while your request is pending.");
+                return true;
+            }
+            catch (Exception exception) { logger.LogWarning(exception, "Registration saved but receipt email failed for user {UserId}.", user.UserId); return false; }
         }
     }
 }

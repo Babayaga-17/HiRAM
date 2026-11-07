@@ -44,6 +44,16 @@ namespace ASI.Basecode.WebApp
                 options.LoginPath = new PathString("/Account/Login");
                 options.AccessDeniedPath = new PathString("/html/Forbidden.html");
                 options.ReturnUrlParameter = "ReturnUrl";
+                // Invalidate limited pending sessions issued before approval became mandatory for login.
+                options.Events.OnValidatePrincipal = async context =>
+                {
+                    if (context.Principal?.FindFirst("AccountStatus")?.Value == AccountStatuses.PendingApproval)
+                    {
+                        context.RejectPrincipal();
+                        await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
+                            context.HttpContext, Const.AuthenticationScheme);
+                    }
+                };
                 options.TicketDataFormat = new CustomJwtDataFormat(SecurityAlgorithms.HmacSha256, _tokenValidationParameters, Configuration, tokenProviderOptionsFactory);
             });
 

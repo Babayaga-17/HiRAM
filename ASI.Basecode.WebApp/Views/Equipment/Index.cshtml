@@ -11,10 +11,6 @@
 
 <div class="page-heading">
     <div>
-        <div class="eyebrow-line">
-            <span class="eyebrow-dot"></span>
-            EQUIPMENT MANAGEMENT
-        </div>
         <h1>Equipment management</h1>
         <p>Maintain inventory details, condition, availability, and storage locations.</p>
     </div>
@@ -51,11 +47,6 @@ else
 {
     <section class="stats-grid" aria-label="Equipment overview">
         <div class="stat-card">
-            <span class="stat-icon stat-icon-purple">
-                <svg class="icon">
-                    <use href="#i-box" />
-                </svg>
-            </span>
             <span class="stat-copy">
                 <span>Total equipment</span>
                 <strong>@Model.TotalEquipment</strong>
@@ -64,11 +55,6 @@ else
         </div>
 
         <div class="stat-card">
-            <span class="stat-icon stat-icon-teal">
-                <svg class="icon">
-                    <use href="#i-check" />
-                </svg>
-            </span>
             <span class="stat-copy">
                 <span>Available now</span>
                 <strong>@Model.AvailableCount</strong>
@@ -77,11 +63,6 @@ else
         </div>
 
         <div class="stat-card">
-            <span class="stat-icon stat-icon-blue">
-                <svg class="icon">
-                    <use href="#i-tools" />
-                </svg>
-            </span>
             <span class="stat-copy">
                 <span>Needs attention</span>
                 <strong>@Model.AttentionCount</strong>
@@ -163,17 +144,17 @@ else
                 </a>
             </form>
 
-            <div class="table-scroll" id="equipmentTable">
+            <div class="table-scroll" role="region" aria-label="Equipment inventory" tabindex="0" id="equipmentTable">
                 <table class="category-table">
                     <thead>
                         <tr>
-                            <th scope="col">EQUIPMENT</th>
-                            <th scope="col">CATEGORY</th>
-                            <th scope="col">BRAND / MODEL</th>
-                            <th scope="col">CONDITION</th>
-                            <th scope="col">STATUS</th>
-                            <th scope="col">LOCATION</th>
-                            <th scope="col" class="actions-column">ACTIONS</th>
+                            <th scope="col">Equipment</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Brand / model</th>
+                            <th scope="col">Condition</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Location</th>
+                            <th scope="col" class="actions-column">Actions</th>
                         </tr>
                     </thead>
 
@@ -202,54 +183,56 @@ else
                                                     <use href="#i-box" />
                                                 </svg>
                                             }
-                                        </span>
-                                        <span>
-                                            <strong>@item.EquipmentName</strong>
-                                            <small>@item.EquipmentCode</small>
-                                        </span>
-                                    </div>
-                                </td>
+                            </span>
+                            <span>
+                                <strong>@item.EquipmentName</strong>
+                                <small>@item.EquipmentCode</small>
+                            </span>
+                        </div>
+                    </td>
 
-                                <td>@item.CategoryName</td>
+                    <td>@item.CategoryName</td>
 
-                                <td>
-                                    @string.Join(" ", new[] { item.Brand, item.Model }
-                                        .Where(value => !string.IsNullOrWhiteSpace(value)))
-                                </td>
+                    <td>
+                        @string.Join(" ", new[] { item.Brand, item.Model }
+                                                .Where(value => !string.IsNullOrWhiteSpace(value)))
+                    </td>
 
-                                <td>
-                                    <span class="condition-badge condition-@item.ConditionStatus.ToLowerInvariant()">
-                                        @item.ConditionStatus
-                                    </span>
-                                </td>
+                    <td>
+                        <span class="condition-badge condition-@item.ConditionStatus.ToLowerInvariant()">
+                            @item.ConditionStatus
+                        </span>
+                    </td>
 
-                                <td>
-                                    <span class="status-badge status-@item.StatusClass">
-                                        <span></span>
-                                        @item.StatusLabel
-                                    </span>
-                                </td>
+                    <td>
+                        <span class="status-badge status-@item.StatusClass">
+                            <span></span>
+                            @item.StatusLabel
+                        </span>
+                    </td>
 
-                                <td>@item.StorageLocation</td>
+                    <td>@item.StorageLocation</td>
 
-                                <td class="actions-column">
-                                    <div class="row-actions">
-                                        <button type="button" class="icon-button view-equipment"
-                                                aria-label="View @item.EquipmentName" title="View details">
-                                            <svg class="icon">
-                                                <use href="#i-eye" />
-                                            </svg>
-                                        </button>
+                    <td class="actions-column">
+                        <div class="row-actions">
+                            
+                            <a class="icon-button" asp-controller="Equipment" asp-action="Details"
+                               asp-route-id="@item.EquipmentId" aria-label="View @item.EquipmentName"
+                               title="View details">
+                                <svg class="icon" aria-hidden="true">
+                                    <use href="#i-eye" />
+                                </svg>
+                            </a>
 
-                                        <a class="icon-button edit-equipment" asp-controller="Equipment" asp-action="Edit"
-                                           asp-route-id="@item.EquipmentId" aria-label="Edit @item.EquipmentName"
-                                           title="Edit equipment">
-                                            <svg class="icon">
-                                                <use href="#i-edit" />
-                                            </svg>
-                                        </a>
+                            <a class="icon-button edit-equipment" asp-controller="Equipment" asp-action="Edit"
+                               asp-route-id="@item.EquipmentId" aria-label="Edit @item.EquipmentName"
+                               title="Edit equipment">
+                                <svg class="icon">
+                                    <use href="#i-edit" />
+                                </svg>
+                            </a>
 
-                                        @if (item.IsActive)
+                            @if (item.IsActive)
                                         {
                                             <form class="category-action-form" asp-controller="Equipment" asp-action="Deactivate"
                                                   asp-route-id="@item.EquipmentId" method="post">
@@ -362,88 +345,6 @@ else
 
     @if (Model.Items.Count > 0)
     {
-        <dialog class="app-dialog" id="detailsDialog" aria-labelledby="detailsTitle">
-
-            <div class="dialog-top">
-                <span class="dialog-icon">
-                    <svg class="icon">
-                        <use href="#i-box" />
-                    </svg>
-                </span>
-
-                <button type="button" class="icon-button dialog-close" aria-label="Close details">
-                    <svg class="icon">
-                        <use href="#i-close" />
-                    </svg>
-                </button>
-            </div>
-
-            <span class="dialog-kicker">EQUIPMENT DETAILS</span>
-            <h2 id="detailsTitle"></h2>
-            <img id="detailsCover" class="equipment-details-cover" alt="" hidden />
-            <p id="detailsDescription"></p>
-
-            <dl class="details-list">
-                <div>
-                    <dt>Equipment code</dt>
-                    <dd id="detailsCode"></dd>
-                </div>
-                <div>
-                    <dt>Category</dt>
-                    <dd id="detailsCategory"></dd>
-                </div>
-                <div>
-                    <dt>Brand / model</dt>
-                    <dd id="detailsBrandModel"></dd>
-                </div>
-                <div>
-                    <dt>Serial number</dt>
-                    <dd id="detailsSerial"></dd>
-                </div>
-                <div>
-                    <dt>Asset tag</dt>
-                    <dd id="detailsAsset"></dd>
-                </div>
-                <div>
-                    <dt>Condition</dt>
-                    <dd id="detailsCondition"></dd>
-                </div>
-                <div>
-                    <dt>Availability</dt>
-                    <dd id="detailsStatus"></dd>
-                </div>
-                <div>
-                    <dt>Next reservation</dt>
-                    <dd id="detailsNext"></dd>
-                </div>
-                <div>
-                    <dt>Storage location</dt>
-                    <dd id="detailsLocation"></dd>
-                </div>
-                <div>
-                    <dt>Acquired</dt>
-                    <dd id="detailsAcquired"></dd>
-                </div>
-                <div>
-                    <dt>Acquisition cost</dt>
-                    <dd id="detailsCost"></dd>
-                </div>
-            </dl>
-
-            <div class="dialog-actions">
-                <button type="button" class="button button-secondary dialog-close">
-                    Close
-                </button>
-
-                <a class="button button-primary" id="detailsEdit" href="#">
-                    <svg class="icon">
-                        <use href="#i-edit" />
-                    </svg>
-                    Edit equipment
-                </a>
-            </div>
-        </dialog>
-
         <dialog class="app-dialog" id="deleteEquipmentDialog" aria-labelledby="deleteEquipmentTitle"
                 aria-describedby="deleteEquipmentMessage">
 

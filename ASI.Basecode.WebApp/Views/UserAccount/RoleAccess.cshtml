@@ -12,7 +12,6 @@
 }
 <div class="page-heading">
     <div>
-        <div class="eyebrow-line"><span class="eyebrow-dot"></span>ADMINISTRATION</div>
         <h1>Role access</h1>
         <p>Menus and functions each role can use. Access is granted by role: change a user's role to change what they can open.</p>
     </div>
@@ -29,7 +28,6 @@ else
         @foreach (var role in Model)
         {
             <div class="stat-card">
-                <span class="stat-icon stat-icon-purple"><svg class="icon"><use href="#i-shield" /></svg></span>
                 <span class="stat-copy">
                     <span>@role.RoleName @(role.IsActive ? "" : "(inactive)")</span>
                     <strong>@role.ActiveAccountCount</strong>
@@ -43,11 +41,11 @@ else
         <div class="card-heading">
             <div><h2 id="accessHeading">Menu and function access</h2><p>Enforced on the server for every page and form, not only by hiding menu items.</p></div>
         </div>
-        <div class="table-scroll">
+        <div class="table-scroll" role="region" aria-label="Role permissions" tabindex="0">
             <table class="category-table access-table">
                 <thead>
                     <tr>
-                        <th scope="col">MENU / FUNCTION</th>
+                        <th scope="col">Menu / function</th>
                         @foreach (var role in Model)
                         {
                             <th scope="col" class="access-cell">@role.RoleName.ToUpperInvariant()</th>

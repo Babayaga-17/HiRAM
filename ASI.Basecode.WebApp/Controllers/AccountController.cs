@@ -1,6 +1,7 @@
-﻿using ASI.Basecode.Data.Models;
-using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
+using ASI.Basecode.Data.Models;
+using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.WebApp.Authentication;
 using ASI.Basecode.WebApp.Models;
@@ -12,10 +13,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using static ASI.Basecode.Resources.Constants.Enums;
+using ASI.Basecode.Services.Services;
 
 namespace ASI.Basecode.WebApp.Controllers
 {
@@ -31,6 +32,7 @@ namespace ASI.Basecode.WebApp.Controllers
         private readonly IConfiguration _appConfiguration;
         private readonly IAccountService _accountService;
         private readonly IPasswordResetService _passwordResetService;
+        private readonly IBorrowerProfileService _borrowerProfileService;
 
         public AccountController(
                             SignInManager signInManager,
@@ -40,6 +42,7 @@ namespace ASI.Basecode.WebApp.Controllers
                             IMapper mapper,
                             IAccountService accountService,
                             IPasswordResetService passwordResetService,
+                            IBorrowerProfileService borrowerProfileService,
                             TokenValidationParametersFactory tokenValidationParametersFactory,
                             TokenProviderOptionsFactory tokenProviderOptionsFactory) : base(httpContextAccessor, loggerFactory, configuration, mapper)
         {
@@ -50,6 +53,7 @@ namespace ASI.Basecode.WebApp.Controllers
             this._appConfiguration = configuration;
             this._accountService = accountService;
             this._passwordResetService = passwordResetService;
+            this._borrowerProfileService = borrowerProfileService;
         }
 
         [HttpGet]
@@ -99,7 +103,11 @@ namespace ASI.Basecode.WebApp.Controllers
                 return RedirectToAction("Index", "Dashboard");
             }
 
-            ModelState.AddModelError(string.Empty, "Incorrect email or password.");
+            var message = loginResult == LoginResult.PendingApproval
+                ? "Your registration is still awaiting admin approval. Please try again once your account has been approved."
+                : "Incorrect email or password.";
+
+            ModelState.AddModelError(string.Empty, message);
 
             return View(model);
         }
@@ -269,18 +277,87 @@ namespace ASI.Basecode.WebApp.Controllers
         [AllowAnonymous]
         public IActionResult Register()
         {
-            return View();
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                return RedirectToAction("Index", "Dashboard");
+            }
+
+            var model = new BorrowerRegistrationViewModel();
+            LoadRegistrationDepartments(model);
+            return View(model);
         }
 
         [HttpPost]
         [AllowAnonymous]
-        public IActionResult Register(UserViewModel model)
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(3 * 1024 * 1024)]
+        public async Task<IActionResult> Register(BorrowerRegistrationViewModel model, IFormFile profilePhoto)
         {
-            Debug.WriteLine(PasswordManager.EncryptPassword(model.Password));
-
-            return View();
+            if (profilePhoto != null && profilePhoto.Length > ASI.Basecode.Resources.Constants.ProfilePhotoPolicy.MaxBytes)
+                ModelState.AddModelError("ProfilePhoto", "Profile picture must be 2 MB or smaller.");
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    using var stream = profilePhoto?.OpenReadStream();
+                    var emailSent = await _borrowerProfileService.RegisterAsync(model, stream, profilePhoto?.FileName, HttpContext.RequestAborted);
+                    TempData["RegistrationSubmitted"] = true;
+                    if (!emailSent) TempData["RegistrationEmailWarning"] = "Your request was saved, but the confirmation email could not be sent. Please contact your administrator if you need an update.";
+                    return RedirectToAction(nameof(AwaitingApproval));
+                }
+                catch (System.ComponentModel.DataAnnotations.ValidationException exception)
+                {
+                    ModelState.AddModelError(string.Empty, exception.Message);
+                }
+                catch (Exception exception) when (!HttpContext.RequestAborted.IsCancellationRequested)
+                {
+                    _logger.LogError(exception, "Unable to complete borrower registration.");
+                    ModelState.AddModelError(string.Empty, "Unable to submit your registration. Please try again.");
+                }
+            }
+            if (profilePhoto != null) ViewData["PhotoReselectMessage"] = "Please select your profile picture again after correcting the errors.";
+            ModelState.SetModelValue(nameof(model.Password), string.Empty, string.Empty);
+            ModelState.SetModelValue(nameof(model.ConfirmPassword), string.Empty, string.Empty);
+            model.Password = null;
+            model.ConfirmPassword = null;
+            LoadRegistrationDepartments(model);
+            return View(model);
         }
 
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> MyProfile()
+        {
+            var userIdClaim = User.FindFirst(
+                System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userIdClaim, out var userId))
+                return Challenge();
+
+            var model = await _accountService.GetProfileAsync(userId, HttpContext.RequestAborted);
+
+            if (model == null)
+                return NotFound();
+
+            return View(model);
+        }
+
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult AwaitingApproval()
+        {
+            if (TempData["RegistrationSubmitted"] is not true) return RedirectToAction(nameof(Register));
+            return View();
+        }
+        private void LoadRegistrationDepartments(BorrowerRegistrationViewModel model)
+        {
+            try { model.Departments = _borrowerProfileService.GetDepartments(); }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "Unable to load registration departments.");
+                model.DepartmentError = "Departments could not be loaded. Please refresh and try again.";
+            }
+        }
         [AllowAnonymous]
         public async Task<IActionResult> SignOutUser()
         {
@@ -289,3 +366,4 @@ namespace ASI.Basecode.WebApp.Controllers
         }
     }
 }
+

@@ -87,7 +87,7 @@ public class UserAccountFormViewModel : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (!AccountStatuses.All.Contains(AccountStatus))
+        if (!AccountStatuses.All.Contains(AccountStatus) && !(IsEdit && AccountStatus == AccountStatuses.PendingApproval))
         {
             yield return new ValidationResult("Select a valid status.", new[] { nameof(AccountStatus) });
         }

@@ -65,7 +65,7 @@
         </div>
         <div class="form-group">
             <label for="RoleId">Role <span class="required">*</span></label>
-            @if (isSelf)
+            @if (isSelf || Model.AccountStatus == AccountStatuses.PendingApproval)
             {
                 <input asp-for="RoleId" type="hidden" />
                 <select id="RoleId" disabled>
@@ -74,7 +74,7 @@
                         <option selected="@(Model.RoleId == role.RoleId)">@role.RoleName</option>
                     }
                 </select>
-                <small>You cannot change your own role.</small>
+                <small>@(Model.AccountStatus == AccountStatuses.PendingApproval ? "The Borrower role is retained during registration review." : "You cannot change your own role.")</small>
             }
             else
             {
@@ -91,11 +91,11 @@
         </div>
         <div class="form-group">
             <label for="AccountStatus">Status <span class="required">*</span></label>
-            @if (isSelf)
+            @if (isSelf || Model.AccountStatus == AccountStatuses.PendingApproval)
             {
                 <input asp-for="AccountStatus" type="hidden" />
                 <select id="AccountStatus" disabled><option>@Model.AccountStatus</option></select>
-                <small>You cannot deactivate your own account.</small>
+                <small>@(Model.AccountStatus == AccountStatuses.PendingApproval ? "Use registration approval to grant access." : "You cannot deactivate your own account.")</small>
             }
             else
             {

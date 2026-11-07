@@ -55,6 +55,8 @@ public partial class Reservation
 
     public virtual BorrowerProfile BorrowerUser { get; set; }
 
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+
     public virtual User ReceivedByUser { get; set; }
 
     public virtual User RejectedByUser { get; set; }
