@@ -1,10 +1,26 @@
 (() => {
     const toggle = document.getElementById("menuToggle");
     const sidebar = document.getElementById("appSidebar");
+    if (!toggle || !sidebar) return;
     const shell = sidebar.closest(".app-shell");
     const workspace = shell.querySelector(".app-main");
     const closeButton = sidebar.querySelector(".sidebar-close");
     const compact = window.matchMedia("(max-width: 850px)");
+    const menus = [...shell.querySelectorAll('.app-topbar details[name="topbar-menu"]')];
+
+    function closeMenus(restoreFocus = false) {
+        menus.forEach(menu => {
+            if (!menu.open) return;
+            menu.open = false;
+            if (restoreFocus) menu.querySelector("summary").focus();
+        });
+    }
+
+    document.addEventListener("pointerdown", event => {
+        menus.forEach(menu => {
+            if (menu.open && !menu.contains(event.target)) menu.open = false;
+        });
+    });
 
     function syncToggle() {
         const expanded = compact.matches
@@ -28,6 +44,7 @@
 
     toggle.addEventListener("click", () => {
         if (compact.matches) {
+            closeMenus();
             shell.classList.add("sidebar-open");
             workspace.inert = true;
             closeButton.focus({ preventScroll: true });
@@ -45,6 +62,11 @@
     });
 
     document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && menus.some(menu => menu.open)) {
+            event.preventDefault();
+            closeMenus(true);
+            return;
+        }
         if (!shell.classList.contains("sidebar-open")) return;
         if (event.key === "Escape") {
             closeSidebar();

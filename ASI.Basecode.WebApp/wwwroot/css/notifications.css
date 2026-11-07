@@ -12,7 +12,7 @@
 .notification-toggle:hover, .notification-menu[open] .notification-toggle { color: var(--ink); background: var(--raised); }
 .notification-toggle:focus-visible { outline: 2px solid var(--link); outline-offset: 3px; }
 .notification-count { position: absolute; top: 1px; right: 0; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 12px; background: var(--primary); color: var(--on-primary); font-size: 11px; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
-.notification-dropdown { position: absolute; right: 0; top: calc(100% + 12px); width: 370px; max-width: calc(100vw - 32px); max-height: min(620px, calc(100dvh - 100px)); overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); color: var(--ink); box-shadow: var(--overlay-shadow); z-index: 80; }
+.notification-dropdown { position: absolute; right: 0; top: calc(100% + var(--shell-menu-gap, 8px)); width: 370px; max-width: calc(100vw - 32px); max-height: min(620px, calc(100dvh - 100px)); overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); color: var(--ink); box-shadow: var(--overlay-shadow); z-index: 80; }
 .notification-menu-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 20px; }
 .notification-menu-heading h2 { margin: 0; font-size: 16px; font-weight: 650; }
 .notification-menu-heading > span { font-size: 12px; color: var(--muted); }
@@ -54,7 +54,7 @@
 .notification-message-body { max-width: 76ch; margin-top: 24px; white-space: pre-line; font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; }
 .notification-message footer { margin-top: 32px; }
 @media (max-width: 850px) {
-    .notification-dropdown { position: fixed; right: 16px; top: 68px; }
+    .notification-dropdown { position: fixed; right: 16px; top: calc(var(--shell-topbar-height, 64px) + var(--shell-menu-gap, 8px)); }
     .notification-filters { flex-wrap: wrap; }
     .page-heading .notification-unread-total { align-self: flex-start; }
     .notification-filters .search-field { flex-basis: 100%; }
