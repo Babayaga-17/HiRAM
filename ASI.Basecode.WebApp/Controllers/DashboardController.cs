@@ -11,10 +11,12 @@ namespace ASI.Basecode.WebApp.Controllers;
 public class DashboardController : Controller
 {
     private readonly IReservationService _reservationService;
+    private readonly IAdminDashboardService _adminDashboardService;
 
-    public DashboardController(IReservationService reservationService)
+    public DashboardController(IReservationService reservationService, IAdminDashboardService adminDashboardService)
     {
         _reservationService = reservationService;
+        _adminDashboardService = adminDashboardService;
     }
 
     public IActionResult Index()
@@ -39,16 +41,7 @@ public class DashboardController : Controller
 
         if (User.IsInRole("Admin"))
         {
-            try
-            {
-                ViewBag.PendingCount = _reservationService.CountPendingReservations();
-            }
-            catch
-            {
-                ViewBag.PendingCount = null;
-            }
-
-            return View("Admin");
+            return View("Admin", _adminDashboardService.GetOverview());
         }
 
         return Forbid();
