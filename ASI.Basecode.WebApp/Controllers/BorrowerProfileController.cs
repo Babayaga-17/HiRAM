@@ -1,4 +1,5 @@
 // ASI.Basecode.WebApp/Controllers/BorrowerProfileController.cs
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.WebApp.Mvc;
@@ -13,6 +14,7 @@ using System;
 namespace ASI.Basecode.WebApp.Controllers
 {
     [Authorize]
+    [Authorize(Roles = RoleNames.Admin)]
     public class BorrowerProfileController : ControllerBase<BorrowerProfileController>
     {
         private const int PageSize = 5;

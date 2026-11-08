@@ -1,8 +1,9 @@
-using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.Services;
 using ASI.Basecode.WebApp.Authentication;
 using ASI.Basecode.WebApp.Models;
 using ASI.Basecode.WebApp.Mvc;
@@ -15,8 +16,8 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using ZXing;
 using static ASI.Basecode.Resources.Constants.Enums;
-using ASI.Basecode.Services.Services;
 
 namespace ASI.Basecode.WebApp.Controllers
 {
@@ -58,7 +59,7 @@ namespace ASI.Basecode.WebApp.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public ActionResult Login(string returnUrl)
+        public IActionResult Login(string returnUrl) // Reviewed : Xyan
         {
             if (User.Identity?.IsAuthenticated == true)
             {
@@ -81,35 +82,41 @@ namespace ASI.Basecode.WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl)
+        public async Task<IActionResult> Login(LoginViewModel model, string returnUrl) // Reviewed : Xyan, Refactored : Xyan
         {
             ViewData["ReturnUrl"] = returnUrl;
 
-            Account account = null;
+            if (!ModelState.IsValid)    
+                return View(model);
 
-            var loginResult = _accountService.AuthenticateAccount(model.UserId, model.Password, ref account);
+            var loginResult = _accountService.AuthenticateAccount(model.UserId, model.Password);
 
-            if (loginResult == LoginResult.Success)
+            if (loginResult.Result != LoginResult.Success)
             {
-                await _signInManager.SignInAsync(account, model.RememberMe);
-
-                await _accountService.RecordSuccessfulLoginAsync(account.AccountId);
-
-                if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                var message = loginResult.FailureReason switch
                 {
-                    return LocalRedirect(returnUrl);
-                }
+                    LoginFailureReason.PendingApproval => "Your registration is awaiting admin approval.",
+                    LoginFailureReason.Inactive => "Your account is inactive. Contact the administrator.",
+                    LoginFailureReason.Suspended => "Your account access is suspended. Contact the administrator.",
+                    LoginFailureReason.Disabled => "Your account is disabled. Contact the administrator.",
+                    LoginFailureReason.TemporarilyLocked => "Your account is temporarily locked. Please try again later.",
+                    LoginFailureReason.InvalidCredentials => "Incorrect email or password.",
+                    _ => "Unable to sign in. Please try again."
+                };
 
-                return RedirectToAction("Index", "Dashboard");
+                ModelState.AddModelError(string.Empty, message);
+                return View(model);
             }
 
-            var message = loginResult == LoginResult.PendingApproval
-                ? "Your registration is still awaiting admin approval. Please try again once your account has been approved."
-                : "Incorrect email or password.";
+            await _signInManager.SignInAsync(loginResult.Account, model.RememberMe);
+            await _accountService.RecordSuccessfulLoginAsync(loginResult.Account.AccountId);
 
-            ModelState.AddModelError(string.Empty, message);
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)) // Checks if returnUrl [is empty] and [is local]
+            {
+                return LocalRedirect(returnUrl);
+            }
 
-            return View(model);
+            return RedirectToAction("Index", "Dashboard");
         }
 
         [HttpGet]

@@ -9,7 +9,7 @@ namespace ASI.Basecode.Data.Interfaces
 {
     public interface IAccountRepository
     {
-        Account GetByEmail(string email);
+        Account GetAccountByEmail(string email);
 
         // User and Role Management (WBS 5.1)
         IQueryable<Account> GetAccounts();

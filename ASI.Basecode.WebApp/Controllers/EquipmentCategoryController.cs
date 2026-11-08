@@ -1,3 +1,4 @@
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
@@ -20,7 +21,7 @@ using System.Security.Claims;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Custodian, Admin")]
+[Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
 public class EquipmentCategoryController : ControllerBase<EquipmentCategoryController>
 {
     private readonly IEquipmentCategoryService _equipmentCategoryService;

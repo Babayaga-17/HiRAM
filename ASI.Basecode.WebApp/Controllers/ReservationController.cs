@@ -14,7 +14,7 @@ using System.Security.Claims;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Custodian, Admin")]
+[Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
 public class ReservationController : ControllerBase<ReservationController>
 {
     private readonly IReservationService _reservationService;

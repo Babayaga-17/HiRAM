@@ -1,3 +1,4 @@
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using Microsoft.AspNetCore.Authorization;
@@ -6,7 +7,7 @@ using System.Collections.Generic;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Borrower,Custodian,Admin")]
+[Authorize(Roles = $"{RoleNames.Borrower}, {RoleNames.Custodian}, {RoleNames.Admin}")]
 public class DashboardController : Controller
 {
     private readonly IReservationService _reservationService;

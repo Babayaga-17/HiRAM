@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Borrower, Admin")]
+[Authorize(Roles = RoleNames.Borrower)]
 public class BrowseEquipmentController : ControllerBase<BrowseEquipmentController>
 {
     private const string SelectionKey = "SelectedEquipmentIds";

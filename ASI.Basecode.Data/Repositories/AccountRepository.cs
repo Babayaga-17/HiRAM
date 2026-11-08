@@ -17,11 +17,19 @@ namespace ASI.Basecode.Data.Repositories
         {
         }
 
-        public Account GetByEmail(string email)
+        public Account GetAccountByEmail(string email)
         {
             return GetDbSet<Account>().Include(account => account.User)
                                       .Include(account => account.Role)
                                       .FirstOrDefault(account => account.Email == email);
+        }
+
+        public async Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc)
+        {
+            await GetDbSet<Account>()
+                .Where(account => account.AccountId == accountId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(account => account.LastLoginAt, (DateTime?)loginAtUtc));
         }
 
         // User and Role Management (WBS 5.1)
@@ -91,14 +99,6 @@ namespace ASI.Basecode.Data.Repositories
             UnitOfWork.SaveChanges();
             transaction.Commit();
             return true;
-        }
-
-        public async Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc)
-        {
-            await GetDbSet<Account>()
-                .Where(account => account.AccountId == accountId)
-                .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(account => account.LastLoginAt, (DateTime?)loginAtUtc));
         }
     }
 }

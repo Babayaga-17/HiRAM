@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Borrower, Custodian, Admin")]
+[Authorize(Roles = $"{RoleNames.Borrower}, {RoleNames.Custodian}, {RoleNames.Admin}")]
 public class EquipmentController : ControllerBase<EquipmentController>
 {
     private readonly IEquipmentService _equipmentService;

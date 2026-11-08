@@ -17,7 +17,7 @@ using System.Text.Json;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Borrower")]
+[Authorize(Roles = RoleNames.Borrower)]
 public class EquipmentReservationController : ControllerBase<EquipmentReservationController>
 {
     private const string SelectionKey = "SelectedEquipmentIds";

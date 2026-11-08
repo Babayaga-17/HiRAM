@@ -29,13 +29,13 @@
 
             <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
             <div class="form-field">
-                <label for="UserId">Email or ID</label>
+                <label for="UserId">Email</label>
                 <div class="input-wrap">
                     <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true">
                         <circle cx="12" cy="8" r="4"></circle>
                         <path d="M4 21a8 8 0 0 1 16 0"></path>
                     </svg>
-                    <input asp-for="UserId" type="text" placeholder="Enter your email or ID" autocomplete="username" />
+                    <input asp-for="UserId" type="text" placeholder="Enter your email" autocomplete="username" />
                 </div>
                 <span asp-validation-for="UserId" class="field-validation-error"></span>
             </div>

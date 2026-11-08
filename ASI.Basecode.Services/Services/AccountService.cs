@@ -30,31 +30,40 @@ namespace ASI.Basecode.Services.Services
             _profilePhotoService = profilePhotoService;
         }
 
-        public LoginResult AuthenticateAccount(
-    string email, string password, ref Account account)
+        public LoginResponse AuthenticateAccount(string email, string password)
         {
-            account = _accountRepository.GetByEmail(email);
+            Account account = _accountRepository.GetAccountByEmail(email);
 
-            if (account == null)
-                return LoginResult.Failed;
-
-            if (account.LockoutEndAt.HasValue && account.LockoutEndAt.Value > DateTime.Now)
-                return LoginResult.Failed;
-
+            if (account == null) // Checks if account does not exist with the provided email
+                return Failed(LoginFailureReason.InvalidCredentials);
+                
             bool passwordMatches = PasswordManager
                 .EncryptPassword(password)
                 .Equals(account.PasswordHash);
 
             if (!passwordMatches)
-                return LoginResult.Failed;
+                return Failed(LoginFailureReason.InvalidCredentials); // Password does not match, return invalid credentials
 
-            if (string.Equals(account.AccountStatus, AccountStatuses.PendingApproval, StringComparison.OrdinalIgnoreCase))
-                return LoginResult.PendingApproval;
+            if (account.LockoutEndAt.HasValue && account.LockoutEndAt.Value > DateTime.Now) // Checks if the account is currently locked out
+                return Failed(LoginFailureReason.TemporarilyLocked);                
 
-            if (!string.Equals(account.AccountStatus, AccountStatuses.Active, StringComparison.OrdinalIgnoreCase))
-                return LoginResult.Failed;
+            var failureReason = account.AccountStatus switch
+            {
+                AccountStatuses.PendingApproval => LoginFailureReason.PendingApproval,
+                AccountStatuses.Inactive => LoginFailureReason.Inactive,
+                AccountStatuses.Suspended => LoginFailureReason.Suspended,
+                AccountStatuses.Disabled => LoginFailureReason.Disabled,
+                _ => LoginFailureReason.InvalidCredentials
+            };
 
-            return LoginResult.Success;
+            if (account.AccountStatus != AccountStatuses.Active)
+                return Failed(failureReason);
+
+            return new LoginResponse
+            {
+                Result = LoginResult.Success,
+                Account = account
+            };
         }
 
         public Task RecordSuccessfulLoginAsync(int accountId)
@@ -102,5 +111,18 @@ namespace ASI.Basecode.Services.Services
 
             return model;
         }
+
+        #region Helpers
+
+        private static LoginResponse Failed(LoginFailureReason reason)
+        {
+            return new LoginResponse
+            {
+                Result = LoginResult.Failed,
+                FailureReason = reason
+            };
+        }
+
+        #endregion
     }
 }

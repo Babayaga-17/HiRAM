@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 namespace ASI.Basecode.WebApp.Controllers;
 
 [Authorize]
+[Authorize(Roles = $"{RoleNames.Borrower}, {RoleNames.Custodian}, {RoleNames.Admin}")]
 public class NotificationController : Controller
 {
     private readonly INotificationService _notifications;
