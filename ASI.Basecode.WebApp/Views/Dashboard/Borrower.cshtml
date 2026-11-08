@@ -2,31 +2,70 @@
     Layout = "_AppLayout";
     ViewData["Title"] = "Borrower dashboard";
     ViewData["TopbarPage"] = "Dashboard";
+    var displayName = User.Identity?.Name;
+    var greeting = string.IsNullOrWhiteSpace(displayName) ? "Welcome back." : $"Welcome back, {displayName}.";
 }
 
-<header class="page-heading">
-    <div>
-        <h1>Borrowing dashboard</h1>
-        <p>Welcome, @User.Identity?.Name. Find equipment and manage your reservations here.</p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/borrower-dashboard.css" asp-append-version="true" />
+}
+
+<div class="borrower-home">
+    <header class="borrower-welcome">
+        <h1>@greeting</h1>
+        <p>Your equipment borrowing starts here. Find what you need and plan ahead.</p>
+    </header>
+
+    <div class="borrower-home-grid">
+        <section class="borrower-start" aria-labelledby="equipmentHeading">
+            <div class="borrower-section-title">
+                <svg class="icon" aria-hidden="true"><use href="#i-box" /></svg>
+                <h2 id="equipmentHeading">Equipment for your next project</h2>
+            </div>
+            <p>Explore the equipment catalog, check the details, and select equipment for your reservation.</p>
+            <a class="button button-primary" asp-controller="BrowseEquipment" asp-action="Index">
+                Browse equipment <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+            </a>
+            <div class="borrower-start-note">
+                <svg class="icon" aria-hidden="true"><use href="#i-info" /></svg>
+                <span>Have dates in mind? Check availability before making your request.</span>
+            </div>
+        </section>
+
+        <section class="borrower-requests" aria-labelledby="reservationsHeading">
+            <div class="borrower-section-title">
+                <svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg>
+                <h2 id="reservationsHeading">My reservations</h2>
+            </div>
+            <p>Pick up where you left off. Review the requests waiting for approval and open their details.</p>
+            <a class="borrower-text-action" asp-controller="EquipmentReservation" asp-action="Index">
+                View pending requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+            </a>
+        </section>
+
+        <section class="borrower-planning" aria-labelledby="planningHeading">
+            <div class="borrower-planning-intro">
+                <h2 id="planningHeading">Make room for your plans</h2>
+                <p>Check existing bookings to help plan your equipment request.</p>
+                <a class="button button-secondary" asp-controller="AvailabilityCalendar" asp-action="Index">
+                    View availability <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                </a>
+            </div>
+            <dl class="borrower-planning-details">
+                <div>
+                    <dt>Before you reserve</dt>
+                    <dd>Find equipment and review its details in the catalog.</dd>
+                </div>
+                <div>
+                    <dt>When you have your dates</dt>
+                    <dd>Use the availability calendar to check existing bookings.</dd>
+                </div>
+                <div>
+                    <dt>After you submit</dt>
+                    <dd>Review pending requests in My reservations. Check the notification bell for updates.</dd>
+                </div>
+            </dl>
+        </section>
     </div>
-    <a class="button button-primary heading-action" asp-controller="BrowseEquipment" asp-action="Index">
-        Browse equipment <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-    </a>
-</header>
 
-<div class="dashboard-layout">
-    <section class="dashboard-feature" aria-labelledby="requestsHeading">
-        <svg class="icon" aria-hidden="true"><use href="#i-box" /></svg>
-        <h2 id="requestsHeading">Plan your next loan</h2>
-        <p>Use the availability calendar to check bookings for the equipment you need.</p>
-        <a class="button button-secondary" asp-controller="AvailabilityCalendar" asp-action="Index">View availability</a>
-    </section>
-
-    <section class="dashboard-links" aria-labelledby="loansHeading">
-        <h2 id="loansHeading">Your requests and loans</h2>
-        <a class="dashboard-link" asp-controller="EquipmentReservation" asp-action="Index">
-            <span><strong>My reservations</strong><small>Check request status, return dates, and previous reservations.</small></span>
-            <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-        </a>
-    </section>
 </div>

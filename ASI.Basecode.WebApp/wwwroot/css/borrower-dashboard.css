@@ -1,0 +1,40 @@
+/* Borrower-only composition; the workspace shell and theme remain shared.
+   Twelve columns + one 20px gutter: 7 + 5 above, 5 + 7 below. */
+.borrower-home { max-width: 1100px; margin-inline: auto; }
+.borrower-welcome { margin-block: 8px 32px; }
+.borrower-welcome h1 { margin: 0 0 10px; font-size: clamp(24px, 2.2vw, 30px); font-weight: 650; line-height: 1.3; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.borrower-home p { color: var(--muted); line-height: 1.7; }
+.borrower-welcome p { margin: 0; font-size: 15px; }
+.borrower-home-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; }
+.borrower-start, .borrower-requests, .borrower-planning { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-panel); }
+.borrower-start { grid-column: span 7; padding: 28px; background: var(--raised); }
+.borrower-requests { grid-column: span 5; padding: 28px; display: flex; flex-direction: column; align-items: flex-start; }
+.borrower-section-title { display: flex; align-items: flex-start; gap: 10px; }
+.borrower-section-title > .icon { flex: none; width: 20px; height: 20px; margin-top: 3px; color: var(--muted); }
+.borrower-home h2 { margin: 0; font-size: 18px; line-height: 1.5; font-weight: 650; letter-spacing: -.015em; }
+.borrower-start > p, .borrower-requests > p { margin: 14px 0 24px; font-size: 14px; max-width: 49ch; }
+.borrower-home .button { min-height: 44px; gap: 12px; white-space: normal; text-align: center; }
+.borrower-start-note { display: flex; align-items: flex-start; gap: 8px; margin-top: 24px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.borrower-start-note .icon { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--accent-ink); }
+.borrower-text-action { display: inline-flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; margin-top: auto; color: var(--link); font-size: 14px; font-weight: 600; border-radius: var(--radius-control); }
+.borrower-text-action:hover { text-decoration: underline; text-underline-offset: 4px; }
+.borrower-text-action:active { color: var(--ink); }
+.borrower-text-action .icon { flex: none; width: 18px; height: 18px; }
+.borrower-planning { grid-column: 1 / -1; display: grid; grid-template-columns: 5fr 7fr; gap: 32px; padding: 28px; }
+.borrower-planning-intro p { margin: 10px 0 20px; font-size: 14px; max-width: 34ch; }
+.borrower-planning-details { display: grid; gap: 18px; margin: 0; padding-inline-start: 28px; border-inline-start: 1px solid var(--line); }
+.borrower-planning-details dt { font-size: 14px; font-weight: 600; }
+.borrower-planning-details dd { margin: 4px 0 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+@media (max-width: 1100px) {
+    .borrower-start, .borrower-requests { grid-column: span 6; }
+    .borrower-start, .borrower-requests, .borrower-planning { padding: 22px; }
+}
+@media (max-width: 640px) {
+    .borrower-welcome { margin-block: 0 24px; }
+    .borrower-home-grid { gap: 16px; }
+    .borrower-start, .borrower-requests { grid-column: 1 / -1; padding: 20px; }
+    .borrower-planning { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 20px; }
+    .borrower-planning-details { border-inline-start: 0; border-top: 1px solid var(--line); padding: 20px 0 0; }
+    .borrower-home .button { width: 100%; }
+    .borrower-start-note { margin-top: 20px; }
+}
