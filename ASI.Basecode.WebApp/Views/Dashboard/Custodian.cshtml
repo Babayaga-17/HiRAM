@@ -1,4 +1,5 @@
 @using System.Linq
+@using ASI.Basecode.Resources.Constants
 @using ASI.Basecode.Services.ServiceModels
 @model List<PendingReservationListItem>
 @{
@@ -6,70 +7,78 @@
     ViewData["Title"] = "Custodian Dashboard";
     ViewData["TopbarPage"] = "Dashboard";
     var pending = Model ?? new List<PendingReservationListItem>();
+    var preview = pending.Take(5).ToList();
 }
-
-<header class="page-heading">
-    <div>
-        <h1>Equipment desk dashboard</h1>
-        <p>Review borrowing requests and track equipment due back.</p>
-    </div>
-    <a class="button button-primary heading-action" asp-controller="Reservation" asp-action="Pending">
-        Review requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-    </a>
-</header>
-
-<section class="dashboard-queue" aria-labelledby="approvalsHeading">
-    <div class="dashboard-queue-heading">
-        <div>
-            <h2 id="approvalsHeading">Pending approval queue</h2>
-            <p>@pending.Count @(pending.Count == 1 ? "request" : "requests") awaiting review.</p>
-        </div>
-        <a class="button button-secondary" asp-controller="Reservation" asp-action="Returns">View returns</a>
-    </div>
-    @if (pending.Count == 0)
-    {
-        <p class="dashboard-empty">There are no pending requests right now.</p>
-    }
-    else
-    {
-        <div class="table-scroll" role="region" aria-label="Pending approval queue" tabindex="0">
-            <table class="category-table">
-                <thead>
-                    <tr>
-                        <th scope="col">Request</th>
-                        <th scope="col">Borrower</th>
-                        <th scope="col">Equipment</th>
-                        <th scope="col">Schedule</th>
-                        <th scope="col" class="actions-column">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var request in pending.Take(5))
+@section Styles {
+    <link rel="stylesheet" href="~/css/custodian-dashboard.css" asp-append-version="true" />
+}
+<div class="custodian-desk">
+    <header class="desk-heading">
+        <div><h1>Custodian Dashboard</h1><p>Manage equipment requests, releases, and returns.</p></div>
+        <a class="button button-primary" asp-controller="Reservation" asp-action="Pending">Review requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+    </header>
+    @* Only pending data is supplied. Other stages link to existing workspaces without invented totals. *@
+    <div class="desk-workspace">
+        <section class="desk-queue" aria-labelledby="deskQueueHeading">
+            <header class="desk-queue-header">
+                <div><h2 id="deskQueueHeading">Requires attention</h2><p>Pending requests · Oldest submitted first</p></div>
+                @if (pending.Count > 0)
+                {
+                    <div class="desk-total"><strong>@pending.Count.ToString("N0")</strong><span>@(pending.Count == 1 ? "request" : "requests") to review</span></div>
+                }
+            </header>
+            @if (preview.Count == 0)
+            {
+                @* Query failure is also returned as an empty list by the existing controller. *@
+                <div class="desk-empty">
+                    <svg class="icon" aria-hidden="true"><use href="#i-info" /></svg>
+                    <div><h3>No requests to display</h3><p>Open reservation review to check the current queue.</p><a class="desk-text-link" asp-controller="Reservation" asp-action="Pending">Open reservation review <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></div>
+                </div>
+            }
+            else
+            {
+                <ol class="desk-requests" aria-label="Pending requests, oldest submitted first">
+                    @foreach (var request in preview)
                     {
-                        <tr>
-                            <td>
-                                <strong>@request.ReservationNumber</strong>
-                                <div class="pending-muted">@request.Purpose</div>
-                            </td>
-                            <td>@request.BorrowerName</td>
-                            <td>@request.EquipmentSummary</td>
-                            <td>@request.StartDateTime.ToString("MMM d, yyyy h:mm tt")</td>
-                            <td class="actions-column">
-                                <a class="icon-button"
-                                   asp-controller="Reservation"
-                                   asp-action="Details"
-                                   asp-route-id="@request.ReservationId"
-                                   aria-label="View @request.ReservationNumber"
-                                   title="View request">
-                                    <svg class="icon"><use href="#i-eye" /></svg>
-                                </a>
-                            </td>
-                        </tr>
+                        <li class="desk-request">
+                            <div class="desk-request-title"><h3>@request.ReservationNumber</h3><span class="desk-status">Pending</span></div>
+                            <p class="desk-borrower">@request.BorrowerName <span>· @request.DepartmentName</span></p>
+                            <p class="desk-equipment">@request.EquipmentSummary</p>
+                            @if (!string.IsNullOrWhiteSpace(request.Purpose))
+                            {
+                                <p class="desk-purpose">@request.Purpose</p>
+                            }
+                            <div class="desk-request-footer">
+                                <dl class="desk-schedule">
+                                    <div><dt>Pickup</dt><dd><time datetime="@request.StartDateTime.ToString("s")">@request.StartDateTime.ToString("MMM d, yyyy · h:mm tt")</time></dd></div>
+                                    <div><dt>Return by</dt><dd><time datetime="@request.ExpectedReturnDateTime.ToString("s")">@request.ExpectedReturnDateTime.ToString("MMM d, yyyy · h:mm tt")</time></dd></div>
+                                </dl>
+                                <a class="desk-review" asp-controller="Reservation" asp-action="Details" asp-route-id="@request.ReservationId" aria-label="Review request @request.ReservationNumber">Review <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+                            </div>
+                        </li>
                     }
-                </tbody>
-            </table>
+                </ol>
+                <footer class="desk-queue-footer"><span>Showing @preview.Count of @pending.Count.ToString("N0") pending requests</span><a class="desk-text-link" asp-controller="Reservation" asp-action="Pending">View all requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></footer>
+            }
+        </section>
+        <aside class="desk-operations" aria-labelledby="deskOperationsHeading">
+            <h2 id="deskOperationsHeading">Beyond approval</h2><p>Follow each reservation through release and return.</p>
+            <div class="desk-stages">
+                <a class="desk-stage" asp-controller="Reservation" asp-action="Pending" asp-route-status="@ReservationStatuses.Approved"><svg class="icon" aria-hidden="true"><use href="#i-box" /></svg><span><strong>Awaiting release</strong><small>Approved · Open the release workflow</small></span><svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg></a>
+                <a class="desk-stage" asp-controller="Reservation" asp-action="Pending" asp-route-status="@ReservationStatuses.Borrowed"><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg><span><strong>Currently borrowed</strong><small>Borrowed · Equipment released to borrowers</small></span><svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg></a>
+                <a class="desk-stage" asp-controller="Reservation" asp-action="Returns"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg><span><strong>Process returns</strong><small>Inspect equipment and record its return</small></span><svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg></a>
+            </div>
+            <a class="desk-report-link" asp-controller="Report" asp-action="Index" asp-route-LateOnly="true"><svg class="icon" aria-hidden="true"><use href="#i-chart" /></svg><span><strong>Late borrowing history</strong><small>Review late transactions in borrowing reports</small></span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+            <a class="desk-text-link desk-history" asp-controller="Reservation" asp-action="Pending" asp-route-status="@ReservationStatuses.Returned">View returned reservations <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+        </aside>
+    <section class="desk-tools" aria-labelledby="deskToolsHeading">
+        <header><h2 id="deskToolsHeading">Equipment desk</h2><p>Keep inventory and schedules ready for the next request.</p></header>
+        <div class="desk-tool-links">
+            <a asp-controller="Equipment" asp-action="Index"><svg class="icon" aria-hidden="true"><use href="#i-box" /></svg><span><strong>Equipment inventory</strong><small>Equipment, photos, and condition</small></span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+            <a asp-controller="AvailabilityCalendar" asp-action="Index"><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg><span><strong>Availability calendar</strong><small>Bookings and maintenance schedules</small></span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+            <a asp-controller="Maintenance" asp-action="Index"><svg class="icon" aria-hidden="true"><use href="#i-tools" /></svg><span><strong>Maintenance records</strong><small>View scheduled and ongoing work</small></span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
         </div>
-    }
-</section>
-
-<partial name="_InventoryLinks" />
+        <a class="desk-text-link desk-category-link" asp-controller="EquipmentCategory" asp-action="Index">Manage equipment categories <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+    </section>
+    </div>
+</div>
