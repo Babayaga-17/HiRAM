@@ -1,71 +1,57 @@
+@using System.Linq
+@using ASI.Basecode.Resources.Constants
+@using ASI.Basecode.Services.ServiceModels
+@model BorrowerDashboardViewModel
 @{
     Layout = "_AppLayout";
-    ViewData["Title"] = "Borrower dashboard";
+    ViewData["Title"] = "Borrower overview";
     ViewData["TopbarPage"] = "Dashboard";
-    var displayName = User.Identity?.Name;
-    var greeting = string.IsNullOrWhiteSpace(displayName) ? "Welcome back." : $"Welcome back, {displayName}.";
+    var overview = Model ?? new BorrowerDashboardViewModel();
+    string Number(int? count) => count?.ToString("N0") ?? "—";
 }
-
 @section Styles {
+    <link rel="stylesheet" href="~/css/role-dashboard.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/borrower-dashboard.css" asp-append-version="true" />
 }
-
-<div class="borrower-home">
-    <header class="borrower-welcome">
-        <h1>@greeting</h1>
-        <p>Your equipment borrowing starts here. Find what you need and plan ahead.</p>
-    </header>
-
-    <div class="borrower-home-grid">
-        <section class="borrower-start" aria-labelledby="equipmentHeading">
-            <div class="borrower-section-title">
-                <svg class="icon" aria-hidden="true"><use href="#i-box" /></svg>
-                <h2 id="equipmentHeading">Equipment for your next project</h2>
-            </div>
-            <p>Explore the equipment catalog, check the details, and select equipment for your reservation.</p>
-            <a class="button button-primary" asp-controller="BrowseEquipment" asp-action="Index">
-                Browse equipment <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-            </a>
-            <div class="borrower-start-note">
-                <svg class="icon" aria-hidden="true"><use href="#i-info" /></svg>
-                <span>Have dates in mind? Check availability before making your request.</span>
-            </div>
+<div class="role-dashboard borrower-dashboard">
+    <header class="rd-heading"><div><h1>Borrower overview</h1><p>Your reservations, pickups, and equipment returns.</p></div><a class="button button-primary" asp-controller="BrowseEquipment" asp-action="Index">Browse equipment <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></header>
+    <section class="stats-grid rd-summary" aria-label="Your borrowing overview">
+        <div class="stat-card"><span class="stat-copy"><span>Pending requests</span><strong>@Number(overview.Count(ReservationStatuses.Pending))</strong><small>Awaiting staff review</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Approved reservations</span><strong>@Number(overview.Count(ReservationStatuses.Approved))</strong><small>Awaiting equipment pickup</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Currently on loan</span><strong>@Number(overview.OutstandingCount)</strong><small>Reservations still outstanding</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Returned</span><strong>@Number(overview.Count(ReservationStatuses.Returned))</strong><small>Completed reservations</small></span></div>
+    </section>
+    @if (overview.OverdueCount > 0)
+    {
+        <p class="rd-attention"><strong>@Number(overview.OverdueCount) @(overview.OverdueCount == 1 ? "loan is" : "loans are") past due.</strong> Contact the equipment desk to arrange your return.</p>
+    }
+    <div class="rd-main-grid">
+        <section class="rd-panel" aria-labelledby="borrowerLoansHeading">
+            <header class="rd-panel-heading"><div><h2 id="borrowerLoansHeading">Equipment to return</h2><p>Outstanding loans, earliest return deadline first</p></div></header>
+            @if (overview.Reservations == null) { <p class="rd-state" role="status">Your loans could not be loaded. Refresh to try again.</p> }
+            else if (!overview.Loans.Any()) { <p class="rd-state">You have no equipment on loan.</p> }
+            else { <partial name="_BorrowerReservations" model="overview.Loans" /><p class="rd-caption">Showing up to four outstanding reservations</p> }
         </section>
-
-        <section class="borrower-requests" aria-labelledby="reservationsHeading">
-            <div class="borrower-section-title">
-                <svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg>
-                <h2 id="reservationsHeading">My reservations</h2>
-            </div>
-            <p>Pick up where you left off. Review the requests waiting for approval and open their details.</p>
-            <a class="borrower-text-action" asp-controller="EquipmentReservation" asp-action="Index">
-                View pending requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-            </a>
-        </section>
-
-        <section class="borrower-planning" aria-labelledby="planningHeading">
-            <div class="borrower-planning-intro">
-                <h2 id="planningHeading">Make room for your plans</h2>
-                <p>Check existing bookings to help plan your equipment request.</p>
-                <a class="button button-secondary" asp-controller="AvailabilityCalendar" asp-action="Index">
-                    View availability <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-                </a>
-            </div>
-            <dl class="borrower-planning-details">
-                <div>
-                    <dt>Before you reserve</dt>
-                    <dd>Find equipment and review its details in the catalog.</dd>
-                </div>
-                <div>
-                    <dt>When you have your dates</dt>
-                    <dd>Use the availability calendar to check existing bookings.</dd>
-                </div>
-                <div>
-                    <dt>After you submit</dt>
-                    <dd>Review pending requests in My reservations. Check the notification bell for updates.</dd>
-                </div>
-            </dl>
+        <aside class="rd-side">
+            <section class="rd-panel" aria-labelledby="borrowerPickupsHeading">
+                <header class="rd-panel-heading"><div><h2 id="borrowerPickupsHeading">Ready for pickup</h2><p>Approved reservations, earliest pickup first</p></div></header>
+                @if (overview.Reservations == null) { <p class="rd-state" role="status">Pickup information is unavailable.</p> }
+                else if (!overview.Pickups.Any()) { <p class="rd-state">No approved reservations are awaiting pickup.</p> }
+                else { <partial name="_BorrowerReservations" model="overview.Pickups" /> }
+            </section>
+            <section class="rd-panel rd-access" aria-labelledby="borrowerAccessHeading">
+                <header class="rd-panel-heading"><div><h2 id="borrowerAccessHeading">Borrowing access</h2><p>@(overview.BorrowerType ?? "Your borrower profile")</p></div></header>
+                @if (!overview.ProfileLoaded) { <p class="rd-state" role="status">Your eligibility information is unavailable.</p> }
+                else { <p class="rd-profile-status">@(overview.EligibilityStatus ?? "No borrower profile")</p><p class="rd-profile-note">Contact the equipment desk about eligibility or suspension details.</p> }
+                <a class="rd-link rd-panel-footer" asp-controller="Account" asp-action="MyProfile">View my profile <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+            </section>
+        </aside>
+        <section class="rd-panel rd-recent" aria-labelledby="borrowerRecentHeading">
+            <header class="rd-panel-heading"><div><h2 id="borrowerRecentHeading">Recent reservations</h2><p>Your four latest requests, across all statuses</p></div><a class="rd-link" asp-controller="EquipmentReservation" asp-action="Index">Manage pending requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></header>
+            @if (overview.Reservations == null) { <p class="rd-state" role="status">Your reservation history is unavailable.</p> }
+            else if (!overview.Recent.Any()) { <p class="rd-state">No reservations yet. Browse equipment to make your first request.</p> }
+            else { <partial name="_BorrowerReservations" model="overview.Recent" /> }
         </section>
     </div>
-
+    <footer class="rd-footer"><a class="rd-link" asp-controller="AvailabilityCalendar" asp-action="Index">Check the availability calendar <svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg></a><a class="rd-link" asp-controller="Dashboard" asp-action="Index">Refresh overview</a></footer>
 </div>

@@ -9,7 +9,6 @@ namespace ASI.Basecode.Services.Interfaces
         List<PendingReservationListItem> GetPendingReservations();
         PendingReservationDetailsViewModel GetPendingReservationById(int reservationId);
         int CountPendingReservations();
-
         ReservationListViewModel GetReservations(string status);
         ReservationDetailsViewModel GetReservationDetails(int reservationId);
         (bool ok, string message) Approve(int reservationId, int? actorUserId, string actorName, string remarks);

@@ -44,7 +44,7 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IUserAccountService, UserAccountService>();
             this._services.AddScoped<IReservationService, ReservationService>();
             this._services.AddScoped<IReportService, ReportService>();
-            this._services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+            this._services.AddScoped<IDashboardService, DashboardService>();
             this._services.AddHttpClient<IEquipmentPhotoService, EquipmentPhotoService>();
             this._services.AddHttpClient<IProfilePhotoService, ProfilePhotoService>();
 

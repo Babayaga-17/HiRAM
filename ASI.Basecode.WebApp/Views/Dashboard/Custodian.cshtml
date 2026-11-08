@@ -1,84 +1,94 @@
 @using System.Linq
 @using ASI.Basecode.Resources.Constants
 @using ASI.Basecode.Services.ServiceModels
-@model List<PendingReservationListItem>
+@model CustodianDashboardViewModel
 @{
     Layout = "_AppLayout";
-    ViewData["Title"] = "Custodian Dashboard";
+    ViewData["Title"] = "Custodian overview";
     ViewData["TopbarPage"] = "Dashboard";
-    var pending = Model ?? new List<PendingReservationListItem>();
-    var preview = pending.Take(5).ToList();
+    var overview = Model ?? new CustodianDashboardViewModel();
+    string Number(int? count) => count?.ToString("N0") ?? "—";
 }
 @section Styles {
+    <link rel="stylesheet" href="~/css/role-dashboard.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/custodian-dashboard.css" asp-append-version="true" />
 }
-<div class="custodian-desk">
-    <header class="desk-heading">
-        <div><h1>Custodian Dashboard</h1><p>Manage equipment requests, releases, and returns.</p></div>
-        <a class="button button-primary" asp-controller="Reservation" asp-action="Pending">Review requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
-    </header>
-    @* Only pending data is supplied. Other stages link to existing workspaces without invented totals. *@
-    <div class="desk-workspace">
-        <section class="desk-queue" aria-labelledby="deskQueueHeading">
-            <header class="desk-queue-header">
-                <div><h2 id="deskQueueHeading">Requires attention</h2><p>Pending requests · Oldest submitted first</p></div>
-                @if (pending.Count > 0)
-                {
-                    <div class="desk-total"><strong>@pending.Count.ToString("N0")</strong><span>@(pending.Count == 1 ? "request" : "requests") to review</span></div>
-                }
-            </header>
-            @if (preview.Count == 0)
-            {
-                @* Query failure is also returned as an empty list by the existing controller. *@
-                <div class="desk-empty">
-                    <svg class="icon" aria-hidden="true"><use href="#i-info" /></svg>
-                    <div><h3>No requests to display</h3><p>Open reservation review to check the current queue.</p><a class="desk-text-link" asp-controller="Reservation" asp-action="Pending">Open reservation review <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></div>
-                </div>
-            }
+<div class="role-dashboard custodian-dashboard">
+    <header class="rd-heading"><div><h1>Custodian overview</h1><p>Review requests, coordinate releases, and follow up on returns.</p></div><a class="button button-primary" asp-controller="Reservation" asp-action="Pending">Review requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></header>
+    <section class="stats-grid rd-summary" aria-label="Equipment desk overview">
+        <div class="stat-card"><span class="stat-copy"><span>Pending review</span><strong>@Number(overview.Count(ReservationStatuses.Pending))</strong><small>Reservation requests</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Awaiting release</span><strong>@Number(overview.Count(ReservationStatuses.Approved))</strong><small>Approved reservations</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Outstanding loans</span><strong>@Number(overview.OutstandingCount)</strong><small>Reservations with equipment still out</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Overdue loans</span><strong>@Number(overview.Overdue?.Summary.TotalRecords)</strong><small>Outstanding past the return deadline</small></span></div>
+    </section>
+    <div class="rd-main-grid">
+        <section class="rd-panel" aria-labelledby="custodianReviewHeading">
+            <header class="rd-panel-heading"><div><h2 id="custodianReviewHeading">Requests to review</h2><p>Oldest submitted first · Up to four requests</p></div><a class="rd-link" asp-controller="Reservation" asp-action="Pending">View all <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></header>
+            @if (overview.Pending == null) { <p class="rd-state" role="status">The review queue could not be loaded. Refresh to try again.</p> }
+            else if (overview.Pending.Items.Count == 0) { <p class="rd-state">No reservation requests are awaiting review.</p> }
             else
             {
-                <ol class="desk-requests" aria-label="Pending requests, oldest submitted first">
-                    @foreach (var request in preview)
-                    {
-                        <li class="desk-request">
-                            <div class="desk-request-title"><h3>@request.ReservationNumber</h3><span class="desk-status">Pending</span></div>
-                            <p class="desk-borrower">@request.BorrowerName <span>· @request.DepartmentName</span></p>
-                            <p class="desk-equipment">@request.EquipmentSummary</p>
-                            @if (!string.IsNullOrWhiteSpace(request.Purpose))
-                            {
-                                <p class="desk-purpose">@request.Purpose</p>
-                            }
-                            <div class="desk-request-footer">
-                                <dl class="desk-schedule">
-                                    <div><dt>Pickup</dt><dd><time datetime="@request.StartDateTime.ToString("s")">@request.StartDateTime.ToString("MMM d, yyyy · h:mm tt")</time></dd></div>
-                                    <div><dt>Return by</dt><dd><time datetime="@request.ExpectedReturnDateTime.ToString("s")">@request.ExpectedReturnDateTime.ToString("MMM d, yyyy · h:mm tt")</time></dd></div>
-                                </dl>
-                                <a class="desk-review" asp-controller="Reservation" asp-action="Details" asp-route-id="@request.ReservationId" aria-label="Review request @request.ReservationNumber">Review <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
-                            </div>
-                        </li>
-                    }
-                </ol>
-                <footer class="desk-queue-footer"><span>Showing @preview.Count of @pending.Count.ToString("N0") pending requests</span><a class="desk-text-link" asp-controller="Reservation" asp-action="Pending">View all requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></footer>
+                <ul class="rd-staff-list">
+                @foreach (var request in overview.Pending.Items.Take(4))
+                {
+                    <li><div class="rd-record-title"><strong>@request.ReservationNumber</strong><span class="rd-status status-pending">Pending</span></div><p>@request.BorrowerName · @request.EquipmentSummary</p><div class="rd-record-bottom"><span>Pickup @request.StartDateTime.ToString("MMM d, yyyy · h:mm tt")</span><a class="rd-row-action" asp-controller="Reservation" asp-action="Details" asp-route-id="@request.ReservationId" aria-label="Review request @request.ReservationNumber">Review <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></div></li>
+                }
+                </ul>
             }
         </section>
-        <aside class="desk-operations" aria-labelledby="deskOperationsHeading">
-            <h2 id="deskOperationsHeading">Beyond approval</h2><p>Follow each reservation through release and return.</p>
-            <div class="desk-stages">
-                <a class="desk-stage" asp-controller="Reservation" asp-action="Pending" asp-route-status="@ReservationStatuses.Approved"><svg class="icon" aria-hidden="true"><use href="#i-box" /></svg><span><strong>Awaiting release</strong><small>Approved · Open the release workflow</small></span><svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg></a>
-                <a class="desk-stage" asp-controller="Reservation" asp-action="Pending" asp-route-status="@ReservationStatuses.Borrowed"><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg><span><strong>Currently borrowed</strong><small>Borrowed · Equipment released to borrowers</small></span><svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg></a>
-                <a class="desk-stage" asp-controller="Reservation" asp-action="Returns"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg><span><strong>Process returns</strong><small>Inspect equipment and record its return</small></span><svg class="icon" aria-hidden="true"><use href="#i-chevron" /></svg></a>
-            </div>
-            <a class="desk-report-link" asp-controller="Report" asp-action="Index" asp-route-LateOnly="true"><svg class="icon" aria-hidden="true"><use href="#i-chart" /></svg><span><strong>Late borrowing history</strong><small>Review late transactions in borrowing reports</small></span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
-            <a class="desk-text-link desk-history" asp-controller="Reservation" asp-action="Pending" asp-route-status="@ReservationStatuses.Returned">View returned reservations <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+        <aside class="rd-side">
+            <section class="rd-panel" aria-labelledby="custodianOverdueHeading">
+                <header class="rd-panel-heading"><div><h2 id="custodianOverdueHeading">Overdue returns</h2><p>Outstanding loans from the overdue report</p></div></header>
+                @if (overview.Overdue == null) { <p class="rd-state" role="status">Overdue loan information is unavailable.</p> }
+                else if (overview.Overdue.Rows.Count == 0) { <p class="rd-state">No outstanding loans are overdue.</p> }
+                else
+                {
+                    <ul class="rd-compact-list">
+                    @foreach (var loan in overview.Overdue.Rows.Take(4))
+                    {
+                        <li><a asp-controller="Reservation" asp-action="Details" asp-route-id="@loan.ReservationId"><strong>@loan.ReservationNumber <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></strong><span>@loan.BorrowerName</span><small class="rd-due">Due @loan.ExpectedReturnDateTime.ToString("MMM d, yyyy · h:mm tt")</small></a></li>
+                    }
+                    </ul>
+                }
+                <a class="rd-link rd-panel-footer" asp-controller="Report" asp-action="Index" asp-route-Status="@ReservationDisplayStatuses.Overdue">View overdue report</a>
+            </section>
+
         </aside>
-    <section class="desk-tools" aria-labelledby="deskToolsHeading">
-        <header><h2 id="deskToolsHeading">Equipment desk</h2><p>Keep inventory and schedules ready for the next request.</p></header>
-        <div class="desk-tool-links">
-            <a asp-controller="Equipment" asp-action="Index"><svg class="icon" aria-hidden="true"><use href="#i-box" /></svg><span><strong>Equipment inventory</strong><small>Equipment, photos, and condition</small></span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
-            <a asp-controller="AvailabilityCalendar" asp-action="Index"><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg><span><strong>Availability calendar</strong><small>Bookings and maintenance schedules</small></span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
-            <a asp-controller="Maintenance" asp-action="Index"><svg class="icon" aria-hidden="true"><use href="#i-tools" /></svg><span><strong>Maintenance records</strong><small>View scheduled and ongoing work</small></span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
-        </div>
-        <a class="desk-text-link desk-category-link" asp-controller="EquipmentCategory" asp-action="Index">Manage equipment categories <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
-    </section>
+        <section class="rd-panel rd-releases" aria-labelledby="custodianReleaseHeading">
+            <header class="rd-panel-heading"><div><h2 id="custodianReleaseHeading">Approved · Awaiting release</h2><p>Earliest pickup first · Approval is separate from release</p></div><a class="rd-link" asp-controller="Reservation" asp-action="Pending" asp-route-status="@ReservationStatuses.Approved">View all</a></header>
+            @if (overview.Approved == null) { <p class="rd-state" role="status">Approved reservations are unavailable.</p> }
+            else if (overview.Approved.Items.Count == 0) { <p class="rd-state">No approved reservations are awaiting release.</p> }
+            else
+            {
+                <ul class="rd-compact-list">
+                @foreach (var release in overview.Approved.Items.Take(3))
+                {
+                    <li><a asp-controller="Reservation" asp-action="Details" asp-route-id="@release.ReservationId"><strong>@release.ReservationNumber <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></strong><span>@release.BorrowerName · @release.EquipmentSummary</span><small>Pickup @release.StartDateTime.ToString("MMM d, yyyy · h:mm tt")</small></a></li>
+                }
+                </ul>
+            }
+        </section>
+        <section class="rd-panel rd-returns" aria-labelledby="custodianReturnHeading">
+            <header class="rd-panel-heading"><div><h2 id="custodianReturnHeading">Borrowed · Return schedule</h2><p>Earliest expected return first · Up to three reservations</p></div><a class="rd-link" asp-controller="Reservation" asp-action="Returns">View returns</a></header>
+            @if (overview.Borrowed == null) { <p class="rd-state" role="status">The return schedule is unavailable.</p> }
+            else if (overview.Borrowed.Items.Count == 0) { <p class="rd-state">No Borrowed reservations are in the return queue.</p> }
+            else
+            {
+                <ul class="rd-compact-list">
+                @foreach (var loan in overview.Borrowed.Items.Take(3))
+                {
+                    <li><a asp-controller="Reservation" asp-action="Details" asp-route-id="@loan.ReservationId"><strong>@loan.ReservationNumber <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></strong><span>@loan.BorrowerName · @loan.EquipmentSummary</span><small>Return by @loan.ExpectedReturnDateTime.ToString("MMM d, yyyy · h:mm tt")</small></a></li>
+                }
+                </ul>
+            }
+        </section>
+            <section class="rd-panel rd-workload" aria-labelledby="custodianReadinessHeading">
+                <header class="rd-panel-heading"><div><h2 id="custodianReadinessHeading">Equipment desk</h2><p>Inventory and maintenance overview</p></div></header>
+                <dl class="rd-facts"><div><dt>Available equipment</dt><dd>@Number(overview.Equipment?.AvailableCount)</dd></div><div><dt>Equipment needing attention</dt><dd>@Number(overview.Equipment?.AttentionCount)</dd></div><div><dt>Scheduled maintenance</dt><dd>@Number(overview.ScheduledMaintenance?.TotalCount)</dd></div><div><dt>Maintenance in progress</dt><dd>@Number(overview.OngoingMaintenance?.TotalCount)</dd></div></dl>
+                @if (overview.Equipment == null || overview.ScheduledMaintenance == null || overview.OngoingMaintenance == null) { <p class="rd-caption" role="status">Some summaries are unavailable.</p> }
+                <div class="rd-inline-links"><a class="rd-link" asp-controller="Equipment" asp-action="Index">Inventory</a><a class="rd-link" asp-controller="Maintenance" asp-action="Index">Maintenance</a></div>
+            </section>
     </div>
+
+    <footer class="rd-footer"><a class="rd-link" asp-controller="AvailabilityCalendar" asp-action="Index">Availability calendar</a><a class="rd-link" asp-controller="EquipmentCategory" asp-action="Index">Equipment categories</a><a class="rd-link" asp-controller="Report" asp-action="Index">Borrowing history</a><a class="rd-link" asp-controller="Dashboard" asp-action="Index">Refresh overview</a></footer>
 </div>

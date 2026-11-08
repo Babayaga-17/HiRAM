@@ -1,92 +1,18 @@
-/* Custodian-only presentation. Desktop: (width - 24px gutter) split 7:4; narrow screens stack. */
-.custodian-desk { display: grid; gap: 28px; min-width: 0; }
-.custodian-desk .desk-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
-.custodian-desk h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.25; letter-spacing: -.035em; }
-.custodian-desk h2 { margin: 0; font-size: 18px; line-height: 1.4; letter-spacing: -.02em; }
-.custodian-desk p { margin: 0; }
-.custodian-desk .desk-heading p { color: var(--muted); }
-.custodian-desk .desk-heading .button { flex: none; }
-.custodian-desk .desk-workspace { display: grid; grid-template-columns: minmax(0, 7fr) minmax(280px, 4fr); align-items: start; gap: 24px; }
-.custodian-desk .desk-queue { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-panel); overflow: hidden; }
-.custodian-desk .desk-queue-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 24px; background: var(--raised); border-top: 3px solid var(--accent); }
-.custodian-desk .desk-queue-header p { margin-top: 6px; color: var(--muted); font-size: 13px; }
-.custodian-desk .desk-total { display: grid; flex: none; text-align: right; }
-.custodian-desk .desk-total strong { font: 600 32px/1.15 var(--font-heading); font-variant-numeric: tabular-nums; }
-.custodian-desk .desk-total span { font-size: 12px; color: var(--muted); }
-.custodian-desk .desk-requests { list-style: none; padding: 0; margin: 0; }
-.custodian-desk .desk-request { padding: 20px 24px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
-.custodian-desk .desk-request-title { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.custodian-desk .desk-request h3 { margin: 0; font: 700 14px/1.5 var(--font-heading); }
-.custodian-desk .desk-status { flex: none; padding: 2px 9px; border-radius: 6px; color: var(--pending-ink); background: var(--pending-soft); font-size: 12px; }
-.custodian-desk .desk-borrower { margin-top: 6px; font-weight: 600; }
-.custodian-desk .desk-borrower span { color: var(--muted); font-size: 12px; font-weight: 400; }
-.custodian-desk .desk-equipment { margin-top: 6px; }
-.custodian-desk .desk-purpose { margin-top: 3px; font-size: 12px; color: var(--muted); }
-.custodian-desk .desk-request-footer { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-top: 14px; }
-.custodian-desk .desk-schedule { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 0; font-size: 12px; }
-.custodian-desk .desk-schedule dt { color: var(--muted); }
-.custodian-desk .desk-schedule dd { margin: 2px 0 0; font-variant-numeric: tabular-nums; }
-.custodian-desk .desk-review { display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 12px; color: var(--link); background: var(--primary-soft); border-radius: var(--radius-control); font-weight: 600; }
-.custodian-desk .desk-review:hover { outline: 1px solid var(--link); outline-offset: -1px; }
-.custodian-desk .desk-review .icon, .custodian-desk .desk-text-link .icon { width: 16px; height: 16px; }
-.custodian-desk .desk-queue-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 8px 24px; border-top: 1px solid var(--line); }
-.custodian-desk .desk-queue-footer > span { font-size: 12px; color: var(--muted); }
-.custodian-desk .desk-text-link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--link); font-size: 13px; font-weight: 600; }
-.custodian-desk .desk-text-link:hover { text-decoration: underline; text-underline-offset: 4px; }
-.custodian-desk .desk-empty { display: flex; align-items: start; gap: 12px; padding: 28px 24px; }
-.custodian-desk .desk-empty > .icon { color: var(--muted); margin-top: 2px; }
-.custodian-desk .desk-empty h3 { font-size: 15px; margin: 0 0 6px; }
-.custodian-desk .desk-empty p { color: var(--muted); }
-.custodian-desk .desk-operations { min-width: 0; padding: 4px 0; }
-.custodian-desk .desk-operations > p { margin: 8px 0 18px; color: var(--muted); font-size: 13px; }
-.custodian-desk .desk-stages { border: 1px solid var(--line); border-radius: var(--radius-panel); overflow: hidden; }
-.custodian-desk .desk-stage, .custodian-desk .desk-report-link { display: flex; align-items: center; gap: 12px; padding: 18px 16px; min-height: 80px; }
-.custodian-desk .desk-stage + .desk-stage { border-top: 1px solid var(--line); }
-.custodian-desk .desk-stage > .icon, .custodian-desk .desk-report-link > .icon { width: 18px; height: 18px; color: var(--muted); }
-.custodian-desk .desk-stage > span, .custodian-desk .desk-report-link > span { flex: 1; min-width: 0; }
-.custodian-desk .desk-stage strong, .custodian-desk .desk-report-link strong { display: block; font-size: 14px; }
-.custodian-desk small { display: block; margin-top: 5px; font-size: 12px; color: var(--muted); line-height: 1.6; }
-.custodian-desk .desk-stage > .icon:last-child, .custodian-desk .desk-report-link > .icon:last-child { width: 14px; height: 14px; }
-.custodian-desk .desk-stage:hover, .custodian-desk .desk-tool-links a:hover { background: var(--raised); }
-.custodian-desk .desk-report-link { margin-top: 16px; border-radius: var(--radius-control); background: var(--raised); }
-.custodian-desk .desk-report-link:hover { outline: 1px solid var(--link); }
-.custodian-desk .desk-history { margin-top: 6px; }
-.custodian-desk .desk-tools header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 20px; margin-bottom: 14px; }
-.custodian-desk .desk-tools header p { color: var(--muted); font-size: 13px; }
-.custodian-desk .desk-tool-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: var(--radius-panel); overflow: hidden; }
-.custodian-desk .desk-tool-links a { display: flex; align-items: center; gap: 12px; padding: 20px 16px; min-width: 0; }
-.custodian-desk .desk-tool-links a + a { border-left: 1px solid var(--line); }
-.custodian-desk .desk-tool-links a > span { flex: 1; min-width: 0; }
-.custodian-desk .desk-tool-links strong { font-size: 13px; }
-.custodian-desk .desk-tool-links .icon { width: 16px; height: 16px; color: var(--muted); }
-.custodian-desk .desk-tool-links a > .icon:last-child { width: 14px; }
-.custodian-desk .desk-category-link { margin-top: 4px; }
-.custodian-desk a:focus-visible { outline: 2px solid var(--link); outline-offset: -3px; }
+/* Desk grid: three equal tracks and two 20px gutters; review queue spans two tracks. */
+.custodian-dashboard .rd-main-grid { grid-template-columns: repeat(3,minmax(0,1fr)); grid-template-areas: "review review overdue" "releases returns workload"; }
+.custodian-dashboard .rd-main-grid > .rd-panel:first-child { grid-area: review; }
+.custodian-dashboard .rd-side { display: contents; }
+.custodian-dashboard .rd-side > .rd-panel { grid-area: overdue; }
+.custodian-dashboard .rd-workload { grid-area: workload; }
+.custodian-dashboard .rd-releases { grid-area: releases; }
+.custodian-dashboard .rd-returns { grid-area: returns; }
 @media (max-width: 1100px) {
-    .custodian-desk .desk-workspace { grid-template-columns: minmax(0, 1fr); }
-    .custodian-desk .desk-stage { min-height: 72px; }
+    .custodian-dashboard .rd-main-grid { grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-areas: "review overdue" "releases returns" "workload workload"; }
 }
 @media (max-width: 700px) {
-    .custodian-desk .desk-tool-links { grid-template-columns: minmax(0, 1fr); }
-    .custodian-desk .desk-tool-links a + a { border-left: 0; border-top: 1px solid var(--line); }
+    .custodian-dashboard .rd-main-grid { grid-template-columns: minmax(0,1fr); grid-template-areas: "review" "overdue" "releases" "returns" "workload"; }
 }
-@media (max-width: 540px) {
-    .custodian-desk { gap: 24px; }
-    .custodian-desk .desk-heading { align-items: start; flex-direction: column; gap: 14px; }
-    .custodian-desk h1 { font-size: 24px; }
-    .custodian-desk .desk-queue-header { padding: 18px 16px; gap: 12px; }
-    .custodian-desk .desk-total strong { font-size: 28px; }
-    .custodian-desk .desk-total span { max-width: 75px; }
-    .custodian-desk .desk-request { padding: 18px 16px; }
-    .custodian-desk .desk-schedule { display: grid; gap: 8px; }
-    .custodian-desk .desk-queue-footer { padding-inline: 16px; }
-    .custodian-desk .desk-empty { padding: 24px 16px; }
-}
-/* The equipment tools close the operational rail instead of falling below a long queue. */
-@media (min-width: 1101px) {
-    .custodian-desk .desk-queue { grid-column: 1; grid-row: 1 / span 2; }
-    .custodian-desk .desk-operations, .custodian-desk .desk-tools { grid-column: 2; }
-    .custodian-desk .desk-tool-links { grid-template-columns: minmax(0, 1fr); }
-    .custodian-desk .desk-tool-links a { padding: 14px 16px; }
-    .custodian-desk .desk-tool-links a + a { border-left: 0; border-top: 1px solid var(--line); }
-}
+.custodian-dashboard .rd-main-grid { align-items: stretch; }
+.custodian-dashboard .rd-panel { display: flex; flex-direction: column; }
+.custodian-dashboard .rd-panel-footer { margin-top: auto; }
+.custodian-dashboard .rd-inline-links { margin-top: auto; padding-top: 8px; }

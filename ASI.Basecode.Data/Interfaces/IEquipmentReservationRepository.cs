@@ -7,6 +7,7 @@ namespace ASI.Basecode.Data.Interfaces;
 public interface IEquipmentReservationRepository
 {
     List<Reservation> GetPendingReservations(int borrowerUserId);
+    List<Reservation> GetBorrowerReservations(int borrowerUserId);
     Reservation GetReservationDetails(int reservationId, int borrowerUserId);
     Reservation GetReservationForUpdate(int reservationId, int borrowerUserId);
     BorrowerProfile GetBorrowerProfile(int borrowerUserId);

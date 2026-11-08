@@ -1,47 +1,51 @@
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.WebApp.Mvc;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
 [Authorize(Roles = $"{RoleNames.Borrower}, {RoleNames.Custodian}, {RoleNames.Admin}")]
-public class DashboardController : Controller
+public class DashboardController : ControllerBase<DashboardController>
 {
-    private readonly IReservationService _reservationService;
-    private readonly IAdminDashboardService _adminDashboardService;
+    private readonly IDashboardService _dashboardService;
 
-    public DashboardController(IReservationService reservationService, IAdminDashboardService adminDashboardService)
+    public DashboardController(IHttpContextAccessor httpContextAccessor,
+                                ILoggerFactory loggerFactory,
+                                IConfiguration configuration,
+                                IDashboardService dashboardService,
+                                IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
-        _reservationService = reservationService;
-        _adminDashboardService = adminDashboardService;
+        _dashboardService = dashboardService;
     }
 
-    public IActionResult Index()
+    [HttpGet]
+    public async Task<IActionResult> Index()
     {
         if (User.IsInRole("Borrower"))
-            return View("Borrower");
+        {
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
+                return Challenge();
+
+            return View("Borrower", await Task.FromResult(_dashboardService.GetBorrowerOverview(borrowerUserId)));
+        }
 
         if (User.IsInRole("Custodian"))
         {
-            List<PendingReservationListItem> pending;
-            try
-            {
-                pending = _reservationService.GetPendingReservations();
-            }
-            catch
-            {
-                pending = new List<PendingReservationListItem>();
-            }
-
-            return View("Custodian", pending);
+            return View("Custodian", await Task.FromResult(_dashboardService.GetCustodianOverview()));
         }
 
         if (User.IsInRole("Admin"))
         {
-            return View("Admin", _adminDashboardService.GetOverview());
+            return View("Admin", await Task.FromResult(_dashboardService.GetAdminOverview()));
         }
 
         return Forbid();

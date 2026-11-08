@@ -26,6 +26,16 @@ public class EquipmentReservationRepository : BaseRepository, IEquipmentReservat
             .ToList();
     }
 
+    public List<Reservation> GetBorrowerReservations(int borrowerUserId)
+    {
+        if (borrowerUserId <= 0) throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
+        return ReservationDetailsQuery()
+            .Where(item => item.BorrowerUserId == borrowerUserId)
+            .OrderByDescending(item => item.RequestedAt)
+            .ThenByDescending(item => item.ReservationId)
+            .ToList();
+    }
+
     public Reservation GetReservationDetails(int reservationId, int borrowerUserId)
     {
         return ReservationDetailsQuery().SingleOrDefault(item =>
