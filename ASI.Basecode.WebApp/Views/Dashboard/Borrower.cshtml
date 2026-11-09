@@ -16,11 +16,12 @@
 }
 
 <div class="role-dashboard borrower-dashboard">
-    <header class="rd-heading">
+    <div class="page-heading">
         <div>
             <h1>Borrower dashboard</h1>
             <p>Your upcoming pickups and equipment returns.</p>
         </div>
+
         <a class="button button-primary"
            asp-controller="BrowseEquipment"
            asp-action="Index">
@@ -29,7 +30,7 @@
                 <use href="#i-arrow" />
             </svg>
         </a>
-    </header>
+    </div>
     <section class="bd-attention" aria-labelledby="borrowerAttentionHeading">
         <header class="bd-section-heading">
             <h2 id="borrowerAttentionHeading">Needs your attention</h2>

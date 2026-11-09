@@ -17,7 +17,6 @@ public class DashboardService : IDashboardService
 
     private readonly IUserAccountService accounts;
     private readonly IBorrowerProfileService borrowers;
-    private readonly IEquipmentReservationRepository borrowerReservations;
     private readonly IReportService reports;
     private readonly IEquipmentService equipment;
     private readonly IMaintenanceService maintenance;
@@ -40,7 +39,6 @@ public class DashboardService : IDashboardService
 
         this.accounts = accounts;
         this.borrowers = borrowers;
-        this.borrowerReservations = borrowerReservations; 
         this.reports = reports; 
         this.equipment = equipment; 
         this.maintenance = maintenance; 

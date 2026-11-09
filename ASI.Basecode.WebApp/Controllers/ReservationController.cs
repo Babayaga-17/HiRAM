@@ -34,7 +34,7 @@ public class ReservationController : ControllerBase<ReservationController>
     }
 
     [HttpGet]
-    public async Task<IActionResult> MyReservation()
+    public IActionResult MyReservation()
     {
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
         {
