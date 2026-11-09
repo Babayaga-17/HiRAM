@@ -164,7 +164,9 @@ else
                     <div class="equipment-card-actions">
                         <a class="button button-secondary view-equipment"
                            asp-controller="BrowseEquipment" asp-action="Details"
-                           asp-route-id="@item.EquipmentId" asp-route-reservationId="@reservationId">View details</a>
+                           asp-route-id="@item.EquipmentId" asp-route-reservationId="@reservationId">
+                            View details
+                        </a>
                         <button type="button" class="button button-primary select-equipment">Select</button>
                     </div>
                 </article>
