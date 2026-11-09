@@ -21,7 +21,7 @@
     var isRoleAccessActive = IsActive("UserAccount", "RoleAccess");
     var isUsersActive = IsActive("UserAccount") && !isRoleAccessActive;
 
-    var isMyReservationsActive = IsActive("EquipmentReservation", "Index") || IsActive("EquipmentReservation", "Details");
+    var isMyReservationsActive = IsActive("Reservation", "MyReservation") || IsActive("EquipmentReservation", "Details");
 
     var isBrowseActive = IsActive("BrowseEquipment") || (IsActive("EquipmentReservation") && !isMyReservationsActive);
 }
@@ -56,8 +56,8 @@
             </a>
 
             <a class="@(isMyReservationsActive ? "nav-link nav-link-active" : "nav-link")" title="My reservations"
-               asp-controller="EquipmentReservation"
-               asp-action="Index"
+               asp-controller="Reservation"
+               asp-action="MyReservation"
                aria-current="@(isMyReservationsActive ? "page" : null)">
                 <svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg>
                 <span>My reservations</span>

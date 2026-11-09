@@ -37,19 +37,6 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
         _reservationService = reservationService;
     }
 
-    [HttpGet]
-    public IActionResult Index()
-    {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
-        {
-            return Challenge();
-        }
-
-        var reservations = _reservationService.GetPendingReservations(borrowerUserId);
-
-        return View(reservations);
-    }
-
     // Static samples for the details UI; no reservation records are loaded.
     [HttpGet]
     public IActionResult Details(int id)

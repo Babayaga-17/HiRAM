@@ -11,22 +11,39 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
+[Authorize(Roles = $"{RoleNames.Borrower}, {RoleNames.Custodian}, {RoleNames.Admin}")]
 public class ReservationController : ControllerBase<ReservationController>
 {
     private readonly IReservationService _reservationService;
+    private readonly IEquipmentReservationService _equipmentReservationService;
 
     public ReservationController(
         IHttpContextAccessor httpContextAccessor,
         ILoggerFactory loggerFactory,
         IConfiguration configuration,
         IReservationService reservationService,
+        IEquipmentReservationService equipmentReservationService,   
         IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
         _reservationService = reservationService;
+        _equipmentReservationService = equipmentReservationService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> MyReservation()
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
+        {
+            return Challenge();
+        }
+
+        var reservations = _equipmentReservationService.GetPendingReservations(borrowerUserId);
+
+        return View(reservations);
     }
 
     [HttpGet]

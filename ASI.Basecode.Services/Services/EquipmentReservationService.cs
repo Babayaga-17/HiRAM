@@ -27,6 +27,12 @@ public class EquipmentReservationService : IEquipmentReservationService
         _notifications = notifications;
     }
 
+    public List<ReservationViewModel> GetPendingReservations(int borrowerUserId)
+    {
+        return _reservationRepository.GetPendingReservations(borrowerUserId)
+            .Select(ToViewModel).ToList();
+    }
+
     public (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId)
     {
         var errors = new List<ValidationResult>();
@@ -74,12 +80,6 @@ public class EquipmentReservationService : IEquipmentReservationService
         }, "Equipment availability changed while submitting. Please try again.");
 
         return error == null ? (number, null) : (null, error);
-    }
-
-    public List<ReservationViewModel> GetPendingReservations(int borrowerUserId)
-    {
-        return _reservationRepository.GetPendingReservations(borrowerUserId)
-            .Select(ToViewModel).ToList();
     }
 
     public ReservationViewModel GetReservationDetails(int reservationId, int borrowerUserId)

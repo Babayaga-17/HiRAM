@@ -4,50 +4,34 @@
 @model AdminDashboardViewModel
 @{
     Layout = "_AppLayout";
-    ViewData["Title"] = "Administrator overview";
+    ViewData["Title"] = "Administrator dashboard";
     ViewData["TopbarPage"] = "Dashboard";
     var overview = Model ?? new AdminDashboardViewModel();
     string Number(int? value) => value?.ToString("N0") ?? "—";
-    var pending = overview.ReservationCount(ReservationStatuses.Pending);
-    var approved = overview.ReservationCount(ReservationStatuses.Approved);
-    var borrowed = overview.ReservationCount(ReservationStatuses.Borrowed);
-    var onLoan = borrowed + overview.ReservationCount(ReservationStatuses.Overdue);
     var registrations = overview.RegistrationPreview.ToList();
-    var availablePercent = overview.Equipment?.TotalEquipment > 0 ? 100.0 * overview.Equipment.AvailableCount / overview.Equipment.TotalEquipment : 0;
 }
 @section Styles {
-    <link rel="stylesheet" href="~/css/admin-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/role-dashboard.css" asp-append-version="true" />
 }
-
-<div class="admin-overview">
-    <header class="ao-heading">
-        <div><h1>Administrator overview</h1><p>Account approvals, equipment readiness, and outstanding loans.</p></div>
-        <a class="button button-secondary" asp-controller="Dashboard" asp-action="Index">Refresh overview <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
-    </header>
-
-    <!-- Overview Stats -->
-    <section class="stats-grid ao-summary" aria-label="Institution overview">
-        <div class="stat-card"><span class="stat-copy"><span>User accounts</span><strong>@Number(overview.Accounts?.Count)</strong><small>All account statuses</small></span></div>
-        <div class="stat-card"><span class="stat-copy"><span>Equipment records</span><strong>@Number(overview.Equipment?.TotalEquipment)</strong><small>Includes inactive equipment</small></span></div>
-        <div class="stat-card"><span class="stat-copy"><span>Outstanding loans</span><strong>@Number(onLoan)</strong><small>Reservations with equipment still out</small></span></div>
-        <div class="stat-card"><span class="stat-copy"><span>Requests to review</span><strong>@Number(pending)</strong><small>Pending reservations</small></span></div>
+<div class="role-dashboard admin-dashboard">
+    <header class="rd-heading"><div><h1>Administrator dashboard</h1><p>Review registrations and oversee accounts and equipment.</p></div></header>
+    <section class="stats-grid rd-summary" aria-label="Administration overview">
+        <div class="stat-card"><span class="stat-copy"><span>Total users</span><strong>@Number(overview.Accounts?.Count)</strong><small>All account statuses</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Pending registrations</span><strong>@Number(overview.PendingRegistrations)</strong><small>Awaiting administrator approval</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Total equipment</span><strong>@Number(overview.Equipment?.TotalEquipment)</strong><small>Includes inactive equipment</small></span></div>
     </section>
-
-
-    <div class="ao-priorities">
-
-        <!-- Registration Approvals -->
-        <section class="ao-panel ao-registrations" aria-labelledby="aoRegistrations">
-            <header class="ao-panel-heading">
+<!-- Registration Approvals -->
+        <section class="rd-panel" aria-labelledby="aoRegistrations">
+            <header class="rd-panel-heading">
                 <div>
                     <h2 id="aoRegistrations">
                         Registration approvals
-                        <span>@Number(overview.PendingRegistrations)</span>
+
                     </h2>
                     <p>Accounts awaiting administrator review</p>
                 </div>
-                <a class="ao-link" asp-controller="UserAccount" asp-action="Index">
-                    View accounts
+                <a class="rd-link" asp-controller="UserAccount" asp-action="Index">
+                    View all accounts
                     <svg class="icon" aria-hidden="true">
                         <use href="#i-arrow" />
                     </svg>
@@ -56,24 +40,24 @@
 
             @if (overview.Accounts == null)
             {
-                <p class="ao-state" role="status">Account information is unavailable. Refresh to try again.</p>
+                <p class="rd-state" role="status">Account information is unavailable. Refresh to try again.</p>
             }
             else if (registrations.Count == 0)
             {
-                <p class="ao-state">No registrations are awaiting approval.</p>
+                <p class="rd-state">No registrations are awaiting approval.</p>
             }
             else
             {
-                <ul class="ao-registration-list">
+                <ul class="rd-registration-list">
                     @foreach (var account in registrations)
                     {
                         <li>
-                            <span class="ao-person">
+                            <span class="rd-person">
                                 <strong>@account.FullName</strong>
                                 <small>@account.UserCode</small>
                             </span>
-                            <span class="ao-badge">Pending approval</span>
-                            <a class="ao-review" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="Review registration for @account.FullName">
+                            <span class="rd-badge">Pending approval</span>
+                            <a class="rd-review" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="Review registration for @account.FullName">
                                 Review
                                 <svg class="icon" aria-hidden="true">
                                     <use href="#i-arrow" />
@@ -82,164 +66,7 @@
                         </li>
                     }
                 </ul>
-                <p class="ao-caption">Showing @registrations.Count of @Number(overview.PendingRegistrations) pending registrations</p>
+                <p class="rd-caption">Showing @registrations.Count of @Number(overview.PendingRegistrations) pending registrations</p>
             }
         </section>
-
-        <!-- Overdue Equipments -->
-        <section class="ao-panel ao-overdue" aria-labelledby="aoOverdue">
-            <header class="ao-panel-heading">
-                <div>
-                    <h2 id="aoOverdue">
-                        Overdue equipments <span>@Number(overview.Overdue?.Summary.TotalRecords)</span>
-                    </h2><p>Outstanding reservations past their return deadline</p>
-                </div>
-            </header>
-            @if (overview.Overdue == null)
-            {
-                <p class="ao-state" role="status">Overdue information is unavailable. Refresh to try again.</p>
-            }
-            else if (overview.Overdue.Rows.Count == 0)
-            {
-                <p class="ao-state">No outstanding loans are overdue.</p>
-            }
-            else
-            {
-                <ul class="ao-loan-list">
-                    @foreach (var loan in overview.Overdue.Rows.Take(4))
-                    {
-                        <li>
-                            <a asp-controller="Reservation" asp-action="Details" asp-route-id="@loan.ReservationId">
-                                <strong>
-                                    @loan.ReservationNumber
-                                    <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-                                </strong>
-                                <span>@loan.BorrowerName</span><small>Due @loan.ExpectedReturnDateTime.ToString("MMM d, yyyy · h:mm tt")</small>
-                            </a>
-                        </li>
-                    }
-                </ul>
-            }
-            <a class="ao-link ao-footer-link" asp-controller="Report" asp-action="Index" asp-route-Status="@ReservationDisplayStatuses.Overdue">
-                View overdue report
-                <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-            </a>
-        </section>
-    </div>
-
-    <div class="ao-operations">
-
-        <!-- Equipment Card -->
-        <section class="ao-panel" aria-labelledby="aoEquipment">
-
-
-            <header class="ao-panel-heading">
-                <div>
-                    <h2 id="aoEquipment">Equipment readiness</h2>
-                    <p>Current availability from the inventory</p>
-                </div>
-                <a class="ao-link" asp-controller="Equipment" asp-action="Index">
-                    Inventory
-                    <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-                </a>
-            </header>
-            @if (overview.Equipment == null)
-            {
-                <p class="ao-state" role="status">Equipment information is unavailable.</p>
-            }
-            else
-            {
-                <div class="ao-readiness">
-                    <strong>
-                        @Number(overview.Equipment.AvailableCount)
-                        <small> of @Number(overview.Equipment.TotalEquipment) available</small>
-                    </strong>
-                    <div class="ao-meter" role="meter" aria-label="Available equipment" aria-valuemin="0" aria-valuemax="@System.Math.Max(1, overview.Equipment.TotalEquipment)" aria-valuenow="@overview.Equipment.AvailableCount">
-                        <svg width="@(availablePercent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture))%" height="7" aria-hidden="true" focusable="false">
-                            <rect width="100%" height="7" />
-                        </svg>
-                    </div>
-                    <p>@Number(overview.Equipment.AttentionCount) flagged for attention in inventory</p>
-                </div>
-            }
-            <div class="ao-inline-links">
-                <a class="ao-link" asp-controller="AvailabilityCalendar" asp-action="Index">Availability calendar</a>
-                <a class="ao-link" asp-controller="EquipmentCategory" asp-action="Index">Categories</a>
-            </div>
-        </section>
-
-        <section class="ao-panel" aria-labelledby="aoBorrowing">
-            <header class="ao-panel-heading">
-                <div>
-                    <h2 id="aoBorrowing">Borrowing lifecycle</h2>
-                    <p>Reservations from review through return</p>
-                </div>
-            </header>
-            @if (overview.Reservations == null)
-            {
-                <p class="ao-state" role="status">Reservation information is unavailable.</p>
-            }
-            else
-            {
-                <dl class="ao-facts">
-                    <div>
-                        <dt>Pending review</dt>
-                        <dd><a asp-controller="Reservation" asp-action="Pending">@Number(pending)</a></dd>
-                    </div>
-                    <div>
-                        <dt>Approved · Awaiting release</dt>
-                        <dd>
-                            <a asp-controller="Reservation" asp-action="Pending" asp-route-status="@ReservationStatuses.Approved">@Number(approved)</a>
-                        </dd>
-                    </div>
-                    <div><dt>Borrowed</dt><dd>@Number(borrowed)</dd></div>
-                    <div><dt>Returned</dt><dd>@Number(overview.ReservationCount(ReservationStatuses.Returned))</dd></div>
-                </dl>
-            }
-            <div class="ao-inline-links">
-                <a class="ao-link" asp-controller="Reservation" asp-action="Returns">Process returns</a>
-                <a class="ao-link" asp-controller="Report" asp-action="Index">Borrowing history</a>
-            </div>
-        </section>
-
-        <section class="ao-panel" aria-labelledby="aoAccessMaintenance">
-            <header class="ao-panel-heading">
-                <div>
-                    <h2 id="aoAccessMaintenance">Access &amp; maintenance</h2>
-                    <p>Borrower eligibility and maintenance workload</p>
-                </div>
-            </header>
-            <dl class="ao-facts">
-                <div>
-                    <dt>Eligible borrowers</dt>
-                    <dd>@Number(overview.Borrowers?.OverallEligible)</dd>
-                </div>
-                <div>
-                    <dt>Suspended borrowers</dt>
-                    <dd>@Number(overview.Borrowers?.OverallSuspended)</dd>
-                </div>
-                <div>
-                    <dt>Scheduled maintenance</dt>
-                    <dd>@Number(overview.ScheduledMaintenance?.TotalCount)</dd>
-                </div>
-                <div>
-                    <dt>Maintenance in progress</dt>
-                    <dd>@Number(overview.OngoingMaintenance?.TotalCount)</dd>
-                </div>
-            </dl>
-            @if (overview.Borrowers == null || overview.ScheduledMaintenance == null || overview.OngoingMaintenance == null)
-            {
-                <p class="ao-caption" role="status">Some summaries are unavailable.</p>
-            }
-            <div class="ao-inline-links">
-                <a class="ao-link" asp-controller="BorrowerProfile" asp-action="Index">Borrower profiles</a>
-                <a class="ao-link" asp-controller="Maintenance" asp-action="Index">Maintenance</a>
-            </div>
-        </section>
-    </div>
-    <footer class="ao-footer">
-        <span>Loaded @overview.LoadedAt.ToString("MMM d, yyyy · h:mm tt") · Refresh for current figures</span>
-        <a class="ao-link" asp-controller="UserAccount" asp-action="RoleAccess">Role access</a>
-        <a class="ao-link" asp-controller="UserAccount" asp-action="Create">Create account</a>
-    </footer>
 </div>

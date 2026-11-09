@@ -1,4 +1,4 @@
-/* Shared dashboard presentation, scoped away from Admin and other application screens. */
+/* Shared presentation for all three role dashboards, scoped away from other screens. */
 .role-dashboard { display: grid; gap: 20px; min-width: 0; }
 .role-dashboard h1 { margin: 0 0 6px; font-size: 26px; line-height: 1.25; letter-spacing: -.03em; }
 .role-dashboard h2 { margin: 0; font-size: 16px; line-height: 1.4; }
@@ -6,7 +6,7 @@
 .role-dashboard .rd-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .role-dashboard .rd-heading p { color: var(--muted); }
 .role-dashboard .rd-heading .button { flex: none; }
-.role-dashboard .rd-summary { grid-template-columns: repeat(4,minmax(0,1fr)); margin-bottom: 0; }
+.role-dashboard .rd-summary { grid-template-columns: repeat(3,minmax(0,1fr)); margin-bottom: 0; }
 .role-dashboard .rd-main-grid { display: grid; gap: 20px; align-items: start; }
 .role-dashboard .rd-side { display: grid; gap: 20px; min-width: 0; }
 .role-dashboard .rd-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); overflow: hidden; }
@@ -68,3 +68,22 @@
 .role-dashboard .rd-reservation-list .rd-row-action { grid-column: 2; grid-row: 2 / span 2; align-self: center; }
 .role-dashboard .rd-staff-list .rd-record-title, .role-dashboard .rd-staff-list li > p { grid-column: 1; margin-top: 0; }
 .role-dashboard .rd-staff-list .rd-row-action { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+/* Three equal summary tracks; mobile label/value rows keep the queue in reach. */
+.role-dashboard .rd-summary .stat-card { box-shadow: none; }
+.role-dashboard .rd-summary .stat-copy strong { font-size: 28px; font-weight: 600; }
+.role-dashboard .rd-registration-list { list-style: none; margin: 0; padding: 0 20px; }
+.role-dashboard .rd-registration-list li { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 20px; padding: 12px 0; border-top: 1px solid var(--line); }
+.role-dashboard .rd-person { min-width: 0; overflow-wrap: anywhere; }
+.role-dashboard .rd-person strong { font-size: 14px; }
+.role-dashboard .rd-badge { color: var(--pending-ink); background: var(--pending-soft); padding: 2px 8px; border-radius: 5px; font-size: 12px; }
+.role-dashboard .rd-review { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; color: var(--link); font-size: 13px; font-weight: 600; }
+@media (max-width: 620px) {
+    .role-dashboard { gap: 16px; }
+    .role-dashboard .rd-summary .stat-copy { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 0 12px; width: 100%; }
+    .role-dashboard .rd-summary .stat-copy strong { grid-column: 2; grid-row: 1 / span 2; font-size: 24px; }
+    .role-dashboard .rd-summary .stat-copy small { grid-column: 1; }
+    .role-dashboard .rd-registration-list { padding-inline: 16px; }
+    .role-dashboard .rd-registration-list li { grid-template-columns: minmax(0,1fr) auto; gap: 4px 12px; }
+    .role-dashboard .rd-badge { grid-column: 1; justify-self: start; }
+    .role-dashboard .rd-review { grid-column: 2; grid-row: 1 / span 2; }
+}
