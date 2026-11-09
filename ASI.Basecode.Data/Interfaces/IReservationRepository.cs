@@ -8,6 +8,8 @@ namespace ASI.Basecode.Data.Interfaces
 {
     public interface IReservationRepository
     {
+        List<Reservation> GetBorrowerDashboardReservations(int borrowerUserId, DateTime now);
+
         IQueryable<Reservation> GetPendingReservations();
         Reservation GetPendingReservationById(int reservationId);
         int CountPendingReservations();

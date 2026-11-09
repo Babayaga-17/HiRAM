@@ -17,6 +17,35 @@ namespace ASI.Basecode.Data.Repositories
         {
         }
 
+        public List<Reservation> GetBorrowerDashboardReservations(int borrowerUserId, DateTime now)
+        {
+            if (borrowerUserId <= 0)
+                throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
+
+            return GetDbSet<Reservation>()
+                .AsNoTracking() // Not tracked for performance since we are only reading data
+                .Include(r => r.ReservationItems)
+                    .ThenInclude(item => item.Equipment)
+                .Where(r => r.BorrowerUserId == borrowerUserId)
+                .Where(r =>
+                    r.Status == ReservationStatuses.Approved ||
+                    r.Status == ReservationStatuses.Borrowed ||
+                    r.Status == ReservationStatuses.Overdue)
+                .OrderByDescending(r =>
+                    r.Status != ReservationStatuses.Approved &&
+                    r.ExpectedReturnDateTime < now)
+                .ThenByDescending(r =>
+                    r.Status == ReservationStatuses.Approved)
+                .ThenBy(r => r.Status == ReservationStatuses.Approved
+                    ? r.StartDateTime
+                    : r.ExpectedReturnDateTime)
+                .ThenBy(r => r.ReservationId)
+                .Take(3)
+                .ToList();
+        }
+
+
+
         public IQueryable<Reservation> GetPendingReservations()
         {
             return PendingQuery()

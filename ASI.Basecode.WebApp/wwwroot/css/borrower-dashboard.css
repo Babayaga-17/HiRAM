@@ -1,8 +1,33 @@
-/* Personal loan home: (width - 20px gutter) split 7:4; the pickup/access rail spans both ledger rows. */
-.borrower-dashboard .rd-main-grid { grid-template-columns: minmax(0,7fr) minmax(0,4fr); }
-.borrower-dashboard .rd-side { grid-column: 2; grid-row: 1 / span 2; }
-.borrower-dashboard .rd-recent { grid-column: 1; }
-@media (max-width: 1000px) {
-    .borrower-dashboard .rd-main-grid { grid-template-columns: minmax(0,1fr); }
-    .borrower-dashboard .rd-side, .borrower-dashboard .rd-recent { grid-column: auto; grid-row: auto; }
+/* Three compact reservation cards, using the shared shell and semantic theme tokens.
+   Desktop tracks: flexible identity + flexible schedule + content-sized action.
+   The same edges stack at mobile widths; no fixed-height cards or hidden fields. */
+.borrower-dashboard .bd-attention { min-width: 0; }
+.borrower-dashboard .bd-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.borrower-dashboard .bd-cards { display: grid; gap: 12px; list-style: none; padding: 0; margin: 0; }
+.borrower-dashboard .bd-card { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(0,1fr) auto; align-items: center; gap: 24px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); }
+.borrower-dashboard .bd-identity { min-width: 0; }
+.borrower-dashboard .bd-reference { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 12px; color: var(--muted); }
+.borrower-dashboard .bd-reference > span:first-child { overflow-wrap: anywhere; }
+.borrower-dashboard .bd-card h3 { margin: 10px 0 4px; font-size: 16px; line-height: 1.45; font-weight: 600; overflow-wrap: anywhere; }
+.borrower-dashboard .bd-more { white-space: nowrap; color: var(--muted); font-weight: 400; font-size: 14px; }
+.borrower-dashboard .bd-item-count { color: var(--muted); font-size: 12px; }
+.borrower-dashboard .bd-schedule { margin: 0; font-variant-numeric: tabular-nums; }
+.borrower-dashboard .bd-schedule dt { color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+.borrower-dashboard .bd-schedule dd { margin: 0; font-size: 14px; font-weight: 600; }
+.borrower-dashboard .bd-schedule.bd-overdue > div:first-child dt, .borrower-dashboard .bd-schedule.bd-overdue > div:first-child dd { color: var(--danger-ink); }
+.borrower-dashboard .bd-secondary-date { display: flex; flex-wrap: wrap; gap: 0 5px; margin-top: 8px; }
+.borrower-dashboard .bd-secondary-date dt, .borrower-dashboard .bd-secondary-date dd { color: var(--muted); font-size: 12px; font-weight: 400; margin: 0; }
+.borrower-dashboard .bd-timezone { margin-top: 16px; color: var(--muted); font-size: 12px; }
+.borrower-dashboard .bd-state { padding: 24px 20px; border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--surface); color: var(--muted); font-size: 14px; line-height: 1.6; }
+@media (max-width: 700px) {
+    .borrower-dashboard .bd-card { grid-template-columns: minmax(0,1fr) auto; gap: 16px; }
+    .borrower-dashboard .bd-schedule { grid-column: 1; }
+    .borrower-dashboard .bd-card > .rd-row-action { grid-column: 2; grid-row: 1 / span 2; }
+}
+@media (max-width: 620px) {
+    .borrower-dashboard .bd-section-heading { flex-wrap: wrap; gap: 0 12px; }
+    .borrower-dashboard .bd-card { padding: 16px; gap: 14px 8px; }
+    .borrower-dashboard .bd-identity { grid-column: 1 / -1; }
+    .borrower-dashboard .bd-card > .rd-row-action { grid-row: 2; align-self: end; padding-inline: 0; font-size: 12px; }
+    .borrower-dashboard .bd-schedule dd { font-size: 13px; }
 }

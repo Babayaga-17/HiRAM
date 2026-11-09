@@ -1,86 +1,114 @@
 @using System.Linq
 @using ASI.Basecode.Resources.Constants
-@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Dashboard
 @model BorrowerDashboardViewModel
 @{
     Layout = "_AppLayout";
     ViewData["Title"] = "Borrower dashboard";
     ViewData["TopbarPage"] = "Dashboard";
     var overview = Model ?? new BorrowerDashboardViewModel();
-    string Number(int? count) => count?.ToString("N0") ?? "—";
+    var attention = overview.Reservations ?? new List<DashboardReservation>();
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/role-dashboard.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/borrower-dashboard.css" asp-append-version="true" />
 }
 
 <div class="role-dashboard borrower-dashboard">
     <header class="rd-heading">
         <div>
             <h1>Borrower dashboard</h1>
-            <p>Keep track of your reservations and equipment returns.</p>
+            <p>Your upcoming pickups and equipment returns.</p>
         </div>
-
-        <a class="button button-primary" asp-controller="BrowseEquipment" asp-action="Index">
+        <a class="button button-primary"
+           asp-controller="BrowseEquipment"
+           asp-action="Index">
             Browse equipment
             <svg class="icon" aria-hidden="true">
                 <use href="#i-arrow" />
             </svg>
         </a>
     </header>
-
-    <section class="stats-grid rd-summary" aria-label="Your borrowing overview">
-        <div class="stat-card">
-            <span class="stat-copy">
-                <span>Pending requests</span>
-                <strong>@Number(overview.Count(ReservationStatuses.Pending))</strong>
-                <small>Awaiting staff review</small>
-            </span>
-        </div>
-
-        <div class="stat-card">
-            <span class="stat-copy">
-                <span>Active borrowings</span>
-                <strong>@Number(overview.OutstandingCount)</strong>
-                <small>Reservations with equipment still out</small>
-            </span>
-        </div>
-
-        <div class="stat-card">
-            <span class="stat-copy">
-                <span>Overdue returns</span>
-                <strong>@Number(overview.OverdueCount)</strong>
-                <small>Outstanding past the return deadline</small>
-            </span>
-        </div>
-    </section>
-
-    <section class="rd-panel" aria-labelledby="borrowerRecentHeading">
-        <header class="rd-panel-heading">
-            <div>
-                <h2 id="borrowerRecentHeading">Recent reservations</h2>
-                <p>Your latest requests, across all statuses</p>
-            </div>
-
-            <a class="rd-link" asp-controller="Reservation" asp-action="MyReservation">
-                Manage pending requests
+    <section class="bd-attention" aria-labelledby="borrowerAttentionHeading">
+        <header class="bd-section-heading">
+            <h2 id="borrowerAttentionHeading">Needs your attention</h2>
+            <a class="rd-link"
+               asp-controller="Reservation"
+               asp-action="MyReservation">
+                My reservations
                 <svg class="icon" aria-hidden="true">
                     <use href="#i-arrow" />
                 </svg>
             </a>
         </header>
-
         @if (overview.Reservations == null)
         {
-            <p class="rd-state" role="status">Your reservation history is unavailable.</p>
+            <p class="bd-state" role="status">
+                Your reservations could not be loaded.
+                <a class="rd-link"
+                   asp-controller="Dashboard"
+                   asp-action="Index">
+                    Try again
+                </a>
+            </p>
         }
-        else if (!overview.Recent.Any())
+        else if (attention.Count == 0)
         {
-            <p class="rd-state">No reservations yet. Browse equipment to make your first request.</p>
+            <p class="bd-state">You're all caught up. No equipment pickups or returns need your attention.</p>
         }
         else
         {
-            <partial name="_BorrowerReservations" model="overview.Recent" />
+            <ul class="bd-cards">
+                @foreach (var reservation in attention)
+                {
+                    var pickup = reservation.Status == ReservationStatuses.Approved;
+                    var overdue = reservation.IsOverdue;
+                    var status = overdue ? ReservationStatuses.Overdue : reservation.Status;
+                    var names = reservation.EquipmentNames;
+                    var equipment = names.Count > 0 ? names[0] : reservation.EquipmentSummary ?? "Equipment";
+                    var nextAt = pickup ? reservation.PickupAt : reservation.ReturnBy;
+                    <li>
+                        <article class="bd-card" aria-labelledby="reservation-@reservation.ReservationId">
+                            <div class="bd-identity">
+                                <div class="bd-reference">
+                                    <span>@reservation.ReservationNumber</span>
+                                    <span class="rd-status status-@status.ToLowerInvariant()">@status</span>
+                                </div>
+                                <h3 id="reservation-@reservation.ReservationId">
+                                    @equipment
+                                    @if (names.Count > 1)
+                                    {
+                                        <span class="bd-more"> + @(names.Count - 1) more</span>
+                                    }
+                                </h3>
+                                @if (names.Count > 0)
+                                {
+                                    <p class="bd-item-count">@names.Count @(names.Count == 1 ? "equipment item" : "equipment items")@(reservation.IsOutstanding ? " still out" : "")</p>
+                                }
+                            </div>
+                            <dl class="bd-schedule @(overdue ? "bd-overdue" : "")">
+                                <div>
+                                    <dt>@(overdue ? "Return overdue" : pickup ? "Scheduled pickup" : "Return by")</dt>
+                                    <dd><time datetime="@nextAt.ToString("s")">@nextAt.ToString("MMM d, yyyy · h:mm tt")</time></dd>
+                                </div>
+                                <div class="bd-secondary-date">
+                                    <dt>@(pickup ? "Return by" : "Scheduled pickup")</dt>
+                                    <dd>@((pickup ? reservation.ReturnBy : reservation.PickupAt).ToString("MMM d, yyyy · h:mm tt"))</dd>
+                                </div>
+                            </dl>
+                            <a class="rd-row-action"
+                               asp-controller="EquipmentReservation"
+                               asp-action="Details"
+                               asp-route-id="@reservation.ReservationId" aria-label="View details for reservation @reservation.ReservationNumber">
+                                View details
+                                <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+                            </a>
+                        </article>
+                    </li>
+                }
+            </ul>
+            <p class="bd-timezone">All times are in Philippine time (UTC+8).</p>
         }
     </section>
 </div>

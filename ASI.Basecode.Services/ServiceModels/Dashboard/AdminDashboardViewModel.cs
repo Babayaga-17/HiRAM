@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-namespace ASI.Basecode.Services.ServiceModels;
+namespace ASI.Basecode.Services.ServiceModels.Dashboard;
 
 public class AdminDashboardViewModel
 {
