@@ -25,6 +25,37 @@ namespace ASI.Basecode.Services.Services
             _notifications = notifications;
         }
 
+        public MyReservationPageViewModel GetBorrowerReservations(int borrowerUserId, string status, int page, int pageSize)
+        {
+            if (borrowerUserId <= 0) throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
+
+            status = MyReservationPageViewModel.StatusOptions.FirstOrDefault(value => string.Equals(value, status?.Trim(), StringComparison.OrdinalIgnoreCase));
+            pageSize = pageSize == 10 || pageSize == 20 ? pageSize : 5;
+            var now = DateTime.Now;
+            var total = _reservationRepository.CountBorrowerReservations(borrowerUserId, null, now);
+            var filtered = status == null ? total : _reservationRepository.CountBorrowerReservations(borrowerUserId, status, now);
+            var totalPages = Math.Max(1, (int)Math.Ceiling(filtered / (double)pageSize));
+            page = Math.Clamp(page, 1, totalPages);
+            var rows = _reservationRepository.GetBorrowerReservationPage(borrowerUserId, status, now, (page - 1) * pageSize, pageSize);
+
+            return new MyReservationPageViewModel
+            {
+                Status = status, Page = page, PageSize = pageSize, TotalCount = total, FilteredCount = filtered,
+                Items = rows.Select(r =>
+                {
+                    var outstanding = r.Status == ReservationStatuses.Borrowed || r.Status == ReservationStatuses.Overdue;
+                    return new MyReservationCard
+                    {
+                        ReservationId = r.ReservationId, ReservationNumber = r.ReservationNumber,
+                        Status = outstanding ? (r.ExpectedReturnDateTime < now ? ReservationStatuses.Overdue : ReservationStatuses.Borrowed) : r.Status,
+                        PickupAt = r.StartDateTime, ReturnBy = r.ExpectedReturnDateTime,
+                        EquipmentNames = r.ReservationItems.OrderBy(i => i.ReservationItemId)
+                            .Select(i => i.Equipment?.EquipmentName ?? "Equipment").ToList()
+                    };
+                }).ToList()
+            };
+        }
+
         // ---------------------------------------------------------------- existing (pending only)
 
         public List<PendingReservationListItem> GetPendingReservations()

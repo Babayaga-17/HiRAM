@@ -58,6 +58,7 @@
 
     @if (isEdit)
     {
+        <input type="hidden" name="returnUrl" value="@ViewData["ReservationReturnUrl"]" />
         <input type="hidden"
                name="RowVersion"
                value="@editModel.RowVersion" />

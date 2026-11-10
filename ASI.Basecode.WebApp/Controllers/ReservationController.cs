@@ -2,6 +2,7 @@
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Reservation;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -19,7 +21,6 @@ namespace ASI.Basecode.WebApp.Controllers;
 public class ReservationController : ControllerBase<ReservationController>
 {
     private readonly IReservationService _reservationService;
-    private readonly IEquipmentReservationService _equipmentReservationService;
 
     public ReservationController(
         IHttpContextAccessor httpContextAccessor,
@@ -30,20 +31,30 @@ public class ReservationController : ControllerBase<ReservationController>
         IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
         _reservationService = reservationService;
-        _equipmentReservationService = equipmentReservationService;
     }
 
     [HttpGet]
-    public IActionResult MyReservation()
+    [Authorize(Roles = RoleNames.Borrower)]
+    public IActionResult MyReservation(string status = null, int page = 1, int pageSize = 5)
     {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
-        {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
             return Challenge();
+
+        try
+        {
+            return View(_reservationService.GetBorrowerReservations(borrowerUserId, status, page, pageSize));
         }
-
-        var reservations = _equipmentReservationService.GetPendingReservations(borrowerUserId);
-
-        return View(reservations);
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to load borrower reservations.");
+            return View(new MyReservationPageViewModel
+            {
+                IsAvailable = false,
+                Status = MyReservationPageViewModel.StatusOptions.FirstOrDefault(value =>
+                    string.Equals(value, status?.Trim(), StringComparison.OrdinalIgnoreCase)),
+                PageSize = pageSize == 10 || pageSize == 20 ? pageSize : 5
+            });
+        }
     }
 
     [HttpGet]

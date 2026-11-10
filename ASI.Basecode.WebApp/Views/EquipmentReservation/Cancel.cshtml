@@ -33,7 +33,9 @@
     <form asp-controller="EquipmentReservation"
           asp-action="Cancel"
           asp-route-id="@reservation.ReservationId"
+               asp-route-returnUrl="@ViewData["ReservationReturnUrl"]"
           method="post">
+        <input type="hidden" name="returnUrl" value="@ViewData["ReservationReturnUrl"]" />
 
         <input asp-for="RowVersion" type="hidden" />
 
@@ -53,6 +55,7 @@
         <div class="form-actions">
             <a class="button button-secondary"
                asp-action="Details"
+               asp-route-returnUrl="@ViewData["ReservationReturnUrl"]"
                asp-route-id="@reservation.ReservationId">
                 Keep reservation
             </a>

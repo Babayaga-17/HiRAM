@@ -138,7 +138,7 @@ namespace ASI.Basecode.Services.Services
 
                 foreach (var row in report.Rows)
                 {
-                    var background = row.DisplayStatus == ReservationDisplayStatuses.Overdue ? "#fff4f4" : "#ffffff";
+                    var background = row.DisplayStatus == ReservationStatuses.Overdue ? "#fff4f4" : "#ffffff";
 
                     void Cell(string value, bool bold = false, string color = null)
                     {
@@ -155,7 +155,7 @@ namespace ASI.Basecode.Services.Services
                     Cell(Format(row.BorrowedAt));
                     Cell(row.ExpectedReturnDateTime.ToString("MMM d, h:mm tt"));
                     Cell(Format(row.ReturnedAt));
-                    Cell(row.DisplayStatus, bold: true, color: row.DisplayStatus == ReservationDisplayStatuses.Overdue ? LateColor : null);
+                    Cell(row.DisplayStatus, bold: true, color: row.DisplayStatus == ReservationStatuses.Overdue ? LateColor : null);
                     Cell(row.LateText ?? "—", bold: row.IsLate, color: row.IsLate ? LateColor : null);
                 }
             });
@@ -323,7 +323,7 @@ namespace ASI.Basecode.Services.Services
                 sheet.Cell(rowNumber, 10).Value = row.DisplayStatus ?? string.Empty;
                 sheet.Cell(rowNumber, 11).Value = row.LateText ?? string.Empty;
 
-                if (row.DisplayStatus == ReservationDisplayStatuses.Overdue)
+                if (row.DisplayStatus == ReservationStatuses.Overdue)
                 {
                     sheet.Range(rowNumber, 1, rowNumber, Headers.Length).Style.Fill.BackgroundColor = XLColor.FromHtml(OverdueFill);
                     sheet.Cell(rowNumber, 10).Style.Font.Bold = true;

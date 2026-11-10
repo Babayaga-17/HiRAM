@@ -95,7 +95,7 @@ public class DashboardService : IDashboardService
         Pending = Read("pending requests", () => _reservationService.GetReservations(ReservationStatuses.Pending)),
         Approved = Read("approved reservations", () => _reservationService.GetReservations(ReservationStatuses.Approved)),
         Borrowed = Read("borrowed reservations", () => _reservationService.GetReservations(ReservationStatuses.Borrowed)),
-        Overdue = Read("overdue loans", () => reports.GetBorrowingReport(new BorrowingReportFilter { Status = ReservationDisplayStatuses.Overdue }, 1, 4)),
+        Overdue = Read("overdue loans", () => reports.GetBorrowingReport(new BorrowingReportFilter { Status = ReservationStatuses.Overdue }, 1, 4)),
         Equipment = Read("equipment", () => equipment.GetEquipmentPage(new EquipmentListRequest())),
         ScheduledMaintenance = Read("scheduled maintenance", () => maintenance.GetPage(null, MaintenanceStatuses.Scheduled, 1)),
         OngoingMaintenance = Read("ongoing maintenance", () => maintenance.GetPage(null, MaintenanceStatuses.InProgress, 1))
@@ -106,7 +106,7 @@ public class DashboardService : IDashboardService
         Accounts = Read("accounts", () => accounts.GetUserAccounts()),
         Equipment = Read("equipment", () => equipment.GetEquipmentPage(new EquipmentListRequest())),
         Reservations = Read("reservations", () => _reservationService.GetReservations(ReservationStatuses.Pending)),
-        Overdue = Read("overdue loans", () => reports.GetBorrowingReport(new BorrowingReportFilter { Status = ReservationDisplayStatuses.Overdue }, 1, 4)),
+        Overdue = Read("overdue loans", () => reports.GetBorrowingReport(new BorrowingReportFilter { Status = ReservationStatuses.Overdue }, 1, 4)),
         Borrowers = Read("borrowers", () => borrowers.GetPage(null, null, 1, 1)),
         ScheduledMaintenance = Read("scheduled maintenance", () => maintenance.GetPage(null, MaintenanceStatuses.Scheduled, 1)),
         OngoingMaintenance = Read("ongoing maintenance", () => maintenance.GetPage(null, MaintenanceStatuses.InProgress, 1))

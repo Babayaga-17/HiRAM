@@ -17,6 +17,40 @@ namespace ASI.Basecode.Data.Repositories
         {
         }
 
+        // All list queries are scoped before counts, related-data loading or materialization.
+        private IQueryable<Reservation> BorrowerListQuery(int borrowerUserId, string status, DateTime now)
+        {
+            if (borrowerUserId <= 0)
+                throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
+
+            var query = GetDbSet<Reservation>().AsNoTracking()
+                .Where(r => r.BorrowerUserId == borrowerUserId);
+
+            if (status == ReservationStatuses.Overdue)
+                return query.Where(r => (r.Status == ReservationStatuses.Borrowed || r.Status == ReservationStatuses.Overdue)
+                    && r.ExpectedReturnDateTime < now);
+            if (status == ReservationStatuses.Borrowed)
+                return query.Where(r => (r.Status == ReservationStatuses.Borrowed || r.Status == ReservationStatuses.Overdue)
+                    && r.ExpectedReturnDateTime >= now);
+
+            return string.IsNullOrEmpty(status) ? query : query.Where(r => r.Status == status);
+        }
+
+        public int CountBorrowerReservations(int borrowerUserId, string status, DateTime now) => BorrowerListQuery(borrowerUserId, status, now).Count();
+
+        public List<Reservation> GetBorrowerReservationPage(int borrowerUserId, string status, DateTime now, int skip, int take)
+        {
+            if (skip < 0) throw new ArgumentOutOfRangeException(nameof(skip));
+            if (take != 5 && take != 10 && take != 20) throw new ArgumentOutOfRangeException(nameof(take));
+
+            return BorrowerListQuery(borrowerUserId, status, now)
+                .OrderByDescending(r => r.RequestedAt)
+                .ThenByDescending(r => r.ReservationId)
+                .Skip(skip).Take(take)
+                .Include(r => r.ReservationItems).ThenInclude(item => item.Equipment)
+                .ToList();
+        }
+
         public List<Reservation> GetBorrowerDashboardReservations(int borrowerUserId, DateTime now)
         {
             if (borrowerUserId <= 0)
