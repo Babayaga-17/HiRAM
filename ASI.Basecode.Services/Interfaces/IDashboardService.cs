@@ -1,8 +1,9 @@
 using ASI.Basecode.Services.ServiceModels.Dashboard;
+using System.Threading.Tasks;
 namespace ASI.Basecode.Services.Interfaces;
 public interface IDashboardService
 {
-    BorrowerDashboardViewModel GetBorrowerOverview(int borrowerUserId);
+    Task<BorrowerDashboardViewModel> GetBorrowerOverviewAsync(int borrowerUserId);
     CustodianDashboardViewModel GetCustodianOverview();
     AdminDashboardViewModel GetAdminOverview();
 }

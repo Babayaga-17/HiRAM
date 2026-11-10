@@ -5,9 +5,11 @@ using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.ServiceModels.Dashboard;
+using DocumentFormat.OpenXml.VariantTypes;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 namespace ASI.Basecode.Services.Services;
 
 public class DashboardService : IDashboardService
@@ -45,50 +47,22 @@ public class DashboardService : IDashboardService
         this.logger = logger;
     }
 
-    public BorrowerDashboardViewModel GetBorrowerOverview(int borrowerUserId)
+    public async Task<BorrowerDashboardViewModel> GetBorrowerOverviewAsync(int borrowerUserId)
     {
         if (borrowerUserId <= 0)
             throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
 
         var now = DateTime.Now;
 
+        var reservations = await _reservationRepository.GetBorrowerDashboardReservationsAsync(borrowerUserId, now);
+        var cards = reservations
+            .Select(reservation => MapDashboardReservation(reservation, now))
+            .ToList();
         return new BorrowerDashboardViewModel
         {
-            Reservations = Read("borrower dashboard", () =>
-                _reservationRepository
-                    .GetBorrowerDashboardReservations(borrowerUserId, now)
-                    .Select(reservation => MapDashboardReservation(reservation, now))
-                    .ToList())
+            Reservations = cards
         };
     }
-
-    private static DashboardReservation MapDashboardReservation(Reservation reservation, DateTime now)
-    {
-        var outstanding =
-            reservation.Status == ReservationStatuses.Borrowed ||
-            reservation.Status == ReservationStatuses.Overdue;
-
-        var equipmentNames = reservation.ReservationItems
-            .Where(item => !outstanding || !item.IsReturned)
-            .Select(item => item.Equipment?.EquipmentName ?? "Equipment")
-            .ToList();
-
-        return new DashboardReservation
-        {
-            ReservationId = reservation.ReservationId,
-            ReservationNumber = reservation.ReservationNumber,
-            Status = reservation.Status,
-            RequestedAt = reservation.RequestedAt,
-            PickupAt = reservation.StartDateTime,
-            ReturnBy = reservation.ExpectedReturnDateTime,
-            EquipmentNames = equipmentNames,
-            EquipmentSummary = string.Join(", ", equipmentNames),
-            IsOverdue = 
-                outstanding &&
-                reservation.ExpectedReturnDateTime < now
-        };
-    }
-
 
     public CustodianDashboardViewModel GetCustodianOverview() => new()
     {
@@ -112,9 +86,40 @@ public class DashboardService : IDashboardService
         OngoingMaintenance = Read("ongoing maintenance", () => maintenance.GetPage(null, MaintenanceStatuses.InProgress, 1))
     };
 
+    #region Helper
+
+    private static DashboardReservation MapDashboardReservation(Reservation reservation, DateTime now)
+    {
+        var outstanding =
+            reservation.Status == ReservationStatuses.Borrowed ||
+            reservation.Status == ReservationStatuses.Overdue;
+
+        var equipmentNames = reservation.ReservationItems
+            .Where(item => !outstanding || !item.IsReturned)
+            .Select(item => item.Equipment?.EquipmentName ?? "Equipment")
+            .ToList();
+
+        return new DashboardReservation
+        {
+            ReservationId = reservation.ReservationId,
+            ReservationNumber = reservation.ReservationNumber,
+            Status = reservation.Status,
+            RequestedAt = reservation.RequestedAt,
+            PickupAt = reservation.StartDateTime,
+            ReturnBy = reservation.ExpectedReturnDateTime,
+            EquipmentNames = equipmentNames,
+            EquipmentSummary = string.Join(", ", equipmentNames),
+            IsOverdue =
+                outstanding &&
+                reservation.ExpectedReturnDateTime < now
+        };
+    }
+
     private T Read<T>(string section, Func<T> read) where T : class
     {
         try { return read(); }
         catch (Exception exception) { logger.LogWarning(exception, "Role dashboard {Section} could not be loaded.", section); return null; }
     }
+
+    #endregion
 }

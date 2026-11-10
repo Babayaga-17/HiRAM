@@ -2,12 +2,13 @@
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.ServiceModels.Reservation;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ASI.Basecode.Services.Interfaces
 {
     public interface IReservationService
     {
-        MyReservationPageViewModel GetBorrowerReservations(int borrowerUserId, string status, int page, int pageSize);
+        Task<MyReservationPageViewModel> GetBorrowerReservationsAsync(int borrowerUserId, string status, int page, int pageSize);
         List<PendingReservationListItem> GetPendingReservations();
         PendingReservationDetailsViewModel GetPendingReservationById(int reservationId);
         int CountPendingReservations();

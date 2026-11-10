@@ -35,7 +35,8 @@ public class DashboardController : ControllerBase<DashboardController>
             if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
                 return Challenge();
 
-            return View("Borrower", await Task.FromResult(_dashboardService.GetBorrowerOverview(borrowerUserId)));
+            var borrowerOverview = await _dashboardService.GetBorrowerOverviewAsync(borrowerUserId);
+            return View("Borrower", borrowerOverview);
         }
 
         if (User.IsInRole("Custodian"))

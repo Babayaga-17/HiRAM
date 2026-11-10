@@ -35,14 +35,15 @@ public class ReservationController : ControllerBase<ReservationController>
 
     [HttpGet]
     [Authorize(Roles = RoleNames.Borrower)]
-    public IActionResult MyReservation(string status = null, int page = 1, int pageSize = 5)
+    public async Task<IActionResult> MyReservation(string status = null, int page = 1, int pageSize = 5)
     {
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
             return Challenge();
 
         try
         {
-            return View(_reservationService.GetBorrowerReservations(borrowerUserId, status, page, pageSize));
+            var reservations = await _reservationService.GetBorrowerReservationsAsync(borrowerUserId, status, page, pageSize);
+            return View(reservations);
         }
         catch (Exception exception)
         {

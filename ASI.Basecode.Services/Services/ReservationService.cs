@@ -9,6 +9,7 @@ using ASI.Basecode.Services.ServiceModels.Reservation;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ASI.Basecode.Services.Services
 {
@@ -25,22 +26,21 @@ namespace ASI.Basecode.Services.Services
             _notifications = notifications;
         }
 
-        public MyReservationPageViewModel GetBorrowerReservations(int borrowerUserId, string status, int page, int pageSize)
+        public async Task<MyReservationPageViewModel> GetBorrowerReservationsAsync(int borrowerUserId, string status, int page, int pageSize)
         {
             if (borrowerUserId <= 0) throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
 
             status = MyReservationPageViewModel.StatusOptions.FirstOrDefault(value => string.Equals(value, status?.Trim(), StringComparison.OrdinalIgnoreCase));
             pageSize = pageSize == 10 || pageSize == 20 ? pageSize : 5;
             var now = DateTime.Now;
-            var total = _reservationRepository.CountBorrowerReservations(borrowerUserId, null, now);
-            var filtered = status == null ? total : _reservationRepository.CountBorrowerReservations(borrowerUserId, status, now);
-            var totalPages = Math.Max(1, (int)Math.Ceiling(filtered / (double)pageSize));
+            var total = await _reservationRepository.CountBorrowerReservationsAsync(borrowerUserId, null, now);
+            var filteredTotal = status == null ? total : await _reservationRepository.CountBorrowerReservationsAsync(borrowerUserId, status, now);
+            var totalPages = Math.Max(1, (int)Math.Ceiling(filteredTotal / (double)pageSize));
             page = Math.Clamp(page, 1, totalPages);
-            var rows = _reservationRepository.GetBorrowerReservationPage(borrowerUserId, status, now, (page - 1) * pageSize, pageSize);
-
+            var rows = await _reservationRepository.GetBorrowerReservationPageAsync(borrowerUserId, status, now, (page - 1) * pageSize, pageSize);
             return new MyReservationPageViewModel
             {
-                Status = status, Page = page, PageSize = pageSize, TotalCount = total, FilteredCount = filtered,
+                Status = status, Page = page, PageSize = pageSize, TotalCount = total, FilteredCount = filteredTotal,
                 Items = rows.Select(r =>
                 {
                     var outstanding = r.Status == ReservationStatuses.Borrowed || r.Status == ReservationStatuses.Overdue;
@@ -49,8 +49,10 @@ namespace ASI.Basecode.Services.Services
                         ReservationId = r.ReservationId, ReservationNumber = r.ReservationNumber,
                         Status = outstanding ? (r.ExpectedReturnDateTime < now ? ReservationStatuses.Overdue : ReservationStatuses.Borrowed) : r.Status,
                         PickupAt = r.StartDateTime, ReturnBy = r.ExpectedReturnDateTime,
-                        EquipmentNames = r.ReservationItems.OrderBy(i => i.ReservationItemId)
-                            .Select(i => i.Equipment?.EquipmentName ?? "Equipment").ToList()
+                        EquipmentNames = r.ReservationItems
+                            .OrderBy(i => i.ReservationItemId)
+                            .Select(i => i.Equipment?.EquipmentName ?? "Equipment")
+                            .ToList()
                     };
                 }).ToList()
             };

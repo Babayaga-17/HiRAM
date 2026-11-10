@@ -1,13 +1,15 @@
 // ASI.Basecode.Data/Repositories/ReservationRepository.cs
-using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Data.Exceptions;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
+using ASI.Basecode.Resources.Constants;
 using Basecode.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
-using ASI.Basecode.Data.Exceptions;
+using System.Threading.Tasks;
+using static ASI.Basecode.Resources.Constants.Enums;
 
 namespace ASI.Basecode.Data.Repositories
 {
@@ -20,10 +22,11 @@ namespace ASI.Basecode.Data.Repositories
         // All list queries are scoped before counts, related-data loading or materialization.
         private IQueryable<Reservation> BorrowerListQuery(int borrowerUserId, string status, DateTime now)
         {
-            if (borrowerUserId <= 0)
+            if (borrowerUserId <= 0) // ensures no negative or zero borrowerUserId is passed, which would be invalid
                 throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
 
-            var query = GetDbSet<Reservation>().AsNoTracking()
+            var query = GetDbSet<Reservation>()
+                .AsNoTracking() // Not tracked for performance since we are only reading data
                 .Where(r => r.BorrowerUserId == borrowerUserId);
 
             if (status == ReservationStatuses.Overdue)
@@ -36,28 +39,27 @@ namespace ASI.Basecode.Data.Repositories
             return string.IsNullOrEmpty(status) ? query : query.Where(r => r.Status == status);
         }
 
-        public int CountBorrowerReservations(int borrowerUserId, string status, DateTime now) => BorrowerListQuery(borrowerUserId, status, now).Count();
+        public Task<int> CountBorrowerReservationsAsync(int borrowerUserId, string status, DateTime now) => BorrowerListQuery(borrowerUserId, status, now).CountAsync();
 
-        public List<Reservation> GetBorrowerReservationPage(int borrowerUserId, string status, DateTime now, int skip, int take)
+        public Task<List<Reservation>> GetBorrowerReservationPageAsync(int borrowerUserId, string status, DateTime now, int skip, int take)
         {
-            if (skip < 0) throw new ArgumentOutOfRangeException(nameof(skip));
-            if (take != 5 && take != 10 && take != 20) throw new ArgumentOutOfRangeException(nameof(take));
+            if (skip < 0) throw new ArgumentOutOfRangeException(nameof(skip)); // ensures no negative skip value is passed, which would be invalid
+            if (take != 5 && take != 10 && take != 20) throw new ArgumentOutOfRangeException(nameof(take)); // ensures only valid take values are passed
 
             return BorrowerListQuery(borrowerUserId, status, now)
                 .OrderByDescending(r => r.RequestedAt)
                 .ThenByDescending(r => r.ReservationId)
                 .Skip(skip).Take(take)
                 .Include(r => r.ReservationItems).ThenInclude(item => item.Equipment)
-                .ToList();
+                .ToListAsync();
         }
 
-        public List<Reservation> GetBorrowerDashboardReservations(int borrowerUserId, DateTime now)
+        public Task<List<Reservation>> GetBorrowerDashboardReservationsAsync(int borrowerUserId, DateTime now)
         {
-            if (borrowerUserId <= 0)
+            if (borrowerUserId <= 0) // ensures no negative or zero borrowerUserId is passed, which would be invalid
                 throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
 
-            return GetDbSet<Reservation>()
-                .AsNoTracking() // Not tracked for performance since we are only reading data
+            return BorrowerListQuery(borrowerUserId, null, now)
                 .Include(r => r.ReservationItems)
                     .ThenInclude(item => item.Equipment)
                 .Where(r => r.BorrowerUserId == borrowerUserId)
@@ -75,7 +77,7 @@ namespace ASI.Basecode.Data.Repositories
                     : r.ExpectedReturnDateTime)
                 .ThenBy(r => r.ReservationId)
                 .Take(3)
-                .ToList();
+                .ToListAsync();
         }
 
 

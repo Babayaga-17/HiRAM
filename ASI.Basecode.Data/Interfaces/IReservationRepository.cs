@@ -3,14 +3,15 @@ using ASI.Basecode.Data.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using System.Threading.Tasks;
 
 namespace ASI.Basecode.Data.Interfaces
 {
     public interface IReservationRepository
     {
-        int CountBorrowerReservations(int borrowerUserId, string status, DateTime now);
-        List<Reservation> GetBorrowerReservationPage(int borrowerUserId, string status, DateTime now, int skip, int take);
-        List<Reservation> GetBorrowerDashboardReservations(int borrowerUserId, DateTime now);
+        Task<int> CountBorrowerReservationsAsync(int borrowerUserId, string status, DateTime now);
+        Task<List<Reservation>> GetBorrowerReservationPageAsync(int borrowerUserId, string status, DateTime now, int skip, int take);
+        Task<List<Reservation>> GetBorrowerDashboardReservationsAsync(int borrowerUserId, DateTime now);
 
         IQueryable<Reservation> GetPendingReservations();
         Reservation GetPendingReservationById(int reservationId);
