@@ -11,8 +11,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
@@ -20,17 +22,21 @@ namespace ASI.Basecode.WebApp.Controllers;
 [Authorize(Roles = $"{RoleNames.Borrower}, {RoleNames.Custodian}, {RoleNames.Admin}")]
 public class ReservationController : ControllerBase<ReservationController>
 {
+    private const string SelectionKey = "SelectedEquipmentIds";
+
     private readonly IReservationService _reservationService;
+    private readonly IEquipmentService _equipmentService;
 
     public ReservationController(
         IHttpContextAccessor httpContextAccessor,
         ILoggerFactory loggerFactory,
         IConfiguration configuration,
         IReservationService reservationService,
-        IEquipmentReservationService equipmentReservationService,   
+        IEquipmentService equipmentService,
         IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
         _reservationService = reservationService;
+        _equipmentService = equipmentService;
     }
 
     [HttpGet]
@@ -57,6 +63,91 @@ public class ReservationController : ControllerBase<ReservationController>
             });
         }
     }
+
+    [HttpGet]
+    public IActionResult Create()
+    {
+        var draft = HttpContext.Session.GetString(
+            "ReservationDraft:Create");
+
+        var model = draft == null
+            ? new ReservationFormModel()
+            : JsonSerializer.Deserialize<ReservationFormModel>(draft);
+
+        model.EquipmentIds = ParseSelection(
+            HttpContext.Session.GetString(SelectionKey));
+
+        LoadEquipment(model);
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Create([Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose")] ReservationFormModel model)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
+            return Challenge();
+
+        if (ModelState.IsValid)
+        {
+            try
+            {
+                var result = _reservationService.Submit(model, borrowerUserId);
+                if (result.Error == null)
+                {
+                    HttpContext.Session.Remove(SelectionKey);
+                    HttpContext.Session.Remove("ReservationDraft:Create");
+                    TempData["ReservationNumber"] = result.ReservationNumber;
+                    //return RedirectToAction(nameof(Submitted));
+                }
+                ModelState.AddModelError(string.Empty, result.Error);
+            }
+            catch (Exception)
+            {
+                //_logger.LogError(exception, "Unable to submit equipment reservation for borrower {UserId}.", borrowerUserId);
+                ModelState.AddModelError(string.Empty,
+                    "Your reservation could not be completed. Please try again; availability will be checked again.");
+            }
+        }
+
+        LoadEquipment(model);
+        return View(model);
+    }
+
+    private void LoadEquipment(ReservationFormModel model)
+    {
+        model.Equipment = new List<EquipmentListItem>();
+        foreach (var id in (model.EquipmentIds ?? new List<int>()).Distinct())
+        {
+            var item = _equipmentService.GetBorrowableEquipmentById(id);
+            if (item == null || item.Status == EquipmentAvailability.Unavailable)
+            {
+                ViewData["SelectionError"] = "Some selected equipment can no longer be borrowed. Return to Browse Equipment and review your selection.";
+                continue;
+            }
+            model.Equipment.Add(item);
+        }
+    }
+
+    private static List<int> ParseSelection(string value)
+    {
+        return (value ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => int.TryParse(part, out var id) ? id : 0)
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+    }
+
+
+
+
+
+
+
+
+
+
 
     [HttpGet]
     public IActionResult Index()

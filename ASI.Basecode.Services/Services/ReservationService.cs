@@ -1,4 +1,5 @@
 // ASI.Basecode.Services/Services/ReservationService.cs
+using ASI.Basecode.Data.Exceptions;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Data.Repositories;
@@ -8,6 +9,7 @@ using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.ServiceModels.Reservation;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -18,12 +20,16 @@ namespace ASI.Basecode.Services.Services
         private static readonly string[] Tabs = { ReservationStatuses.Pending, ReservationStatuses.Approved, ReservationStatuses.Borrowed, ReservationStatuses.Returned, ReservationStatuses.Rejected, ReservationFilters.All };
 
         private readonly IReservationRepository _reservationRepository;
+        private readonly IEquipmentService _equipmentService;
         private readonly INotificationService _notifications;
 
-        public ReservationService(IReservationRepository reservationRepository, INotificationService notifications)
+        public ReservationService(IReservationRepository reservationRepository, 
+                                  INotificationService notifications,
+                                  IEquipmentService equipmentService)
         {
             _reservationRepository = reservationRepository;
             _notifications = notifications;
+            _equipmentService = equipmentService;
         }
 
         public async Task<MyReservationPageViewModel> GetBorrowerReservationsAsync(int borrowerUserId, string status, int page, int pageSize)
@@ -57,6 +63,103 @@ namespace ASI.Basecode.Services.Services
                 }).ToList()
             };
         }
+
+        public (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId)
+        {
+            var errors = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(form, new ValidationContext(form), errors, true))
+                return (null, errors.First().ErrorMessage);
+
+            var ids = form.EquipmentIds.Distinct().OrderBy(id => id).ToList();
+            if (ids.Any(id => id <= 0))
+                return (null, "Review your equipment selection.");
+
+            var number = "RES-" + Guid.NewGuid().ToString("N").Substring(0, 26);
+            var error = ExecuteChange(() =>
+            {
+                var profile = _reservationRepository.GetBorrowerProfile(borrowerUserId);
+                if (profile?.EligibilityStatus != EligibilityStatuses.Eligible
+                    || profile.User?.Account?.AccountStatus != AccountStatuses.Active
+                    || profile.User.Account.Role?.RoleName != "Borrower")
+                    return "Your account needs an eligible borrower profile before you can reserve equipment. Contact the custodian.";
+
+                var selectionError = ValidateEquipment(ids, form.Pickup.Value, form.ExpectedReturn.Value);
+                if (selectionError != null)
+                    return selectionError;
+
+                var now = PhilippineTimeNow();
+                var actor = borrowerUserId.ToString();
+                var reservation = new Reservation
+                {
+                    ReservationNumber = number,
+                    BorrowerUserId = borrowerUserId,
+                    Purpose = form.Purpose.Trim(),
+                    StartDateTime = form.Pickup.Value,
+                    ExpectedReturnDateTime = form.ExpectedReturn.Value,
+                    Status = ReservationStatuses.Pending,
+                    RequestedAt = now,
+                    CreatedAt = now,
+                    CreatedBy = actor,
+                    ReservationItems = ids.Select(id => new ReservationItem
+                    {
+                        EquipmentId = id,
+                        CreatedAt = now,
+                        CreatedBy = actor
+                    }).ToList()
+                };
+                _reservationRepository.AddReservation(reservation);
+                _notifications.ReservationChanged(reservation, NotificationEvents.ReservationSubmitted);
+                return null;
+            }, "Equipment availability changed while submitting. Please try again.");
+
+            return error == null ? (number, null) : (null, error);
+        }
+
+        public string ExecuteChange(Func<string> operation, string concurrencyMessage)
+        {
+            try
+            {
+                return _reservationRepository.ExecuteInTransaction(operation);
+            }
+            catch (ReservationConcurrencyException)
+            {
+                return concurrencyMessage;
+            }
+        }
+
+        public string ValidateEquipment(List<int> ids, DateTime pickup, DateTime expectedReturn, int? excludeReservationId = null)
+        {
+            foreach (var id in ids)
+            {
+                var equipment = _reservationRepository.GetEquipment(id);
+                if (equipment == null || (equipment.CategoryId.HasValue && equipment.Category?.IsActive != true))
+                    return "Some equipment is no longer available. Review your selection.";
+
+                var availability = _equipmentService.GetAvailability(id, pickup, expectedReturn, excludeReservationId);
+                if (!availability.IsAvailable)
+                    return equipment.EquipmentName + ": " + availability.Reason;
+            }
+            return null;
+        }
+
+        private static DateTime PhilippineTimeNow() => TimeZoneInfo.ConvertTimeFromUtc(
+        DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // ---------------------------------------------------------------- existing (pending only)
 

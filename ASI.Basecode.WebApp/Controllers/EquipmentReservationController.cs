@@ -57,56 +57,6 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
     }
 
     [HttpGet]
-    public IActionResult Create()
-    {
-        var draft = HttpContext.Session.GetString(
-            "ReservationDraft:Create");
-
-        var model = draft == null
-            ? new ReservationFormModel()
-            : JsonSerializer.Deserialize<ReservationFormModel>(draft);
-
-        model.EquipmentIds = ParseSelection(
-            HttpContext.Session.GetString(SelectionKey));
-
-        LoadEquipment(model);
-        return View(model);
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult Create([Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose")] ReservationFormModel model)
-    {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
-            return Challenge();
-
-        if (ModelState.IsValid)
-        {
-            try
-            {
-                var result = _reservationService.Submit(model, borrowerUserId);
-                if (result.Error == null)
-                {
-                    HttpContext.Session.Remove(SelectionKey);
-                    HttpContext.Session.Remove("ReservationDraft:Create");
-                    TempData["ReservationNumber"] = result.ReservationNumber;
-                    return RedirectToAction(nameof(Submitted));
-                }
-                ModelState.AddModelError(string.Empty, result.Error);
-            }
-            catch (Exception)
-            {
-                //_logger.LogError(exception, "Unable to submit equipment reservation for borrower {UserId}.", borrowerUserId);
-                ModelState.AddModelError(string.Empty,
-                    "Your reservation could not be completed. Please try again; availability will be checked again.");
-            }
-        }
-
-        LoadEquipment(model);
-        return View(model);
-    }
-
-    [HttpGet]
     public IActionResult Edit(int id, string returnUrl = null)
     {
         returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;

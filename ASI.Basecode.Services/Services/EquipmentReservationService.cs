@@ -14,14 +14,19 @@ namespace ASI.Basecode.Services.Services;
 
 public class EquipmentReservationService : IEquipmentReservationService
 {
-    private readonly IEquipmentReservationRepository _reservationRepository;
+    private readonly IEquipmentReservationRepository _equipmentReservationRepository;
+    private readonly IReservationRepository _reservationRepository;
+    private readonly IReservationService _reservationService;
     private readonly IEquipmentService _equipmentService;
     private readonly INotificationService _notifications;
 
-    public EquipmentReservationService(
-        IEquipmentReservationRepository reservationRepository,
-        IEquipmentService equipmentService, INotificationService notifications)
+    public EquipmentReservationService(IEquipmentReservationRepository equipmentReservationRepository,
+                                        IReservationRepository reservationRepository,
+                                        IReservationService reservationService,
+                                        IEquipmentService equipmentService, 
+                                        INotificationService notifications)
     {
+        _equipmentReservationRepository = equipmentReservationRepository;
         _reservationRepository = reservationRepository;
         _equipmentService = equipmentService;
         _notifications = notifications;
@@ -29,62 +34,13 @@ public class EquipmentReservationService : IEquipmentReservationService
 
     public List<ReservationViewModel> GetPendingReservations(int borrowerUserId)
     {
-        return _reservationRepository.GetPendingReservations(borrowerUserId)
+        return _equipmentReservationRepository.GetPendingReservations(borrowerUserId)
             .Select(ToViewModel).ToList();
-    }
-
-    public (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId)
-    {
-        var errors = new List<ValidationResult>();
-        if (!Validator.TryValidateObject(form, new ValidationContext(form), errors, true))
-            return (null, errors.First().ErrorMessage);
-
-        var ids = form.EquipmentIds.Distinct().OrderBy(id => id).ToList();
-        if (ids.Any(id => id <= 0))
-            return (null, "Review your equipment selection.");
-
-        var number = "RES-" + Guid.NewGuid().ToString("N").Substring(0, 26);
-        var error = ExecuteChange(() =>
-        {
-            var profile = _reservationRepository.GetBorrowerProfile(borrowerUserId);
-            if (profile?.EligibilityStatus != EligibilityStatuses.Eligible
-                || profile.User?.Account?.AccountStatus != AccountStatuses.Active
-                || profile.User.Account.Role?.RoleName != "Borrower")
-                return "Your account needs an eligible borrower profile before you can reserve equipment. Contact the custodian.";
-
-            var selectionError = ValidateEquipment(ids, form.Pickup.Value, form.ExpectedReturn.Value);
-            if (selectionError != null)
-                return selectionError;
-
-            var now = PhilippineTimeNow();
-            var actor = borrowerUserId.ToString();
-            var reservation = new Reservation
-            {
-                ReservationNumber = number,
-                BorrowerUserId = borrowerUserId,
-                Purpose = form.Purpose.Trim(),
-                StartDateTime = form.Pickup.Value,
-                ExpectedReturnDateTime = form.ExpectedReturn.Value,
-                Status = ReservationStatuses.Pending,
-                RequestedAt = now,
-                CreatedAt = now,
-                CreatedBy = actor,
-                ReservationItems = ids.Select(id => new ReservationItem
-                {
-                    EquipmentId = id, CreatedAt = now, CreatedBy = actor
-                }).ToList()
-            };
-            _reservationRepository.AddReservation(reservation);
-            _notifications.ReservationChanged(reservation, NotificationEvents.ReservationSubmitted);
-            return null;
-        }, "Equipment availability changed while submitting. Please try again.");
-
-        return error == null ? (number, null) : (null, error);
     }
 
     public ReservationViewModel GetReservationDetails(int reservationId, int borrowerUserId)
     {
-        var reservation = _reservationRepository.GetReservationDetails(reservationId, borrowerUserId);
+        var reservation = _equipmentReservationRepository.GetReservationDetails(reservationId, borrowerUserId);
         return reservation == null ? null : ToViewModel(reservation);
     }
 
@@ -102,9 +58,9 @@ public class EquipmentReservationService : IEquipmentReservationService
         if (ids.Any(id => id <= 0))
             return "Review your equipment selection.";
 
-        return ExecuteChange(() =>
+        return _reservationService.ExecuteChange(() =>
         {
-            var reservation = _reservationRepository.GetReservationForUpdate(reservationId, borrowerUserId);
+            var reservation = _equipmentReservationRepository.GetReservationForUpdate(reservationId, borrowerUserId);
             if (reservation == null)
                 return "Reservation not found.";
             if (reservation.Status != ReservationStatuses.Pending)
@@ -120,7 +76,7 @@ public class EquipmentReservationService : IEquipmentReservationService
             var actor = borrowerUserId.ToString();
             var removedItems = reservation.ReservationItems
                 .Where(item => !ids.Contains(item.EquipmentId)).ToList();
-            _reservationRepository.RemoveReservationItems(removedItems);
+            _equipmentReservationRepository.RemoveReservationItems(removedItems);
 
             var existingIds = reservation.ReservationItems.Select(item => item.EquipmentId).ToHashSet();
             foreach (var id in ids.Where(id => !existingIds.Contains(id)))
@@ -150,9 +106,9 @@ public class EquipmentReservationService : IEquipmentReservationService
         if (version == null)
             return "Reload the reservation before cancelling.";
 
-        return ExecuteChange(() =>
+        return _reservationService.ExecuteChange(() =>
         {
-            var reservation = _reservationRepository.GetReservationForUpdate(reservationId, borrowerUserId);
+            var reservation = _equipmentReservationRepository.GetReservationForUpdate(reservationId, borrowerUserId);
             if (reservation == null)
                 return "Reservation not found.";
             if (reservation.Status != ReservationStatuses.Pending)
@@ -185,18 +141,6 @@ public class EquipmentReservationService : IEquipmentReservationService
                 return equipment.EquipmentName + ": " + availability.Reason;
         }
         return null;
-    }
-
-    private string ExecuteChange(Func<string> operation, string concurrencyMessage)
-    {
-        try
-        {
-            return _reservationRepository.ExecuteInTransaction(operation);
-        }
-        catch (ReservationConcurrencyException)
-        {
-            return concurrencyMessage;
-        }
     }
 
     private static ReservationViewModel ToViewModel(Reservation reservation)

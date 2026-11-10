@@ -12,6 +12,18 @@ namespace ASI.Basecode.Data.Interfaces
         Task<int> CountBorrowerReservationsAsync(int borrowerUserId, string status, DateTime now);
         Task<List<Reservation>> GetBorrowerReservationPageAsync(int borrowerUserId, string status, DateTime now, int skip, int take);
         Task<List<Reservation>> GetBorrowerDashboardReservationsAsync(int borrowerUserId, DateTime now);
+        public BorrowerProfile GetBorrowerProfile(int borrowerUserId);
+        public void AddReservation(Reservation reservation);
+        public Equipment GetEquipment(int equipmentId);
+        public string ExecuteInTransaction(Func<string> operation);
+
+
+
+
+
+
+
+
 
         IQueryable<Reservation> GetPendingReservations();
         Reservation GetPendingReservationById(int reservationId);

@@ -50,47 +50,9 @@ public class EquipmentReservationRepository : BaseRepository, IEquipmentReservat
                 && item.BorrowerUserId == borrowerUserId);
     }
 
-    public BorrowerProfile GetBorrowerProfile(int borrowerUserId)
-    {
-        return GetDbSet<BorrowerProfile>().AsNoTracking()
-            .Include(item => item.User).ThenInclude(user => user.Account).ThenInclude(account => account.Role)
-            .SingleOrDefault(item => item.UserId == borrowerUserId);
-    }
-
-    public Equipment GetEquipment(int equipmentId)
-    {
-        return GetDbSet<Equipment>().AsNoTracking().Include(item => item.Category)
-            .SingleOrDefault(item => item.EquipmentId == equipmentId);
-    }
-
-    public void AddReservation(Reservation reservation)
-    {
-        GetDbSet<Reservation>().Add(reservation);
-    }
-
     public void RemoveReservationItems(IEnumerable<ReservationItem> items)
     {
         GetDbSet<ReservationItem>().RemoveRange(items);
-    }
-
-    public string ExecuteInTransaction(Func<string> operation)
-    {
-        using var transaction = Context.Database.BeginTransaction(IsolationLevel.Serializable);
-        try
-        {
-            var error = operation();
-            if (error != null)
-                return error; // Disposing the uncommitted transaction rolls it back.
-
-            UnitOfWork.SaveChanges();
-            transaction.Commit();
-            return null;
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            // Keep EF-specific exceptions inside Data. Disposal rolls back the whole write.
-            throw new ReservationConcurrencyException(exception);
-        }
     }
 
     private IQueryable<Reservation> ReservationDetailsQuery()

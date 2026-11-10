@@ -10,12 +10,8 @@ public interface IEquipmentReservationRepository
     List<Reservation> GetBorrowerReservations(int borrowerUserId);
     Reservation GetReservationDetails(int reservationId, int borrowerUserId);
     Reservation GetReservationForUpdate(int reservationId, int borrowerUserId);
-    BorrowerProfile GetBorrowerProfile(int borrowerUserId);
-    Equipment GetEquipment(int equipmentId);
-    void AddReservation(Reservation reservation);
     void RemoveReservationItems(IEnumerable<ReservationItem> items);
 
     // The callback returns a validation error, or null to save and commit.
     // Availability reads must run inside this transaction along with the write.
-    string ExecuteInTransaction(Func<string> operation);
 }

@@ -1,0 +1,180 @@
+@using ASI.Basecode.Services.ServiceModels.Reservation
+@model ReservationFormModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Reserve equipment";
+    ViewData["TopbarPage"] = "Reserve equipment";
+    var changeEquipmentUrl = Url.Action("ChangeEquipment", "EquipmentReservation");
+    var selectionError = ViewData["SelectionError"] as string;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/equipment-reservation.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/reservation-create.css" asp-append-version="true" />
+}
+
+<div class="reservation-create" data-reservation-create>
+    <button class="back-link reservation-link-button rc-back" type="submit" form="reservationForm" formaction="@changeEquipmentUrl" formnovalidate>
+        <svg class="icon" aria-hidden="true">
+            <use href="#i-chevron" />
+        </svg>Back to equipment
+    </button>
+    <div class="page-heading">
+        <div>
+            <h1>Reserve equipment</h1>
+            <p>Choose a schedule that works for all your selected equipment.</p>
+        </div>
+    </div>
+    <ol class="rc-steps" aria-label="Reservation steps">
+        <li>Select equipment</li>
+        <li aria-current="step">Reservation details</li>
+    </ol>
+
+    @if (selectionError != null)
+    {
+        <p class="category-notice category-notice-error" role="alert">@selectionError</p>
+    }
+
+    <form id="reservationForm" asp-controller="Reservation" asp-action="Create" method="post">
+
+        @foreach (var id in Model.EquipmentIds)
+        {
+            <input type="hidden" name="EquipmentIds" value="@id" />
+        }
+
+        <div class="rc-layout">
+            <aside class="rc-summary" aria-labelledby="createEquipmentHeading">
+                <section class="content-card rc-summary-card">
+                    <div class="rc-summary-heading">
+                        <h2 id="createEquipmentHeading">Selected equipment</h2>
+                        <span>@Model.Equipment.Count @(Model.Equipment.Count == 1 ? "item" : "items")</span>
+                    </div>
+
+                    @if (Model.Equipment.Count == 0)
+                    {
+                        <p class="rc-hint">Select at least one item to reserve.</p>
+                    }
+
+                    <ul class="rc-selected-items">
+
+                        @foreach (var item in Model.Equipment)
+                        {
+                            <li>
+                                <strong>@item.EquipmentName</strong>
+                                <small>@item.EquipmentCode</small>
+                            </li>
+                        }
+
+                    </ul>
+                    <button class="reservation-change-link reservation-link-button" type="submit" formaction="@changeEquipmentUrl" formnovalidate>
+                        Change equipment
+                        <svg class="icon" aria-hidden="true">
+                            <use href="#i-arrow" />
+                        </svg>
+                    </button>
+                    <p class="rc-summary-note">All items share the same schedule. Requests require approval before pickup.</p>
+                </section>
+            </aside>
+            <section class="content-card rc-form" aria-label="Reservation details">
+                <p class="rc-identity">
+                    Reserving as
+                    <strong>@User.Identity?.Name</strong>
+                </p>
+                
+                <div asp-validation-summary="All" class="reservation-errors" role="alert"></div>
+                <div class="rc-dates">
+                    <div class="form-group">
+                        <label asp-for="Pickup">
+                            Pickup date and time
+                            <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input asp-for="Pickup" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" required aria-describedby="scheduleHint" />
+                        <span asp-validation-for="Pickup" class="field-validation-error"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="ExpectedReturn">
+                            Expected return date and time
+                            <span class="required" aria-hidden="true">*</span>
+                        </label>
+                        <input asp-for="ExpectedReturn" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" required aria-describedby="scheduleHint returnFeedback" />
+                        <span asp-validation-for="ExpectedReturn" class="field-validation-error"></span>
+                    </div>
+                </div>
+                <p id="scheduleHint" class="rc-hint">Philippine time (UTC+8). Return must be after pickup.</p>
+                <p id="returnFeedback" class="rc-feedback" role="status" data-duration></p>
+                <section class="rc-availability" aria-labelledby="createAvailabilityHeading" data-availability>
+                    <div class="rc-section-heading">
+                        <div>
+                            <h2 id="createAvailabilityHeading">Selected equipment availability</h2>
+                            <p class="rc-hint" data-range-label>Choose your schedule, then check existing bookings.</p>
+                        </div>
+                        <div class="rc-view-controls" hidden data-view-controls>
+                            <button class="button button-secondary" type="button" data-view-toggle>Day detail</button>
+                            <label hidden data-day-control>
+                                Day
+                                <input type="date" data-timeline-day aria-label="Day to view in detail" />
+                            </label>
+                        </div>
+                    </div>
+                    <div class="rc-legend" hidden data-timeline-legend>
+                        <span>
+                            <i class="rc-key-booking" aria-hidden="true"></i>Existing booking
+                        </span>
+                        <span>
+                            <i class="rc-key-selection" aria-hidden="true"></i>Your selected time
+                        </span>
+                        <span>
+                            <i class="rc-key-conflict" aria-hidden="true"></i>Overlap
+                        </span>
+                    </div>
+                    <div data-timeline-rows>
+                        @foreach (var item in Model.Equipment)
+                        {
+                            <div class="rc-equipment-row" data-equipment-row
+                                 data-schedule-url="@Url.Action("Schedule", "BrowseEquipment", new { id = item.EquipmentId })"
+                                 data-availability-url="@Url.Action("Availability", "BrowseEquipment", new { id = item.EquipmentId })"
+                                 data-equipment-name="@item.EquipmentName">
+                                <div class="rc-row-title">
+                                    <strong>@item.EquipmentName</strong>
+                                    <small>@item.EquipmentCode</small>
+                                </div>
+                                <div class="rc-row-schedule">
+                                    <div class="rc-axis" data-axis></div>
+                                    <div class="rc-track" hidden data-track aria-hidden="true"></div>
+                                    <p class="rc-row-state" data-row-state>Choose pickup and return dates to preview bookings.</p>
+                                    <ul class="rc-booking-list" data-booking-list></ul>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <p class="rc-preview-status" role="status" data-preview-status></p>
+                    <button class="rc-check reservation-link-button" type="button" hidden data-check-availability>Check availability</button>
+                    <noscript>
+                        <p class="rc-hint">
+                            Open the
+                            <a asp-controller="AvailabilityCalendar" asp-action="Index" target="_blank" rel="noopener">availability calendar</a>
+                            to review bookings. Your selected equipment and dates will still be checked when you submit.
+                        </p>
+                    </noscript>
+                </section>
+                <div class="form-group rc-purpose">
+                    <label asp-for="Purpose">
+                        Purpose of borrowing
+                        <span class="required" aria-hidden="true">*</span>
+                    </label>
+                    <textarea asp-for="Purpose" rows="3" maxlength="500" required placeholder="For example, a class presentation or laboratory activity."></textarea>
+                    <span asp-validation-for="Purpose" class="field-validation-error"></span>
+                </div>
+                <div class="rc-submit-area">
+                    <p class="rc-hint">Availability is checked again when you submit.</p>
+                    <button class="button button-primary" type="submit" data-submit-request>Submit request</button>
+                </div>
+            </section>
+
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="~/js/reservation-create.js" asp-append-version="true"></script>
+}

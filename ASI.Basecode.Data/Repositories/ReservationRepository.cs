@@ -7,6 +7,7 @@ using Basecode.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using static ASI.Basecode.Resources.Constants.Enums;
@@ -79,6 +80,68 @@ namespace ASI.Basecode.Data.Repositories
                 .Take(3)
                 .ToListAsync();
         }
+
+        public BorrowerProfile GetBorrowerProfile(int borrowerUserId)
+        {
+            return GetDbSet<BorrowerProfile>().AsNoTracking()
+                .Include(item => item.User).ThenInclude(user => user.Account).ThenInclude(account => account.Role)
+                .SingleOrDefault(item => item.UserId == borrowerUserId);
+        }
+
+        public void AddReservation(Reservation reservation)
+        {
+            GetDbSet<Reservation>().Add(reservation);
+        }
+
+        public Equipment GetEquipment(int equipmentId)
+        {
+            return GetDbSet<Equipment>().AsNoTracking().Include(item => item.Category)
+                .SingleOrDefault(item => item.EquipmentId == equipmentId);
+        }
+
+        public string ExecuteInTransaction(Func<string> operation)
+        {
+            using var transaction = Context.Database.BeginTransaction(IsolationLevel.Serializable);
+            try
+            {
+                var error = operation();
+                if (error != null)
+                    return error; // Disposing the uncommitted transaction rolls it back.
+
+                UnitOfWork.SaveChanges();
+                transaction.Commit();
+                return null;
+            }
+            catch (DbUpdateConcurrencyException exception)
+            {
+                // Keep EF-specific exceptions inside Data. Disposal rolls back the whole write.
+                throw new ReservationConcurrencyException(exception);
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

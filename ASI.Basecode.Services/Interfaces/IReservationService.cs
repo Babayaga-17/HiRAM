@@ -1,6 +1,7 @@
 // ASI.Basecode.Services/Interfaces/IReservationService.cs
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.ServiceModels.Reservation;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -8,6 +9,10 @@ namespace ASI.Basecode.Services.Interfaces
 {
     public interface IReservationService
     {
+        (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId);
+        public string ExecuteChange(Func<string> operation, string concurrencyMessage);
+
+
         Task<MyReservationPageViewModel> GetBorrowerReservationsAsync(int borrowerUserId, string status, int page, int pageSize);
         List<PendingReservationListItem> GetPendingReservations();
         PendingReservationDetailsViewModel GetPendingReservationById(int reservationId);
