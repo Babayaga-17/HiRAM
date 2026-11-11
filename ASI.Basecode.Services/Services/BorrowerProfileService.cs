@@ -182,25 +182,15 @@ namespace ASI.Basecode.Services.Services
             return (true, suspend ? "Borrower suspended." : "Borrower activated.");
         }
 
-        public (bool ok, string message) Delete(int userId)
-        {
-            var e = _repository.GetForUpdate(userId);
-            if (e == null) return (false, "Borrower not found.");
-            if (_repository.HasReservations(userId))
-                return (false, "This borrower has reservations and can't be deleted. Suspend them instead.");
-            _repository.Delete(e);   // removes the borrower profile only; the User row is kept
-            return (true, "Borrower profile removed. The user record was kept.");
-        }
-
         public async Task<bool> RegisterAsync(BorrowerRegistrationViewModel model, Stream photo, string fileName, CancellationToken cancellationToken = default)
         {
             model.UserCode = model.UserCode?.Trim(); model.Email = model.Email?.Trim();
             Validator.ValidateObject(model, new ValidationContext(model), true);
 
-            if (users.UserCodeExists(model.UserCode)) 
+            if (users.UserCodeExists(model.UserCode))
                 throw new ValidationException("That student or employee ID is already registered.");
 
-            if (accounts.EmailExists(model.Email)) 
+            if (accounts.EmailExists(model.Email))
                 throw new ValidationException("That email is already registered.");
 
             if (!GetDepartments().Any(d => d.DepartmentId == model.DepartmentId)) throw new ValidationException("Select an active department.");
