@@ -36,12 +36,6 @@ public class EquipmentReservationRepository : BaseRepository, IEquipmentReservat
             .ToList();
     }
 
-    public Reservation GetReservationDetails(int reservationId, int borrowerUserId)
-    {
-        return ReservationDetailsQuery().SingleOrDefault(item =>
-            item.ReservationId == reservationId && item.BorrowerUserId == borrowerUserId);
-    }
-
     public Reservation GetReservationForUpdate(int reservationId, int borrowerUserId)
     {
         return GetDbSet<Reservation>().AsTracking()

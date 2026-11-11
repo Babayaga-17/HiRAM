@@ -11,6 +11,10 @@ namespace ASI.Basecode.Services.Interfaces
     {
         (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId);
         public string ExecuteChange(Func<string> operation, string concurrencyMessage);
+        public ReservationViewModel GetReservationDetails(int reservationId, int borrowerUserId);
+        string Edit(int reservationId, ReservationEditFormModel form, int borrowerUserId);
+
+
 
 
         Task<MyReservationPageViewModel> GetBorrowerReservationsAsync(int borrowerUserId, string status, int page, int pageSize);

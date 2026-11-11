@@ -17,6 +17,7 @@
     const dayInput = root.querySelector("[data-timeline-day]");
     const refresh = root.querySelector("[data-check-availability]");
     const submit = root.querySelector("[data-submit-request]");
+    const submitLabel = submit.textContent;
 
     const hour = 60 * 60 * 1000,
           day = 24 * hour,
@@ -222,7 +223,7 @@
         submitting = true; submit.disabled = true; submit.textContent = "Submitting…"; form.setAttribute("aria-busy", "true");
     });
     window.addEventListener("pageshow", () => {
-        submitting = false; submit.disabled = false; submit.textContent = "Submit request"; form.removeAttribute("aria-busy");
+        submitting = false; submit.disabled = false; submit.textContent = submitLabel; form.removeAttribute("aria-busy");
     });
     update();
 })();

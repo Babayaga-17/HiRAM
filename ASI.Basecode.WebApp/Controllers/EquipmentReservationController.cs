@@ -23,30 +23,31 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
     private const string SelectionKey = "SelectedEquipmentIds";
 
     private readonly IEquipmentService _equipmentService;
-    private readonly IEquipmentReservationService _reservationService;
+    private readonly IEquipmentReservationService _equipmentReservationService;
+    private readonly IReservationService _reservationService;
 
     public EquipmentReservationController(
                             IHttpContextAccessor httpContextAccessor, 
                             ILoggerFactory loggerFactory, 
                             IConfiguration configuration,
                             IEquipmentService equipmentService,
-                            IEquipmentReservationService reservationService,
+                            IEquipmentReservationService equipmentReservationService,
+                            IReservationService reservationService,
                             IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
         _equipmentService = equipmentService;
         _reservationService = reservationService;
+        _equipmentReservationService = equipmentReservationService;
     }
 
     // Static samples for the details UI; no reservation records are loaded.
     [HttpGet]
-    public IActionResult Details(int id, string returnUrl = null)
+    public IActionResult ReservationDetails(int id, string returnUrl = null)
     {
         returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
         ViewData["ReservationReturnUrl"] = returnUrl;
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
-        {
             return Challenge();
-        }
 
         var reservation = _reservationService.GetReservationDetails(id, borrowerUserId);
 
@@ -54,123 +55,6 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
             return NotFound();
 
         return View(reservation);
-    }
-
-    [HttpGet]
-    public IActionResult Edit(int id, string returnUrl = null)
-    {
-        returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
-        ViewData["ReservationReturnUrl"] = returnUrl;
-        if (!int.TryParse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier),
-            out var borrowerUserId))
-            return Challenge();
-
-        var reservation =
-            _reservationService.GetReservationDetails(id, borrowerUserId);
-
-        if (reservation == null)
-            return NotFound();
-
-        if (reservation.Status != ReservationStatuses.Pending)
-        {
-            TempData["ReservationError"] =
-                "Only pending reservations can be edited.";
-
-            return RedirectToAction(nameof(Details), new { id, returnUrl });
-        }
-
-        var draftKey = $"ReservationDraft:Edit:{id}";
-        var selectionKey = $"SelectedEquipmentIds:Edit:{id}";
-
-        var draft = HttpContext.Session.GetString(draftKey);
-
-        var model = draft == null
-            ? new ReservationEditFormModel
-            {
-                Pickup = reservation.StartDateTime,
-                ExpectedReturn = reservation.ExpectedReturnDateTime,
-                Purpose = reservation.Purpose,
-                EquipmentIds = reservation.Equipment
-                    .Select(item => item.EquipmentId)
-                    .ToList(),
-                RowVersion = Convert.ToBase64String(reservation.RowVersion)
-            }
-            : JsonSerializer.Deserialize<ReservationEditFormModel>(draft);
-
-        var selection = HttpContext.Session.GetString(selectionKey);
-
-        if (selection == null)
-        {
-            HttpContext.Session.SetString(
-                selectionKey,
-                string.Join(",", model.EquipmentIds));
-        }
-        else
-        {
-            model.EquipmentIds = ParseSelection(selection);
-        }
-
-        PrepareEditView(id, model);
-        return View(model);
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public IActionResult Edit(int id, [Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose,RowVersion")] ReservationEditFormModel model, string returnUrl = null)
-    {
-        returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
-        ViewData["ReservationReturnUrl"] = returnUrl;
-        if (!int.TryParse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier),
-            out var borrowerUserId))
-            return Challenge();
-
-        var reservation =
-            _reservationService.GetReservationDetails(id, borrowerUserId);
-
-        if (reservation == null)
-            return NotFound();
-
-        if (reservation.Status != ReservationStatuses.Pending)
-        {
-            TempData["ReservationError"] =
-                "Only pending reservations can be edited.";
-
-            return RedirectToAction(nameof(Details), new { id, returnUrl });
-        }
-
-        if (ModelState.IsValid)
-        {
-            try
-            {
-                var error =
-                    _reservationService.Edit(id, model, borrowerUserId);
-
-                if (error == null)
-                {
-                    HttpContext.Session.Remove($"ReservationDraft:Edit:{id}");
-                    HttpContext.Session.Remove($"SelectedEquipmentIds:Edit:{id}");
-
-                    TempData["ReservationSuccess"] = "Reservation updated.";
-
-                    return RedirectToAction(nameof(Details), new { id, returnUrl });
-                }
-
-                ModelState.AddModelError(string.Empty, error);
-            }
-            catch (Exception exception)
-            {
-                _logger.LogError(exception,
-                    "Unable to edit reservation {ReservationId}.", id);
-
-                ModelState.AddModelError(string.Empty,
-                    "Unable to save your changes. Reload the reservation and try again.");
-            }
-        }
-
-        PrepareEditView(id, model);
-        return View(model);
     }
 
     [HttpGet]
@@ -194,7 +78,7 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
             TempData["ReservationError"] =
                 "Only pending reservations can be cancelled.";
 
-            return RedirectToAction(nameof(Details), new { id, returnUrl });
+            return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
         }
 
         ViewData["Reservation"] = reservation;
@@ -227,7 +111,7 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
             TempData["ReservationError"] =
                 "Only pending reservations can be cancelled.";
 
-            return RedirectToAction(nameof(Details), new { id, returnUrl });
+            return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
         }
 
         if (ModelState.IsValid)
@@ -235,14 +119,14 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
             try
             {
                 var error =
-                    _reservationService.Cancel(id, model, borrowerUserId);
+                    _equipmentReservationService.Cancel(id, model, borrowerUserId);
 
                 if (error == null)
                 {
                     TempData["ReservationSuccess"] =
                         "Reservation cancelled.";
 
-                    return RedirectToAction(nameof(Details), new { id, returnUrl });
+                    return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
                 }
 
                 ModelState.AddModelError(string.Empty, error);
@@ -259,20 +143,6 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
 
         ViewData["Reservation"] = reservation;
         return View(model);
-    }
-
-    private void PrepareEditView(int reservationId, ReservationEditFormModel model)
-    {
-        ViewData["ReservationId"] = reservationId;
-        LoadEquipment(model);
-    }
-
-    [HttpGet]
-    public IActionResult Submitted()
-    {
-        var number = TempData["ReservationNumber"] as string;
-        if (number == null) return RedirectToAction("Index", "BrowseEquipment");
-        return View(model: number);
     }
 
     private void LoadEquipment(ReservationFormModel model)
@@ -292,10 +162,7 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public IActionResult ChangeEquipment(
-    int? id,
-    [Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose,RowVersion")]
-    ReservationEditFormModel model)
+    public IActionResult ChangeEquipment(int? id, [Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose,RowVersion")] ReservationEditFormModel model)
     {
         if (!int.TryParse(
             User.FindFirstValue(ClaimTypes.NameIdentifier),
@@ -316,7 +183,7 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
                     "Only pending reservations can be edited.";
 
                 return RedirectToAction(
-                    nameof(Details), new { id = id.Value });
+                    nameof(ReservationDetails), new { id = id.Value });
             }
 
             HttpContext.Session.SetString(
@@ -329,19 +196,11 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
         }
         else
         {
-            HttpContext.Session.SetString(
-                "ReservationDraft:Create",
-                JsonSerializer.Serialize<ReservationFormModel>(model));
-
-            HttpContext.Session.SetString(
-                SelectionKey,
-                string.Join(",", model.EquipmentIds));
+            HttpContext.Session.SetString("ReservationDraft:Create", JsonSerializer.Serialize<ReservationFormModel>(model));
+            HttpContext.Session.SetString(SelectionKey, string.Join(",", model.EquipmentIds));
         }
 
-        return RedirectToAction(
-            "Index",
-            "BrowseEquipment",
-            new { reservationId = id });
+        return RedirectToAction("Index", "BrowseEquipment", new { reservationId = id });
     }
 
     [HttpPost]
@@ -364,7 +223,7 @@ public class EquipmentReservationController : ControllerBase<EquipmentReservatio
         HttpContext.Session.Remove($"ReservationDraft:Edit:{id}");
         HttpContext.Session.Remove($"SelectedEquipmentIds:Edit:{id}");
 
-        return RedirectToAction(nameof(Details), new { id, returnUrl });
+        return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
     }
 
     private static List<int> ParseSelection(string value)

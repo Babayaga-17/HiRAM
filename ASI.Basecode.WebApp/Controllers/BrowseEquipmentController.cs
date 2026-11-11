@@ -24,7 +24,8 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
 
     private readonly IEquipmentService _equipmentService;
     private readonly IEquipmentCategoryService _equipmentCategoryService;
-    private readonly IEquipmentReservationService _reservationService;
+    private readonly IEquipmentReservationService _equipmentReservationService;
+    private readonly IReservationService _reservationService;
     private readonly IEquipmentPhotoService _equipmentPhotoService;
 
     public BrowseEquipmentController(
@@ -33,7 +34,8 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         IConfiguration configuration,
         IEquipmentService equipmentService,
         IEquipmentCategoryService equipmentCategoryService,
-        IEquipmentReservationService reservationService,
+        IReservationService reservationService,
+        IEquipmentReservationService equipmentReservationService,
         IEquipmentPhotoService equipmentPhotoService,
         IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
@@ -41,6 +43,7 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         _equipmentCategoryService = equipmentCategoryService;
         _reservationService = reservationService;
         _equipmentPhotoService = equipmentPhotoService;
+        _equipmentReservationService = equipmentReservationService;
     }
 
     [HttpGet]

@@ -115,6 +115,74 @@ namespace ASI.Basecode.Services.Services
             return error == null ? (number, null) : (null, error);
         }
 
+        public string Edit(int reservationId, ReservationEditFormModel form, int borrowerUserId)
+        {
+            var errors = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(form, new ValidationContext(form), errors, true))
+                return errors.First().ErrorMessage;
+
+            var version = ReadRowVersion(form.RowVersion);
+            if (version == null)
+                return "Reload the reservation before editing.";
+
+            var ids = form.EquipmentIds.Distinct().OrderBy(id => id).ToList();
+            if (ids.Any(id => id <= 0))
+                return "Review your equipment selection.";
+
+            return ExecuteChange(() =>
+            {
+                var reservation = _reservationRepository.GetReservationForUpdate(reservationId, borrowerUserId);
+                if (reservation == null)
+                    return "Reservation not found.";
+                if (reservation.Status != ReservationStatuses.Pending)
+                    return "Only pending reservations can be edited.";
+                if (!reservation.RowVersion.SequenceEqual(version))
+                    return "This reservation has changed. Reload it before editing.";
+
+                var selectionError = ValidateEquipment(ids, form.Pickup.Value, form.ExpectedReturn.Value, reservationId);
+                if (selectionError != null)
+                    return selectionError;
+
+                var now = PhilippineTimeNow();
+                var actor = borrowerUserId.ToString();
+                var removedItems = reservation.ReservationItems
+                    .Where(item => !ids.Contains(item.EquipmentId)).ToList();
+                _reservationRepository.RemoveReservationItems(removedItems);
+
+                var existingIds = reservation.ReservationItems.Select(item => item.EquipmentId).ToHashSet();
+                foreach (var id in ids.Where(id => !existingIds.Contains(id)))
+                {
+                    reservation.ReservationItems.Add(new ReservationItem
+                    {
+                        EquipmentId = id,
+                        CreatedAt = now,
+                        CreatedBy = actor
+                    });
+                }
+
+                reservation.StartDateTime = form.Pickup.Value;
+                reservation.ExpectedReturnDateTime = form.ExpectedReturn.Value;
+                reservation.Purpose = form.Purpose.Trim();
+                reservation.UpdatedBy = actor;
+                reservation.UpdatedAt = now;
+                return null;
+            }, "This reservation changed while you were editing. Reload it and try again.");
+        }
+
+        private static byte[] ReadRowVersion(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return null;
+            try
+            {
+                var version = Convert.FromBase64String(value);
+                return version.Length == 8 ? version : null;
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+
         public string ExecuteChange(Func<string> operation, string concurrencyMessage)
         {
             try
@@ -127,7 +195,7 @@ namespace ASI.Basecode.Services.Services
             }
         }
 
-        public string ValidateEquipment(List<int> ids, DateTime pickup, DateTime expectedReturn, int? excludeReservationId = null)
+        private string ValidateEquipment(List<int> ids, DateTime pickup, DateTime expectedReturn, int? excludeReservationId = null)
         {
             foreach (var id in ids)
             {
@@ -145,7 +213,40 @@ namespace ASI.Basecode.Services.Services
         private static DateTime PhilippineTimeNow() => TimeZoneInfo.ConvertTimeFromUtc(
         DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"));
 
+        public ReservationViewModel GetReservationDetails(int reservationId, int borrowerUserId)
+        {
+            var reservation = _reservationRepository.GetReservationDetails(reservationId, borrowerUserId);
+            return reservation == null ? null : ToViewModel(reservation);
+        }
 
+        private static ReservationViewModel ToViewModel(Reservation reservation)
+        {
+            return new ReservationViewModel
+            {
+                ReservationId = reservation.ReservationId,
+                ReservationNumber = reservation.ReservationNumber,
+                Status = reservation.Status,
+                Purpose = reservation.Purpose,
+                RequestedAt = reservation.RequestedAt,
+                StartDateTime = reservation.StartDateTime,
+                ExpectedReturnDateTime = reservation.ExpectedReturnDateTime,
+                ApprovedAt = reservation.ApprovedAt,
+                RejectedAt = reservation.RejectedAt,
+                BorrowedAt = reservation.BorrowedAt,
+                ReturnedAt = reservation.ReturnedAt,
+                CancelledAt = reservation.CancelledAt,
+                RejectionReason = reservation.RejectionReason,
+                CancellationReason = reservation.CancellationReason,
+                RowVersion = reservation.RowVersion,
+                Equipment = reservation.ReservationItems.OrderBy(item => item.Equipment.EquipmentName)
+                    .Select(item => new EquipmentListItem
+                    {
+                        EquipmentId = item.EquipmentId,
+                        EquipmentName = item.Equipment.EquipmentName,
+                        EquipmentCode = item.Equipment.EquipmentCode
+                    }).ToList()
+            };
+        }
 
 
 

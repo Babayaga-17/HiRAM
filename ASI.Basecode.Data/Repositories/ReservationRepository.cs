@@ -119,6 +119,31 @@ namespace ASI.Basecode.Data.Repositories
             }
         }
 
+        public Reservation GetReservationDetails(int reservationId, int borrowerUserId)
+        {
+            return ReservationDetailsQuery().SingleOrDefault(item =>
+                item.ReservationId == reservationId && item.BorrowerUserId == borrowerUserId);
+        }
+        public Reservation GetReservationForUpdate(int reservationId, int borrowerUserId)
+        {
+            return GetDbSet<Reservation>().AsTracking()
+                .Include(item => item.ReservationItems)
+                .SingleOrDefault(item => item.ReservationId == reservationId
+                    && item.BorrowerUserId == borrowerUserId);
+        }
+
+        public void RemoveReservationItems(IEnumerable<ReservationItem> items)
+        {
+            GetDbSet<ReservationItem>().RemoveRange(items);
+        }
+
+        private IQueryable<Reservation> ReservationDetailsQuery()
+        {
+            return GetDbSet<Reservation>().AsNoTracking()
+                .Include(item => item.ReservationItems).ThenInclude(item => item.Equipment);
+        }
+
+
 
 
 

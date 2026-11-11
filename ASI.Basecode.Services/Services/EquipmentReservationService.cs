@@ -30,6 +30,7 @@ public class EquipmentReservationService : IEquipmentReservationService
         _reservationRepository = reservationRepository;
         _equipmentService = equipmentService;
         _notifications = notifications;
+        _reservationService = reservationService;
     }
 
     public List<ReservationViewModel> GetPendingReservations(int borrowerUserId)
@@ -37,65 +38,6 @@ public class EquipmentReservationService : IEquipmentReservationService
         return _equipmentReservationRepository.GetPendingReservations(borrowerUserId)
             .Select(ToViewModel).ToList();
     }
-
-    public ReservationViewModel GetReservationDetails(int reservationId, int borrowerUserId)
-    {
-        var reservation = _equipmentReservationRepository.GetReservationDetails(reservationId, borrowerUserId);
-        return reservation == null ? null : ToViewModel(reservation);
-    }
-
-    public string Edit(int reservationId, ReservationEditFormModel form, int borrowerUserId)
-    {
-        var errors = new List<ValidationResult>();
-        if (!Validator.TryValidateObject(form, new ValidationContext(form), errors, true))
-            return errors.First().ErrorMessage;
-
-        var version = ReadRowVersion(form.RowVersion);
-        if (version == null)
-            return "Reload the reservation before editing.";
-
-        var ids = form.EquipmentIds.Distinct().OrderBy(id => id).ToList();
-        if (ids.Any(id => id <= 0))
-            return "Review your equipment selection.";
-
-        return _reservationService.ExecuteChange(() =>
-        {
-            var reservation = _equipmentReservationRepository.GetReservationForUpdate(reservationId, borrowerUserId);
-            if (reservation == null)
-                return "Reservation not found.";
-            if (reservation.Status != ReservationStatuses.Pending)
-                return "Only pending reservations can be edited.";
-            if (!reservation.RowVersion.SequenceEqual(version))
-                return "This reservation has changed. Reload it before editing.";
-
-            var selectionError = ValidateEquipment(ids, form.Pickup.Value, form.ExpectedReturn.Value, reservationId);
-            if (selectionError != null)
-                return selectionError;
-
-            var now = PhilippineTimeNow();
-            var actor = borrowerUserId.ToString();
-            var removedItems = reservation.ReservationItems
-                .Where(item => !ids.Contains(item.EquipmentId)).ToList();
-            _equipmentReservationRepository.RemoveReservationItems(removedItems);
-
-            var existingIds = reservation.ReservationItems.Select(item => item.EquipmentId).ToHashSet();
-            foreach (var id in ids.Where(id => !existingIds.Contains(id)))
-            {
-                reservation.ReservationItems.Add(new ReservationItem
-                {
-                    EquipmentId = id, CreatedAt = now, CreatedBy = actor
-                });
-            }
-
-            reservation.StartDateTime = form.Pickup.Value;
-            reservation.ExpectedReturnDateTime = form.ExpectedReturn.Value;
-            reservation.Purpose = form.Purpose.Trim();
-            reservation.UpdatedBy = actor;
-            reservation.UpdatedAt = now;
-            return null;
-        }, "This reservation changed while you were editing. Reload it and try again.");
-    }
-
     public string Cancel(int reservationId, ReservationCancelFormModel form, int borrowerUserId)
     {
         var errors = new List<ValidationResult>();

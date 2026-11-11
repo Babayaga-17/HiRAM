@@ -16,10 +16,9 @@ namespace ASI.Basecode.Data.Interfaces
         public void AddReservation(Reservation reservation);
         public Equipment GetEquipment(int equipmentId);
         public string ExecuteInTransaction(Func<string> operation);
-
-
-
-
+        public Reservation GetReservationDetails(int reservationId, int borrowerUserId);
+        public Reservation GetReservationForUpdate(int reservationId, int borrowerUserId);
+        public void RemoveReservationItems(IEnumerable<ReservationItem> items);
 
 
 
