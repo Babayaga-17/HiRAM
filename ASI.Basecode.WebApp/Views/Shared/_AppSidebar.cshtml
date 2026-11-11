@@ -21,9 +21,16 @@
     var isRoleAccessActive = IsActive("UserAccount", "RoleAccess");
     var isUsersActive = IsActive("UserAccount") && !isRoleAccessActive;
 
-    var isMyReservationsActive = IsActive("Reservation", "MyReservation") || IsActive("EquipmentReservation", "Details");
+    var isMyReservationsActive =
+        IsActive("Reservation", "MyReservation") ||
+        IsActive("Reservation", "ReservationDetails") ||
+        IsActive("Reservation", "Edit") ||
+        IsActive("Reservation", "Cancel");
 
-    var isBrowseActive = IsActive("BrowseEquipment") || (IsActive("EquipmentReservation") && !isMyReservationsActive);
+    var isBrowseActive =
+        IsActive("BrowseEquipment") ||
+        IsActive("Reservation", "Create") ||
+        IsActive("Reservation", "Submitted");
 }
 
 <aside class="app-sidebar" id="appSidebar" aria-label="Main navigation">

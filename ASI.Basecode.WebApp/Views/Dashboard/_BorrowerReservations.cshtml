@@ -2,13 +2,24 @@
 @using ASI.Basecode.Services.ServiceModels.Dashboard
 @model System.Collections.Generic.IEnumerable<DashboardReservation>
 <ul class="rd-reservation-list">
-@foreach (var reservation in Model)
-{
-    var status = reservation.IsOverdue ? "Overdue" : reservation.Status;
-    <li>
-        <div class="rd-record-title"><strong>@reservation.ReservationNumber</strong><span class="rd-status status-@status.ToLowerInvariant()">@status</span></div>
-        <p class="rd-equipment">@reservation.EquipmentSummary</p>
-        <div class="rd-record-bottom"><span>Pickup @reservation.PickupAt.ToString("MMM d, yyyy · h:mm tt")<br />Return by @reservation.ReturnBy.ToString("MMM d, yyyy · h:mm tt")</span><a class="rd-row-action" asp-controller="EquipmentReservation" asp-action="ReservationDetails" asp-route-id="@reservation.ReservationId" aria-label="View reservation @reservation.ReservationNumber">View <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></div>
-    </li>
-}
+    @foreach (var reservation in Model)
+    {
+        var status = reservation.IsOverdue ? "Overdue" : reservation.Status;
+        <li>
+            <div class="rd-record-title"><strong>@reservation.ReservationNumber</strong><span class="rd-status status-@status.ToLowerInvariant()">@status</span></div>
+            <p class="rd-equipment">@reservation.EquipmentSummary</p>
+            <div class="rd-record-bottom">
+                <span>Pickup @reservation.PickupAt.ToString("MMM d, yyyy · h:mm tt")<br />Return by @reservation.ReturnBy.ToString("MMM d, yyyy · h:mm tt")</span>
+                <a class="rd-row-action"
+                   asp-controller="Reservation"
+                   asp-action="ReservationDetails"
+                   asp-route-id="@reservation.ReservationId" aria-label="View reservation @reservation.ReservationNumber">
+                    View
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-arrow" />
+                    </svg>
+                </a>
+            </div>
+        </li>
+    }
 </ul>

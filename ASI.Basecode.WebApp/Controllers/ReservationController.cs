@@ -27,6 +27,7 @@ public class ReservationController : ControllerBase<ReservationController>
 
     private readonly IReservationService _reservationService;
     private readonly IEquipmentService _equipmentService;
+    private readonly IEquipmentReservationService _equipmentReservationService;
 
     public ReservationController(
         IHttpContextAccessor httpContextAccessor,
@@ -34,11 +35,15 @@ public class ReservationController : ControllerBase<ReservationController>
         IConfiguration configuration,
         IReservationService reservationService,
         IEquipmentService equipmentService,
+        IEquipmentReservationService equipmentReservationService,
         IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
         _reservationService = reservationService;
         _equipmentService = equipmentService;
+        _equipmentReservationService = equipmentReservationService;
     }
+
+
 
     [HttpGet]
     [Authorize(Roles = RoleNames.Borrower)]
@@ -146,7 +151,7 @@ public class ReservationController : ControllerBase<ReservationController>
             TempData["ReservationError"] =
                 "Only pending reservations can be edited.";
 
-            return RedirectToAction("ReservationDetails", "EquipmentReservation", new { id, returnUrl });
+            return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
         }
 
         var draftKey = $"ReservationDraft:Edit:{id}";
@@ -207,7 +212,7 @@ public class ReservationController : ControllerBase<ReservationController>
             TempData["ReservationError"] =
                 "Only pending reservations can be edited.";
 
-            return RedirectToAction("ReservationDetails", "EquipmentReservation", new { id, returnUrl });
+            return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
         }
 
         if (ModelState.IsValid)
@@ -223,7 +228,7 @@ public class ReservationController : ControllerBase<ReservationController>
 
                     TempData["ReservationSuccess"] = "Reservation updated.";
 
-                    return RedirectToAction("ReservationDetails", "EquipmentReservation", new { id, returnUrl });
+                    return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
                 }
 
                 ModelState.AddModelError(string.Empty, error);
@@ -273,7 +278,7 @@ public class ReservationController : ControllerBase<ReservationController>
             {
                 TempData["ReservationError"] ="Only pending reservations can be edited.";
 
-                return RedirectToAction("ReservationDetails", "EquipmentReservation", new { id = id.Value });
+                return RedirectToAction(nameof(ReservationDetails), new { id = id.Value });
             }
 
             HttpContext.Session.SetString($"ReservationDraft:Edit:{id.Value}", JsonSerializer.Serialize(model));
@@ -288,7 +293,129 @@ public class ReservationController : ControllerBase<ReservationController>
         return RedirectToAction("Index", "BrowseEquipment", new { reservationId = id });
     }
 
+    [HttpGet]
+    [Authorize(Roles = RoleNames.Borrower)]
+    public IActionResult ReservationDetails(int id, string returnUrl = null)
+    {
+        returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
+        ViewData["ReservationReturnUrl"] = returnUrl;
 
+        if (!int.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier),
+            out var borrowerUserId))
+            return Challenge();
+
+        var reservation =
+            _reservationService.GetReservationDetails(id, borrowerUserId);
+
+        if (reservation == null)
+            return NotFound();
+
+        return View(reservation);
+    }
+
+    [HttpGet]
+    [Authorize(Roles = RoleNames.Borrower)]
+    public IActionResult Cancel(int id, string returnUrl = null)
+    {
+        returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
+        ViewData["ReservationReturnUrl"] = returnUrl;
+
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
+            return Challenge();
+
+        var reservation = _reservationService.GetReservationDetails(id, borrowerUserId);
+
+        if (reservation == null)
+            return NotFound();
+
+        if (reservation.Status != ReservationStatuses.Pending)
+        {
+            TempData["ReservationError"] = "Only pending reservations can be cancelled.";
+
+            return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
+        }
+
+        ViewData["Reservation"] = reservation;
+
+        return View(new ReservationCancelFormModel
+        {
+            RowVersion = Convert.ToBase64String(reservation.RowVersion)
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = RoleNames.Borrower)]
+    public IActionResult Cancel(int id, [Bind("Reason,RowVersion")] ReservationCancelFormModel model, string returnUrl = null)
+    {
+        returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
+        ViewData["ReservationReturnUrl"] = returnUrl;
+
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
+            return Challenge();
+
+        var reservation = _reservationService.GetReservationDetails(id, borrowerUserId);
+
+        if (reservation == null)
+            return NotFound();
+
+        if (reservation.Status != ReservationStatuses.Pending)
+        {
+            TempData["ReservationError"] = "Only pending reservations can be cancelled.";
+
+            return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
+        }
+
+        if (ModelState.IsValid)
+        {
+            try
+            {
+                var error = _equipmentReservationService.Cancel(id, model, borrowerUserId);
+
+                if (error == null)
+                {
+                    TempData["ReservationSuccess"] = "Reservation cancelled.";
+
+                    return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
+                }
+
+                ModelState.AddModelError(string.Empty, error);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Unable to cancel reservation {ReservationId}.", id);
+                ModelState.AddModelError(string.Empty, "Unable to cancel your reservation. Reload it and try again.");
+            }
+        }
+
+        ViewData["Reservation"] = reservation;
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = RoleNames.Borrower)]
+    public IActionResult DiscardEdit(int id, string returnUrl = null)
+    {
+        returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
+        ViewData["ReservationReturnUrl"] = returnUrl;
+        if (!int.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier),
+            out var borrowerUserId))
+            return Challenge();
+
+        var reservation =
+            _reservationService.GetReservationDetails(id, borrowerUserId);
+
+        if (reservation == null)
+            return NotFound();
+
+        HttpContext.Session.Remove($"ReservationDraft:Edit:{id}");
+        HttpContext.Session.Remove($"SelectedEquipmentIds:Edit:{id}");
+
+        return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
+    }
 
     private void PrepareEditView(int reservationId, ReservationEditFormModel model)
     {

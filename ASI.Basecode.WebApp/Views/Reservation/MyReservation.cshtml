@@ -119,7 +119,7 @@
                                 </dd>
                             </dl>
                             <a class="mr-text-link mr-details"
-                               asp-controller="EquipmentReservation" asp-action="ReservationDetails"
+                               asp-controller="Reservation" asp-action="ReservationDetails"
                                asp-route-id="@reservation.ReservationId" asp-route-returnUrl="@returnUrl" aria-label="View details for reservation @reservation.ReservationNumber">
                                 View details
                                 <svg class="icon" aria-hidden="true">
@@ -133,8 +133,16 @@
                                 <a class="mr-text-link"
                                    asp-controller="Reservation" asp-action="Edit"
                                    asp-route-id="@reservation.ReservationId"
-                                   asp-route-returnUrl="@returnUrl" aria-label="Edit reservation @reservation.ReservationNumber">Edit reservation</a>
-                                <a class="mr-text-link mr-cancel" asp-controller="EquipmentReservation" asp-action="Cancel" asp-route-id="@reservation.ReservationId" asp-route-returnUrl="@returnUrl" aria-label="Cancel reservation @reservation.ReservationNumber">Cancel reservation</a>
+                                   asp-route-returnUrl="@returnUrl" aria-label="Edit reservation @reservation.ReservationNumber">
+                                    Edit reservation
+                                </a>
+                                <a class="mr-text-link mr-cancel"
+                                   asp-controller="Reservation"
+                                   asp-action="Cancel"
+                                   asp-route-id="@reservation.ReservationId"
+                                   asp-route-returnUrl="@returnUrl" aria-label="Cancel reservation @reservation.ReservationNumber">
+                                    Cancel reservation
+                                </a>
                             </div>
                         }
                     </article>

@@ -42,6 +42,7 @@
   <ItemGroup>
     <Folder Include="Views\BrowseEquipment\" />
     <Folder Include="Views\EquipmentCategory\" />
+    <Folder Include="Views\EquipmentReservation\" />
     <Folder Include="wwwroot\img\" />
   </ItemGroup>
 </Project>

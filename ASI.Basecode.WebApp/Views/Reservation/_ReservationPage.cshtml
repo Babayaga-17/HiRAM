@@ -6,7 +6,7 @@
     var isEdit = editModel != null;
     var reservationId = isEdit ? (int?)ViewData["ReservationId"] : null;
     var formController = "Reservation";
-    var changeEquipmentUrl = Url.Action("ChangeEquipment", "EquipmentReservation", new { id = reservationId });
+    var changeEquipmentUrl = Url.Action("ChangeEquipment", "Reservation", new { id = reservationId });
     var selectionError = ViewData["SelectionError"] as string;
 }
 
@@ -176,7 +176,7 @@
                     @if (isEdit)
                     {
                         <button class="button button-secondary" type="submit"
-                                formaction="@Url.Action("DiscardEdit", "EquipmentReservation", new { id = reservationId })"
+                                formaction="@Url.Action("DiscardEdit", "Reservation", new { id = reservationId })"
                                 formnovalidate>Discard changes</button>
                     }
                     <button class="button button-primary" type="submit" data-submit-request>@(isEdit ? "Save changes" : "Submit request")</button>

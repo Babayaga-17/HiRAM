@@ -51,14 +51,16 @@ try
 
     var equipment = new Equipment { EquipmentCode = "TEST-EQUIP", EquipmentName = "Test projector", IsActive = true, ConditionStatus = "Good", CreatedBy = "test" };
     db.Add(equipment); db.SaveChanges();
-    var submissions = new EquipmentReservationService(new EquipmentReservationRepository(unit), new EquipmentService(new EquipmentRepository(unit), null), notifications);
+    var equipmentService = new EquipmentService(new EquipmentRepository(unit), null);
+    var submissions = new ReservationService(new ReservationRepository(unit), notifications, equipmentService);
+    var cancellations = new EquipmentReservationService(new EquipmentReservationRepository(unit), new ReservationRepository(unit), submissions, equipmentService, notifications);
     ReservationFormModel Request(int day) => new() { EquipmentIds = new() { equipment.EquipmentId }, Purpose = "Class presentation",
         Pickup = DateTime.Today.AddDays(day).AddHours(10), ExpectedReturn = DateTime.Today.AddDays(day).AddHours(12) };
     var submitted = submissions.Submit(Request(7), borrower.UserId);
     Check(submitted.Error == null, "Reservation submission succeeds with queued notification");
     var reservation = db.Reservations.Single(r => r.ReservationNumber == submitted.ReservationNumber);
     Check(db.Notifications.Any(n => n.ReservationId == reservation.ReservationId && n.EventType == NotificationEvents.ReservationSubmitted && n.RecipientUserId == custodian.UserId), "Submission notifies custodian");
-    var reviews = new ReservationService(new ReservationRepository(unit), notifications);
+    var reviews = new ReservationService(new ReservationRepository(unit), notifications, equipmentService);
     Check(reviews.Approve(reservation.ReservationId, custodian.UserId, "staff", null).ok, "Reservation review and notification commit");
     Check(db.Notifications.Any(n => n.ReservationId == reservation.ReservationId && n.EventType == NotificationEvents.ReservationApproved && n.RecipientUserId == borrower.UserId), "Approval notifies requesting borrower");
     Check(!reviews.Approve(reservation.ReservationId, custodian.UserId, "staff", null).ok && db.Notifications.Count(n => n.EventType == NotificationEvents.ReservationApproved) == 1, "Repeated decision does not duplicate notification");
@@ -68,7 +70,7 @@ try
     Check(db.Notifications.Any(n => n.EventType == NotificationEvents.ReservationRejected && n.Body.Contains("examination")), "Rejection reason included");
     var cancelledNumber = submissions.Submit(Request(9), borrower.UserId).ReservationNumber;
     var cancelled = db.Reservations.Single(r => r.ReservationNumber == cancelledNumber);
-    Check(submissions.Cancel(cancelled.ReservationId, new ReservationCancelFormModel { RowVersion = Convert.ToBase64String(cancelled.RowVersion), Reason = "Schedule changed" }, borrower.UserId) == null, "Cancellation succeeds");
+    Check(cancellations.Cancel(cancelled.ReservationId, new ReservationCancelFormModel { RowVersion = Convert.ToBase64String(cancelled.RowVersion), Reason = "Schedule changed" }, borrower.UserId) == null, "Cancellation succeeds");
     Check(db.Notifications.Any(n => n.EventType == NotificationEvents.ReservationCancelled && n.RecipientUserId == custodian.UserId), "Cancellation notifies custodian");
 
     var menu = await notifications.GetMenuAsync(borrower.UserId, token);

@@ -72,7 +72,7 @@ public class NotificationController : Controller
                 {
                     model.RelatedUrl = Url.Action(
                         staff ? "Review" : "ReservationDetails",
-                        staff ? "Reservation" : "EquipmentReservation",
+                        "Reservation",
                         new { id = model.ReservationId });
 
                     model.RelatedLabel = "View reservation"; 
