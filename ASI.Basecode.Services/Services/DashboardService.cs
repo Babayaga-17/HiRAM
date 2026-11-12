@@ -17,33 +17,18 @@ public class DashboardService : IDashboardService
 {
     private readonly IReservationRepository _reservationRepository;
     private readonly IReservationService _reservationService;
-
-    private readonly IUserAccountService accounts;
-    private readonly IBorrowerProfileService borrowers;
-    private readonly IReportService reports;
-    private readonly IEquipmentService equipment;
-    private readonly IMaintenanceService maintenance;
-    private readonly ILogger<DashboardService> logger;
+    private readonly IUserAccountService _userAccountsService;
+    private readonly IEquipmentService _equipmentService;
     public DashboardService(
                             IReservationRepository reservationRepository,
                             IReservationService reservationService,
-                            IUserAccountService accounts, 
-                            IBorrowerProfileService borrowers,
-                            IReportService reports, 
-                            IEquipmentService equipment, 
-                            IMaintenanceService maintenance, 
-                            ILogger<DashboardService> logger)
+                            IUserAccountService userAccountsService, 
+                            IEquipmentService equipmentService)
     {
         this._reservationRepository = reservationRepository;
         this._reservationService = reservationService;
-
-
-        this.accounts = accounts;
-        this.borrowers = borrowers;
-        this.reports = reports; 
-        this.equipment = equipment; 
-        this.maintenance = maintenance; 
-        this.logger = logger;
+        this._userAccountsService = userAccountsService;
+        this._equipmentService = equipmentService; 
     }
 
     public async Task<BorrowerDashboardViewModel> GetBorrowerOverviewAsync(int borrowerUserId)
@@ -67,43 +52,40 @@ public class DashboardService : IDashboardService
     {
         var counts = await _reservationRepository.CountByStatus();
 
-        int? Count(string status)
-        {
-            if (counts == null)
-                return null;
+        int Count(string status) => counts.TryGetValue(status, out var count) ? count : 0;
 
-            return counts.TryGetValue(status, out var count) ? count : 0;
-        }
-
-        List<PendingReservationListItem> pendingRequests = null;
-
-        try
-        {
-            pendingRequests = await _reservationService.GetPendingReservationPreviewAsync();
-        }
-        catch (Exception exception)
-        {
-            logger.LogWarning(exception, "Custodian dashboard pending requests could not be loaded.");
-        }
+        var pendingRequests = await _reservationService.GetPendingReservationPreviewAsync();
 
         return new CustodianDashboardViewModel
         {
             PendingCount = Count(ReservationStatuses.Pending),
             ApprovedCount = Count(ReservationStatuses.Approved),
-            OutstandingCount = Count(ReservationStatuses.Borrowed) + Count(ReservationStatuses.Overdue),
+            OutstandingCount =
+                Count(ReservationStatuses.Borrowed) +
+                Count(ReservationStatuses.Overdue),
             PendingRequests = pendingRequests
         };
     }
 
-    public AdminDashboardViewModel GetAdminOverview() => new()
+    public async Task<AdminDashboardViewModel> GetAdminOverviewAsync()
     {
-        Accounts = Read("accounts", () => accounts.GetUserAccounts()),
-        Equipment = Read("equipment", () => equipment.GetEquipmentPage(new EquipmentListRequest())),
-        Overdue = Read("overdue loans", () => reports.GetBorrowingReport(new BorrowingReportFilter { Status = ReservationStatuses.Overdue }, 1, 4)),
-        Borrowers = Read("borrowers", () => borrowers.GetPage(null, null, 1, 1)),
-        ScheduledMaintenance = Read("scheduled maintenance", () => maintenance.GetPage(null, MaintenanceStatuses.Scheduled, 1)),
-        OngoingMaintenance = Read("ongoing maintenance", () => maintenance.GetPage(null, MaintenanceStatuses.InProgress, 1))
-    };
+        var counts = await _userAccountsService.CountAccountsByStatusAsync();
+        var preview = await _userAccountsService.GetPendingRegistrationPreviewAsync();
+        var totalEquipment = await _equipmentService.CountEquipmentAsync();
+
+        return new AdminDashboardViewModel
+        {
+            TotalUsers = counts.Values.Sum(),
+            PendingRegistrationCount =
+                counts.TryGetValue(
+                    AccountStatuses.PendingApproval,
+                    out var pendingCount)
+                ? pendingCount
+                : 0,
+            TotalEquipment = totalEquipment,
+            RegistrationPreview = preview
+        };
+    }
 
     #region Helper
 
@@ -132,12 +114,6 @@ public class DashboardService : IDashboardService
                 outstanding &&
                 reservation.ExpectedReturnDateTime < now
         };
-    }
-
-    private T Read<T>(string section, Func<T> read) where T : class
-    {
-        try { return read(); }
-        catch (Exception exception) { logger.LogWarning(exception, "Role dashboard {Section} could not be loaded.", section); return null; }
     }
 
     #endregion

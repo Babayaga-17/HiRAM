@@ -46,7 +46,7 @@
         @if (overview.Reservations == null)
         {
             <p class="bd-state" role="status">
-                Your reservations could not be loaded.
+                @ViewData["DashboardError"]
                 <a class="rd-link"
                    asp-controller="Dashboard"
                    asp-action="Index">

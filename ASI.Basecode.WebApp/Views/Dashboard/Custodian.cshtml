@@ -55,7 +55,9 @@
         </header>
         @if (overview.PendingRequests == null)
         {
-            <p class="rd-state" role="status">The review queue could not be loaded. Refresh to try again.</p>
+            <p class="rd-state" role="status">
+                @ViewData["DashboardError"]
+            </p>
         }
         else if (overview.PendingRequests.Count == 0)
         {
@@ -74,10 +76,10 @@
                         <p>@request.BorrowerName · @request.EquipmentSummary</p>
                         <div class="rd-record-bottom">
                             <span>Pickup @request.StartDateTime.ToString("MMM d, yyyy · h:mm tt")</span>
-                            <a class="rd-row-action" 
-                                asp-controller="Reservation" 
-                                asp-action="Review" 
-                                asp-route-id="@request.ReservationId" aria-label="Review request @request.ReservationNumber">
+                            <a class="rd-row-action"
+                               asp-controller="Reservation"
+                               asp-action="Review"
+                               asp-route-id="@request.ReservationId" aria-label="Review request @request.ReservationNumber">
                                 Review
                                 <svg class="icon" aria-hidden="true">
                                     <use href="#i-arrow" />

@@ -9,7 +9,7 @@
     ViewData["TopbarPage"] = "Dashboard";
     var overview = Model ?? new AdminDashboardViewModel();
     string Number(int? value) => value?.ToString("N0") ?? "—";
-    var registrations = overview.RegistrationPreview.ToList();
+    var registrations = overview.RegistrationPreview ?? new List<UserAccountListItem>();
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/role-dashboard.css" asp-append-version="true" />
@@ -17,57 +17,59 @@
 <div class="role-dashboard admin-dashboard">
     <header class="rd-heading"><div><h1>Administrator dashboard</h1><p>Review registrations and oversee accounts and equipment.</p></div></header>
     <section class="stats-grid rd-summary" aria-label="Administration overview">
-        <div class="stat-card"><span class="stat-copy"><span>Total users</span><strong>@Number(overview.Accounts?.Count)</strong><small>All account statuses</small></span></div>
-        <div class="stat-card"><span class="stat-copy"><span>Pending registrations</span><strong>@Number(overview.PendingRegistrations)</strong><small>Awaiting administrator approval</small></span></div>
-        <div class="stat-card"><span class="stat-copy"><span>Total equipment</span><strong>@Number(overview.Equipment?.TotalEquipment)</strong><small>Includes inactive equipment</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Total users</span><strong>@Number(overview.TotalUsers)</strong><small>All account statuses</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Pending registrations</span><strong>@Number(overview.PendingRegistrationCount)</strong><small>Awaiting administrator approval</small></span></div>
+        <div class="stat-card"><span class="stat-copy"><span>Total equipment</span><strong>@Number(overview.TotalEquipment)</strong><small>Includes inactive equipment</small></span></div>
     </section>
-<!-- Registration Approvals -->
-        <section class="rd-panel" aria-labelledby="aoRegistrations">
-            <header class="rd-panel-heading">
-                <div>
-                    <h2 id="aoRegistrations">
-                        Registration approvals
+    <!-- Registration Approvals -->
+    <section class="rd-panel" aria-labelledby="aoRegistrations">
+        <header class="rd-panel-heading">
+            <div>
+                <h2 id="aoRegistrations">
+                    Registration approvals
 
-                    </h2>
-                    <p>Accounts awaiting administrator review</p>
-                </div>
-                <a class="rd-link" asp-controller="UserAccount" asp-action="Index">
-                    View all accounts
-                    <svg class="icon" aria-hidden="true">
-                        <use href="#i-arrow" />
-                    </svg>
-                </a>
-            </header>
+                </h2>
+                <p>Accounts awaiting administrator review</p>
+            </div>
+            <a class="rd-link" asp-controller="UserAccount" asp-action="Index">
+                View all accounts
+                <svg class="icon" aria-hidden="true">
+                    <use href="#i-arrow" />
+                </svg>
+            </a>
+        </header>
 
-            @if (overview.Accounts == null)
-            {
-                <p class="rd-state" role="status">Account information is unavailable. Refresh to try again.</p>
-            }
-            else if (registrations.Count == 0)
-            {
-                <p class="rd-state">No registrations are awaiting approval.</p>
-            }
-            else
-            {
-                <ul class="rd-registration-list">
-                    @foreach (var account in registrations)
-                    {
-                        <li>
-                            <span class="rd-person">
-                                <strong>@account.FullName</strong>
-                                <small>@account.UserCode</small>
-                            </span>
-                            <span class="rd-badge">Pending approval</span>
-                            <a class="rd-review" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="Review registration for @account.FullName">
-                                Review
-                                <svg class="icon" aria-hidden="true">
-                                    <use href="#i-arrow" />
-                                </svg>
-                            </a>
-                        </li>
-                    }
-                </ul>
-                <p class="rd-caption">Showing @registrations.Count of @Number(overview.PendingRegistrations) pending registrations</p>
-            }
-        </section>
+        @if (overview.RegistrationPreview == null)
+        {
+            <p class="rd-state" role="status">
+                @ViewData["DashboardError"]
+            </p>
+        }
+        else if (registrations.Count == 0)
+        {
+            <p class="rd-state">No registrations are awaiting approval.</p>
+        }
+        else
+        {
+            <ul class="rd-registration-list">
+                @foreach (var account in registrations)
+                {
+                    <li>
+                        <span class="rd-person">
+                            <strong>@account.FullName</strong>
+                            <small>@account.UserCode</small>
+                        </span>
+                        <span class="rd-badge">Pending approval</span>
+                        <a class="rd-review" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="Review registration for @account.FullName">
+                            Review
+                            <svg class="icon" aria-hidden="true">
+                                <use href="#i-arrow" />
+                            </svg>
+                        </a>
+                    </li>
+                }
+            </ul>
+            <p class="rd-caption">Showing @registrations.Count of @Number(overview.PendingRegistrationCount) pending registrations</p>
+        }
+    </section>
 </div>

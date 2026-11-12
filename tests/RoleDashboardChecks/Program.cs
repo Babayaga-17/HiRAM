@@ -42,11 +42,8 @@ var reservations=Stub<IReservationService>((name,args)=> {
  if(previewFailed)return Task.FromException<List<PendingReservationListItem>>(new InvalidOperationException("Preview unavailable"));
  return Task.FromResult(new List<PendingReservationListItem>{new(){ReservationId=1,ReservationNumber="PREVIEW-1"}});
 });
-var reportFailed=false;
-var reports=Stub<IReportService>((name,args)=> {Check(name=="GetBorrowingReport" && ((BorrowingReportFilter)args[0]).Status=="Overdue" && (int)args[2]==4,"Wrong overdue source"); if(reportFailed)throw new Exception("Read unavailable"); return new BorrowingReportViewModel {Summary=new(){TotalRecords=2}};});
 var equipment=Stub<IEquipmentService>((name,args)=> {Check(name=="GetEquipmentPage","Unexpected equipment mutation");return new EquipmentIndexViewModel{TotalEquipment=12,AvailableCount=5};});
-var maintenance=Stub<IMaintenanceService>((name,args)=> {Check(name=="GetPage","Unexpected maintenance mutation");return new MaintenancePageViewModel{RecordsAvailable=true,TotalCount=(string)args[1]=="Scheduled"?3:1};});
-var service=new DashboardService(repository,reservations,Stub<IUserAccountService>((_,_)=>new List<UserAccountListItem>()), Stub<IBorrowerProfileService>((_,_)=>new BorrowerPageViewModel()), reports,equipment,maintenance,NullLogger<DashboardService>.Instance);
+var service=new DashboardService(repository,reservations,Stub<IUserAccountService>((_,_)=>throw new Exception("Unexpected account read outside Admin")),equipment);
 var borrower=await service.GetBorrowerOverviewAsync(123);
 Check(borrower.Reservations.Select(r=>r.ReservationId).SequenceEqual(new[]{1,2,3}),"Repository ordering changed during mapping");
 var first=borrower.Reservations[0];
@@ -64,8 +61,8 @@ Check(repositoryCalls==callsBefore,"Invalid identity reached repository");
 var desk=await service.GetCustodianOverviewAsync();
 Check(desk.PendingCount==12 && desk.ApprovedCount==3 && desk.OutstandingCount==5 && desk.PendingRequests.Count==1,"Custodian totals or preview incorrect");
 Check(countCalls==1 && previewCalls==1,"Custodian must read counts and preview once each");
-previewFailed=true;desk=await service.GetCustodianOverviewAsync();
-Check(desk.PendingRequests==null && desk.PendingCount==12,"Preview failure hid healthy counts");
+previewFailed=true;
+try {await service.GetCustodianOverviewAsync();throw new Exception("Preview failure was swallowed in the service");} catch(InvalidOperationException) { }
 previewFailed=false;countsFailed=true;
 var previewsBefore=previewCalls;
 try {await service.GetCustodianOverviewAsync();throw new Exception("Count failure was unexpectedly hidden");} catch(InvalidOperationException) { }
@@ -73,7 +70,7 @@ Check(previewCalls==previewsBefore,"Preview started before count query completed
 countsFailed=false;emptyCounts=true;desk=await service.GetCustodianOverviewAsync();
 Check(desk.PendingCount==0 && desk.ApprovedCount==0 && desk.OutstandingCount==0,"Absent statuses must be genuine zeros");
 var borrowerCalls=0;var adminCalls=0;var staffCalls=0;
-var roleService=Stub<IDashboardService>((name,args)=> {if(name=="GetBorrowerOverviewAsync"){borrowerCalls++;Check((int)args[0]==123,"Controller accepted query identity");return Task.FromResult(borrower);}if(name=="GetAdminOverview"){adminCalls++;return new AdminDashboardViewModel();}Check(name=="GetCustodianOverviewAsync","Unexpected role service call");staffCalls++;return Task.FromResult(desk);});
+var roleService=Stub<IDashboardService>((name,args)=> {if(name=="GetBorrowerOverviewAsync"){borrowerCalls++;Check((int)args[0]==123,"Controller accepted query identity");return Task.FromResult(borrower);}if(name=="GetAdminOverviewAsync"){adminCalls++;return Task.FromResult(new AdminDashboardViewModel());}Check(name=="GetCustodianOverviewAsync","Unexpected role service call");staffCalls++;return Task.FromResult(desk);});
 IActionResult Act(string role,string id=null) {
  var claims=new List<Claim>{new(ClaimTypes.Role,role)};if(id!=null)claims.Add(new(ClaimTypes.NameIdentifier,id));
  var context=new DefaultHttpContext{User=new ClaimsPrincipal(new ClaimsIdentity(claims,"checks"))};
@@ -85,5 +82,20 @@ Check(((ViewResult)Act("Borrower","123")).ViewName=="Borrower" && borrowerCalls=
 Check(((ViewResult)Act("Custodian")).ViewName=="Custodian" && staffCalls==1,"Custodian route mismatch");
 Check(((ViewResult)Act("Admin")).ViewName=="Admin" && adminCalls==1 && staffCalls==1,"Admin behavior changed");
 Check(Act("Unknown") is ForbidResult,"Unknown role allowed");
-Console.WriteLine("PASS: async dashboard reads, claim forwarding, reservation mapping/order, returned-item exclusion, due dates, failure propagation, empty results, custodian count/preview retrieval, preview failure, count failure propagation and role routing (fake dependencies; no database).");
+// Exceptions from each role must be presented by the controller, never as empty success.
+foreach(var role in new[]{RoleNames.Borrower,RoleNames.Custodian,RoleNames.Admin})
+{
+ var context=new DefaultHttpContext{User=new ClaimsPrincipal(new ClaimsIdentity(new[]{new Claim(ClaimTypes.Role,role),new Claim(ClaimTypes.NameIdentifier,"123")},"checks"))};
+ var failing=Stub<IDashboardService>((name,args)=>name switch {
+  "GetBorrowerOverviewAsync" => Task.FromException<BorrowerDashboardViewModel>(new InvalidOperationException("Sensitive internal detail")),
+  "GetCustodianOverviewAsync" => Task.FromException<CustodianDashboardViewModel>(new InvalidOperationException("Sensitive internal detail")),
+  "GetAdminOverviewAsync" => Task.FromException<AdminDashboardViewModel>(new InvalidOperationException("Sensitive internal detail")),
+  _ => throw new Exception("Unexpected dashboard call")
+ });
+ var controller=new DashboardController(new HttpContextAccessor{HttpContext=context},NullLoggerFactory.Instance,new ConfigurationBuilder().Build(),failing){ControllerContext=new(){HttpContext=context}};
+ var result=(ViewResult)await controller.Index();
+ Check(result.ViewName==role && result.Model==null,"Failure did not return the correct unavailable dashboard");
+ Check((string)result.ViewData["DashboardError"]=="Your dashboard could not be loaded. Refresh to try again.","Missing or unsafe controller error message");
+}
+Console.WriteLine("PASS: async dashboard reads, claim forwarding, reservation mapping/order, returned-item exclusion, due dates, failure propagation, empty results, custodian count/preview retrieval, preview/count failure propagation, role routing and controller-owned safe error feedback for every role (fake dependencies; no database).");
 public class ReadProxy:DispatchProxy {public Func<string,object[],object> Read {get;set;}protected override object Invoke(MethodInfo method,object[] args)=>Read(method.Name,args);}

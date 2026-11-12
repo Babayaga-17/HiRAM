@@ -5,5 +5,5 @@ public interface IDashboardService
 {
     Task<BorrowerDashboardViewModel> GetBorrowerOverviewAsync(int borrowerUserId);
     Task<CustodianDashboardViewModel> GetCustodianOverviewAsync();
-    AdminDashboardViewModel GetAdminOverview();
+    Task<AdminDashboardViewModel> GetAdminOverviewAsync();
 }

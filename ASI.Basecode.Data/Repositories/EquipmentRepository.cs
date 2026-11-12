@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ASI.Basecode.Data.Repositories
 {
@@ -115,6 +116,11 @@ namespace ASI.Basecode.Data.Repositories
             }
 
             return query.Any();
+        }
+
+        public Task<int> CountEquipmentAsync()
+        {
+            return GetDbSet<Equipment>().CountAsync();
         }
     }
 }

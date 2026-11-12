@@ -480,5 +480,32 @@ namespace ASI.Basecode.Services.Services
         }
 
         #endregion
+
+        #region Admin Dashboard Methods
+
+        public Task<Dictionary<string, int>> CountAccountsByStatusAsync()
+        {
+            return _accountRepository.CountAccountsByStatusAsync();
+        }
+
+        public async Task<List<UserAccountListItem>>
+            GetPendingRegistrationPreviewAsync()
+        {
+            var accounts = await _accountRepository.GetPendingRegistrationPreviewAsync();
+
+            return accounts.Select(account => new UserAccountListItem
+            {
+                UserId = account.UserId,
+                AccountId = account.AccountId,
+                UserCode = account.User.UserCode,
+                FirstName = account.User.FirstName,
+                MiddleName = account.User.MiddleName ?? string.Empty,
+                LastName = account.User.LastName,
+                Suffix = account.User.Suffix ?? string.Empty,
+                AccountStatus = account.AccountStatus
+            }).ToList();
+        }
+
+        #endregion
     }
 }

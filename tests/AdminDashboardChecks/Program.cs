@@ -1,43 +1,59 @@
 using System.Reflection;
+using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
-using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.Services;
-using Microsoft.Extensions.Logging.Abstractions;
+using ASI.Basecode.Services.ServiceModels;
 
+static void Check(bool condition, string message) { if (!condition) throw new Exception(message); }
 static T Stub<T>(Func<string, object[], object> read) where T : class
 {
-    var result = DispatchProxy.Create<T, ReadProxy>();
-    ((ReadProxy)(object)result).Read = read;
-    return result;
+    var proxy = DispatchProxy.Create<T, ReadProxy>();
+    ((ReadProxy)(object)proxy).Read = read;
+    return proxy;
 }
-static void Check(bool passed, string message) { if (!passed) throw new Exception(message); }
-var failAccounts = false;
-var empty = false;
+var calls = new List<string>();
+var counts = new Dictionary<string, int> { [AccountStatuses.Active] = 10, [AccountStatuses.PendingApproval] = 5, [AccountStatuses.Inactive] = 2 };
+var preview = Enumerable.Range(1, 4).Select(id => new UserAccountListItem { UserId = id, FirstName = "Test", LastName = $"{id}", AccountStatus = AccountStatuses.PendingApproval }).ToList();
+string failAt = null;
+TaskCompletionSource<Dictionary<string, int>> gate = null;
 var accounts = Stub<IUserAccountService>((name, args) => {
-    Check(name == "GetUserAccounts", "Unexpected account mutation");
-    if (failAccounts) throw new InvalidOperationException("Unavailable");
-    return empty ? new List<UserAccountListItem>() : Enumerable.Range(1, 6).Select(i => new UserAccountListItem { UserId = i, AccountStatus = i == 6 ? "Active" : AccountStatuses.PendingApproval }).ToList();
+    calls.Add(name);
+    if (name == "CountAccountsByStatusAsync")
+        return failAt == name ? Task.FromException<Dictionary<string, int>>(new InvalidOperationException("Count failure")) : gate?.Task ?? Task.FromResult(counts);
+    Check(name == "GetPendingRegistrationPreviewAsync", "Admin retrieved a full account list or called a mutation");
+    return failAt == name ? Task.FromException<List<UserAccountListItem>>(new InvalidOperationException("Preview failure")) : Task.FromResult(preview);
 });
-var equipment = Stub<IEquipmentService>((name, args) => { Check(name == "GetEquipmentPage", "Unexpected equipment call"); return new EquipmentIndexViewModel { TotalEquipment = 8, AvailableCount = 3 }; });
-var reservations = Stub<IReservationService>((name, args) => { Check(name == "GetReservations" && (string)args[0] == ReservationStatuses.Pending, "Wrong reservation scope"); return new ReservationListViewModel { Counts = new() { [ReservationStatuses.Pending] = 2, [ReservationStatuses.Borrowed] = 3, [ReservationStatuses.Overdue] = 1 } }; });
-var reports = Stub<IReportService>((name, args) => { Check(name == "GetBorrowingReport" && ((BorrowingReportFilter)args[0]).Status == ReservationDisplayStatuses.Overdue && (int)args[2] == 4, "Overdue must use owning report filter"); return new BorrowingReportViewModel { Summary = new() { TotalRecords = 1 } }; });
-var borrowers = Stub<IBorrowerProfileService>((name, args) => { Check(name == "GetPage", "Unexpected borrower mutation"); return new BorrowerPageViewModel { OverallEligible = 7, OverallSuspended = 1 }; });
-var maintenance = Stub<IMaintenanceService>((name, args) => { Check(name == "GetPage", "Unexpected maintenance mutation"); return new MaintenancePageViewModel { RecordsAvailable = true, TotalCount = (string)args[1] == MaintenanceStatuses.Scheduled ? 2 : 1 }; });
-var service = new AdminDashboardService(accounts, equipment, reservations, reports, borrowers, maintenance, NullLogger<AdminDashboardService>.Instance);
-var model = service.GetOverview();
-Check(model.PendingRegistrations == 5 && model.RegistrationPreview.Count() == 4, "Registration total/preview mismatch");
-Check(model.ReservationCount("Missing") == 0 && model.ReservationCount(ReservationStatuses.Pending) == 2, "Missing stored status should be zero after successful read");
-Check(model.ScheduledMaintenance.TotalCount == 2 && model.OngoingMaintenance.TotalCount == 1, "Maintenance states merged");
-failAccounts = true;
-model = service.GetOverview();
-Check(model.Accounts == null && model.PendingRegistrations == null && !model.RegistrationPreview.Any(), "Failure must not look like zero registrations");
-Check(model.Equipment.TotalEquipment == 8 && model.Overdue.Summary.TotalRecords == 1, "Account failure must not hide healthy sections");
-failAccounts = false; empty = true;
-model = service.GetOverview();
-Check(model.PendingRegistrations == 0 && model.Accounts.Count == 0, "Genuine zero must remain distinguishable");
-Check(new AdminDashboardViewModel().ReservationCount(ReservationStatuses.Pending) == null, "Unavailable reservation count must stay null");
-Console.WriteLine("PASS: read-only composition, registration preview, overdue filter, maintenance states, partial failure, and zero/unavailable semantics.");
+var equipment = Stub<IEquipmentService>((name, args) => {
+    calls.Add(name);
+    Check(name == "CountEquipmentAsync", "Admin loaded an equipment page or called a mutation");
+    return failAt == name ? Task.FromException<int>(new InvalidOperationException("Equipment failure")) : Task.FromResult(8);
+});
+// Only the lightweight account/equipment services are supplied for the Admin branch.
+var service = new DashboardService(null, null, accounts, equipment);
+var model = await service.GetAdminOverviewAsync();
+Check(model.TotalUsers == 17 && model.PendingRegistrationCount == 5 && model.TotalEquipment == 8, "Admin totals mismatch");
+Check(model.RegistrationPreview.Select(a => a.UserId).SequenceEqual(new[]{1,2,3,4}), "Preview order was changed");
+Check(calls.SequenceEqual(new[]{"CountAccountsByStatusAsync","GetPendingRegistrationPreviewAsync","CountEquipmentAsync"}), "Unexpected, repeated or out-of-order reads");
+foreach (var operation in new[]{"CountAccountsByStatusAsync","GetPendingRegistrationPreviewAsync","CountEquipmentAsync"})
+{
+    calls.Clear(); failAt = operation;
+    try { await service.GetAdminOverviewAsync(); throw new Exception("Service swallowed a retrieval failure"); }
+    catch (InvalidOperationException) { }
+    Check(calls.Last() == operation, "Service continued querying after failure");
+}
+failAt = null; calls.Clear(); counts = new(); preview = new();
+model = await service.GetAdminOverviewAsync();
+Check(model.TotalUsers == 0 && model.PendingRegistrationCount == 0 && model.RegistrationPreview.Count == 0, "Real empty results were not zero/empty");
+counts = new() { [AccountStatuses.Active] = 2 };
+model = await service.GetAdminOverviewAsync();
+Check(model.TotalUsers == 2 && model.PendingRegistrationCount == 0, "Absent pending status should count as zero");
+calls.Clear(); gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+var pending = service.GetAdminOverviewAsync();
+Check(!pending.IsCompleted && calls.SequenceEqual(new[]{"CountAccountsByStatusAsync"}), "Queries overlapped before count retrieval completed");
+gate.SetResult(counts); await pending;
+Check(new AdminDashboardViewModel().TotalUsers == null && new AdminDashboardViewModel().RegistrationPreview == null, "Unavailable defaults must remain null");
+Console.WriteLine("PASS: lightweight Admin counts and preview, totals, ordering, sequential reads, failure propagation and zero/unavailable semantics (fake dependencies; no database).");
 public class ReadProxy : DispatchProxy
 {
     public Func<string, object[], object> Read { get; set; }

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -30,26 +31,46 @@ public class DashboardController : ControllerBase<DashboardController>
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        if (User.IsInRole("Borrower"))
+        string viewName = null;
+
+        try
         {
-            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
-                return Challenge();
+            if (User.IsInRole(RoleNames.Borrower))
+            {
+                viewName = RoleNames.Borrower;
+                if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
+                    return Challenge();
+                var model = await _dashboardService.GetBorrowerOverviewAsync(borrowerUserId);
 
-            var borrowerOverview = await _dashboardService.GetBorrowerOverviewAsync(borrowerUserId);
-            return View("Borrower", borrowerOverview);
+                return View(viewName, model);
+            }
+
+            if (User.IsInRole(RoleNames.Custodian))
+            {
+                viewName = RoleNames.Custodian;
+                var model = await _dashboardService.GetCustodianOverviewAsync();
+
+                return View(viewName, model);
+            }
+
+            if (User.IsInRole(RoleNames.Admin))
+            {
+                viewName = RoleNames.Admin;
+                var model = await _dashboardService.GetAdminOverviewAsync();
+
+                return View(viewName, model);
+            }
+
+            return Forbid();
         }
-
-        if (User.IsInRole("Custodian"))
+        catch (Exception exception)
         {
-            var custodianOverview = await _dashboardService.GetCustodianOverviewAsync();
-            return View("Custodian", custodianOverview);
-        }
+            _logger.LogError(
+                exception, "Unable to load the {Dashboard} dashboard.", viewName);
 
-        if (User.IsInRole("Admin"))
-        {
-            return View("Admin", await Task.FromResult(_dashboardService.GetAdminOverview()));
-        }
+            ViewData["DashboardError"] = "Your dashboard could not be loaded. Refresh to try again.";
 
-        return Forbid();
+            return View(viewName);
+        }
     }
 }
