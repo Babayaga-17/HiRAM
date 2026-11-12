@@ -21,7 +21,7 @@ namespace ASI.Basecode.Data.Repositories
         }
 
         // All list queries are scoped before counts, related-data loading or materialization.
-        private IQueryable<Reservation> BorrowerListQuery(int borrowerUserId, string status, DateTime now)
+        private IQueryable<Reservation> BorrowerReservationListQuery(int borrowerUserId, string status, DateTime now)
         {
             if (borrowerUserId <= 0) // ensures no negative or zero borrowerUserId is passed, which would be invalid
                 throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
@@ -40,14 +40,14 @@ namespace ASI.Basecode.Data.Repositories
             return string.IsNullOrEmpty(status) ? query : query.Where(r => r.Status == status);
         }
 
-        public Task<int> CountBorrowerReservationsAsync(int borrowerUserId, string status, DateTime now) => BorrowerListQuery(borrowerUserId, status, now).CountAsync();
+        public Task<int> CountBorrowerReservationsAsync(int borrowerUserId, string status, DateTime now) => BorrowerReservationListQuery(borrowerUserId, status, now).CountAsync();
 
         public Task<List<Reservation>> GetBorrowerReservationPageAsync(int borrowerUserId, string status, DateTime now, int skip, int take)
         {
             if (skip < 0) throw new ArgumentOutOfRangeException(nameof(skip)); // ensures no negative skip value is passed, which would be invalid
             if (take != 5 && take != 10 && take != 20) throw new ArgumentOutOfRangeException(nameof(take)); // ensures only valid take values are passed
 
-            return BorrowerListQuery(borrowerUserId, status, now)
+            return BorrowerReservationListQuery(borrowerUserId, status, now)
                 .OrderByDescending(r => r.RequestedAt)
                 .ThenByDescending(r => r.ReservationId)
                 .Skip(skip).Take(take)
@@ -60,7 +60,7 @@ namespace ASI.Basecode.Data.Repositories
             if (borrowerUserId <= 0) // ensures no negative or zero borrowerUserId is passed, which would be invalid
                 throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
 
-            return BorrowerListQuery(borrowerUserId, null, now)
+            return BorrowerReservationListQuery(borrowerUserId, null, now)
                 .Include(r => r.ReservationItems)
                     .ThenInclude(item => item.Equipment)
                 .Where(r => r.BorrowerUserId == borrowerUserId)
@@ -78,6 +78,17 @@ namespace ASI.Basecode.Data.Repositories
                     : r.ExpectedReturnDateTime)
                 .ThenBy(r => r.ReservationId)
                 .Take(3)
+                .ToListAsync();
+        }
+
+        public Task<List<Reservation>> GetPendingReservationPreviewAsync()
+        {
+            return WithDetails(GetDbSet<Reservation>().AsNoTracking())
+                .Where(reservation =>
+                    reservation.Status == ReservationStatuses.Pending)
+                .OrderBy(reservation => reservation.RequestedAt)
+                .ThenBy(reservation => reservation.ReservationId)
+                .Take(4)
                 .ToListAsync();
         }
 
@@ -193,25 +204,44 @@ namespace ASI.Basecode.Data.Repositories
                 .Count(reservation => reservation.Status == ReservationStatuses.Pending);
         }
 
-        public IQueryable<Reservation> GetReservationsByStatus(string status)
+        public Task<List<Reservation>> GetReservationsByStatusAsync(string status)
         {
-            var query = WithDetails(GetDbSet<Reservation>().AsNoTracking());
+            var query = WithDetails(
+                GetDbSet<Reservation>().AsNoTracking());
 
-            if (!string.IsNullOrWhiteSpace(status) && status != ReservationFilters.All)
-                query = query.Where(reservation => reservation.Status == status);
+            if (!string.IsNullOrWhiteSpace(status) &&
+                status != ReservationFilters.All)
+            {
+                query = query.Where(reservation =>
+                    reservation.Status == status);
+            }
 
             switch (status)
             {
-                case ReservationStatuses.Pending: return query.OrderBy(reservation => reservation.RequestedAt);
-                case ReservationStatuses.Approved: return query.OrderBy(reservation => reservation.StartDateTime);
-                case ReservationStatuses.Borrowed: return query.OrderBy(reservation => reservation.ExpectedReturnDateTime);
-                default: return query.OrderByDescending(reservation => reservation.RequestedAt);
+                case ReservationStatuses.Pending: 
+                    query = query.OrderBy(reservation => reservation.RequestedAt);
+                    break;
+
+                case ReservationStatuses.Approved: 
+                    query = query.OrderBy(reservation => reservation.StartDateTime);
+                    break;
+
+                case ReservationStatuses.Borrowed: 
+                    query = query.OrderBy(reservation => reservation.ExpectedReturnDateTime);
+                    break;
+
+                default:
+                    query = query.OrderByDescending(reservation => reservation.RequestedAt);
+                    break;
             }
+
+            return query.ToListAsync();
         }
 
         public Reservation GetReservationById(int reservationId)
         {
-            return WithDetails(GetDbSet<Reservation>().AsNoTracking())
+            return WithDetails(GetDbSet<Reservation>()
+                .AsNoTracking())
                 .FirstOrDefault(reservation => reservation.ReservationId == reservationId);
         }
 
@@ -226,13 +256,13 @@ namespace ASI.Basecode.Data.Repositories
                     reservation.ReservationId == reservationId);
         }
 
-        public Dictionary<string, int> CountByStatus()
+        public async Task<Dictionary<string, int>> CountByStatus()
         {
-            return GetDbSet<Reservation>()
+            return (await GetDbSet<Reservation>()
                 .AsNoTracking()
                 .GroupBy(reservation => reservation.Status)
                 .Select(group => new { Status = group.Key, Count = group.Count() })
-                .ToList()
+                .ToListAsync())
                 .ToDictionary(row => row.Status, row => row.Count);
         }
 

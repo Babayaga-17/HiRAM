@@ -437,18 +437,19 @@ public class ReservationController : ControllerBase<ReservationController>
     #region CUSTODIAN, ADMIN
 
     [HttpGet]
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        return Pending(null);
+        return await Pending(null);
     }
 
     // The status tabs: Pending (default), Approved, Borrowed, Rejected, All.
     [HttpGet]
-    public IActionResult Pending(string status = null)
+    public async Task<IActionResult> Pending(string status = null)
     {
         try
         {
-            return View("Pending", _reservationService.GetReservations(status));
+            var model = await _reservationService.GetReservationsAsync(status);
+            return View("Pending", model);
         }
         catch (Exception exception)
         {
@@ -538,9 +539,10 @@ public class ReservationController : ControllerBase<ReservationController>
 
     [HttpGet]
     [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
-    public IActionResult Returns()
+    public async Task<IActionResult> Returns()
     {
-        var model = _reservationService.GetReservations(ReservationStatuses.Borrowed);
+        var model = await _reservationService.GetReservationsAsync(ReservationStatuses.Borrowed);
+
         return View(model);
     }
 
@@ -584,18 +586,13 @@ public class ReservationController : ControllerBase<ReservationController>
         }
         catch (Exception exception)
         {
-            _logger.LogError(
-                exception,
-                "Unable to record return for reservation {ReservationId}.",
-                request.ReservationId);
+            _logger.LogError(exception, "Unable to record return for reservation {ReservationId}.", request.ReservationId);
 
             TempData["ReservationError"] =
                 "The return could not be saved. The reservation may have changed. "
                 + "Review its current details before trying again.";
 
-            return RedirectToAction(
-                nameof(Review),
-                new { id = request.ReservationId });
+            return RedirectToAction(nameof(Review), new { id = request.ReservationId });
         }
     }
 
@@ -607,7 +604,7 @@ public class ReservationController : ControllerBase<ReservationController>
 
         if (reservation == null)
             return NotFound();
-
+        
         if (reservation.Status != ReservationStatuses.Borrowed)
         {
             TempData["ReservationError"] = 

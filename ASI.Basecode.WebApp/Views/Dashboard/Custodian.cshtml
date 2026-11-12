@@ -23,20 +23,20 @@
         <div class="stat-card">
             <span class="stat-copy">
                 <span>Pending review</span>
-                <strong>@Number(overview.Count(ReservationStatuses.Pending))</strong>
+                <strong>@Number(overview.PendingCount)</strong>
                 <small>Reservation requests</small>
             </span>
         </div>
         <div class="stat-card">
             <span class="stat-copy">
                 <span>Awaiting release</span>
-                <strong>@Number(overview.Count(ReservationStatuses.Approved))</strong>
+                <strong>@Number(overview.ApprovedCount)</strong>
                 <small>Approved; equipment not yet released</small>
             </span>
         </div>
         <div class="stat-card">
             <span class="stat-copy">
-                <span>Outstanding loans</span>
+                <span>Outstanding reservations</span>
                 <strong>@Number(overview.OutstandingCount)</strong>
                 <small>Reservations with equipment still out</small>
             </span>
@@ -53,18 +53,18 @@
                 <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
             </a>
         </header>
-        @if (overview.Pending == null)
+        @if (overview.PendingRequests == null)
         {
             <p class="rd-state" role="status">The review queue could not be loaded. Refresh to try again.</p>
         }
-        else if (overview.Pending.Items.Count == 0)
+        else if (overview.PendingRequests.Count == 0)
         {
             <p class="rd-state">No reservation requests are awaiting review.</p>
         }
         else
         {
             <ul class="rd-staff-list">
-                @foreach (var request in overview.Pending.Items.Take(4))
+                @foreach (var request in overview.PendingRequests)
                 {
                     <li>
                         <div class="rd-record-title">

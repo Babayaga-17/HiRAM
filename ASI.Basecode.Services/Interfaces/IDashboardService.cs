@@ -4,6 +4,6 @@ namespace ASI.Basecode.Services.Interfaces;
 public interface IDashboardService
 {
     Task<BorrowerDashboardViewModel> GetBorrowerOverviewAsync(int borrowerUserId);
-    CustodianDashboardViewModel GetCustodianOverview();
+    Task<CustodianDashboardViewModel> GetCustodianOverviewAsync();
     AdminDashboardViewModel GetAdminOverview();
 }

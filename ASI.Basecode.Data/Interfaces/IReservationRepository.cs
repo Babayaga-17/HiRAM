@@ -12,6 +12,7 @@ namespace ASI.Basecode.Data.Interfaces
         Task<int> CountBorrowerReservationsAsync(int borrowerUserId, string status, DateTime now);
         Task<List<Reservation>> GetBorrowerReservationPageAsync(int borrowerUserId, string status, DateTime now, int skip, int take);
         Task<List<Reservation>> GetBorrowerDashboardReservationsAsync(int borrowerUserId, DateTime now);
+        Task<List<Reservation>> GetPendingReservationPreviewAsync();
         public BorrowerProfile GetBorrowerProfile(int borrowerUserId);
         public void AddReservation(Reservation reservation);
         public Equipment GetEquipment(int equipmentId);
@@ -28,10 +29,10 @@ namespace ASI.Basecode.Data.Interfaces
         Reservation GetPendingReservationById(int reservationId);
         int CountPendingReservations();
 
-        IQueryable<Reservation> GetReservationsByStatus(string status);   // null / "All" = every status
+        Task<List<Reservation>> GetReservationsByStatusAsync(string status);   // null / "All" = every status
         Reservation GetReservationById(int reservationId);                // read-only, with details
         Reservation GetReservationForUpdate(int reservationId);           // tracked, to approve / reject / release
-        Dictionary<string, int> CountByStatus();
+        Task<Dictionary<string, int>> CountByStatus();
         bool UserExists(int userId);
         void SaveChanges();
         (bool Ok, string Message) Review(int id, Func<Reservation, (bool Ok, string Message)> applyChanges);

@@ -15,10 +15,11 @@ namespace ASI.Basecode.Services.Interfaces
         string Edit(int reservationId, ReservationEditFormModel form, int borrowerUserId);
         string Cancel(int reservationId, ReservationCancelFormModel form, int borrowerUserId);
         Task<MyReservationPageViewModel> GetBorrowerReservationsAsync(int borrowerUserId, string status, int page, int pageSize);
+        Task<List<PendingReservationListItem>> GetPendingReservationPreviewAsync();
 
 
 
-        ReservationListViewModel GetReservations(string status);
+        Task<ReservationListViewModel> GetReservationsAsync(string status);
         ReservationDetailsViewModel GetReservationDetails(int reservationId);
         (bool ok, string message) Approve(int reservationId, int? actorUserId, string actorName, string remarks);
         (bool ok, string message) Reject(int reservationId, int? actorUserId, string actorName, string reason);

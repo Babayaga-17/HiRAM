@@ -64,6 +64,12 @@ namespace ASI.Basecode.Services.Services
             };
         }
 
+        public async Task<List<PendingReservationListItem>> GetPendingReservationPreviewAsync()
+        {
+            var reservations = await _reservationRepository.GetPendingReservationPreviewAsync();
+            return reservations.Select(ToListItem).ToList();
+        }
+
         public (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId)
         {
             var ids = form.EquipmentIds.Distinct().OrderBy(id => id).ToList();
@@ -276,15 +282,22 @@ namespace ASI.Basecode.Services.Services
 
         // ---------------------------------------------------------------- tabs + details (any status)
 
-        public ReservationListViewModel GetReservations(string status)
+        public async Task<ReservationListViewModel> GetReservationsAsync(string status)
         {
             status = Tabs.FirstOrDefault(tab => string.Equals(tab, status, StringComparison.OrdinalIgnoreCase)) ?? ReservationStatuses.Pending;
 
-            var counts = _reservationRepository.CountByStatus();
+            var counts = await _reservationRepository.CountByStatus();
+
+            var reservations = await _reservationRepository.GetReservationsByStatusAsync(status);
+
+            var items = reservations
+                .Select(ToListItem)
+                .ToList();
+
             return new ReservationListViewModel
             {
                 Status = status,
-                Items = _reservationRepository.GetReservationsByStatus(status).ToList().Select(ToListItem).ToList(),
+                Items = items,
                 Counts = counts,
                 TotalCount = counts.Values.Sum()
             };
@@ -553,10 +566,10 @@ namespace ASI.Basecode.Services.Services
 
                 var notes = new[]
                 {
-            input.ReturnRemarks,
-            input.DamageNotes,
-            input.MissingPartsNotes
-        };
+                    input.ReturnRemarks,
+                    input.DamageNotes,
+                    input.MissingPartsNotes
+                };
 
                 if (notes.Any(note => note?.Length > 500))
                     return (false, "Each inspection note must be 500 characters or fewer.");
@@ -576,9 +589,7 @@ namespace ASI.Basecode.Services.Services
                 }
             }
 
-            var now = TimeZoneInfo.ConvertTimeFromUtc(
-                DateTime.UtcNow,
-                TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"));
+            var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"));
 
             foreach (var input in selected)
             {

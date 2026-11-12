@@ -24,14 +24,24 @@ var rows=new List<Reservation> {
 rows[0].ReservationItems.Add(new ReservationItem { IsReturned=true, Equipment=new Equipment {EquipmentName="Already returned"} });
 rows[0].ReservationItems.Add(new ReservationItem { IsReturned=false, Equipment=new Equipment {EquipmentName="Still out"} });
 rows[1].ReservationItems.Add(new ReservationItem { Equipment=new Equipment {EquipmentName="Projector, seminar"} });
-var failed=false;var empty=false;var repositoryCalls=0;
+var failed=false;var empty=false;var repositoryCalls=0;var countCalls=0;var countsFailed=false;var emptyCounts=false;var previewFailed=false;var previewCalls=0;
 var repository=Stub<IReservationRepository>((name,args)=> {
+ if(name=="CountByStatus") {
+  countCalls++;
+  if(countsFailed)return Task.FromException<Dictionary<string,int>>(new InvalidOperationException("Counts unavailable"));
+  return Task.FromResult(emptyCounts?new Dictionary<string,int>():new Dictionary<string,int>{{"Pending",12},{"Approved",3},{"Borrowed",4},{"Overdue",1}});
+ }
  repositoryCalls++;
  Check(name=="GetBorrowerDashboardReservationsAsync" && (int)args[0]==123 && args[1] is DateTime,"Wrong dashboard read or borrower identity");
  if(failed)return Task.FromException<List<Reservation>>(new InvalidOperationException("Read unavailable"));
  return Task.FromResult(empty?new List<Reservation>():rows);
 });
-var reservations=Stub<IReservationService>((name,args)=> {Check(name=="GetReservations","Unexpected reservation mutation"); return new ReservationListViewModel {Status=(string)args[0],Counts=new(){{"Pending",2},{"Approved",3},{"Borrowed",4},{"Overdue",1}},Items=new(){new(){ReservationId=1}}};});
+var reservations=Stub<IReservationService>((name,args)=> {
+ Check(name=="GetPendingReservationPreviewAsync","Custodian fetched full reservations or another unused section");
+ previewCalls++;
+ if(previewFailed)return Task.FromException<List<PendingReservationListItem>>(new InvalidOperationException("Preview unavailable"));
+ return Task.FromResult(new List<PendingReservationListItem>{new(){ReservationId=1,ReservationNumber="PREVIEW-1"}});
+});
 var reportFailed=false;
 var reports=Stub<IReportService>((name,args)=> {Check(name=="GetBorrowingReport" && ((BorrowingReportFilter)args[0]).Status=="Overdue" && (int)args[2]==4,"Wrong overdue source"); if(reportFailed)throw new Exception("Read unavailable"); return new BorrowingReportViewModel {Summary=new(){TotalRecords=2}};});
 var equipment=Stub<IEquipmentService>((name,args)=> {Check(name=="GetEquipmentPage","Unexpected equipment mutation");return new EquipmentIndexViewModel{TotalEquipment=12,AvailableCount=5};});
@@ -51,11 +61,19 @@ Check((await service.GetBorrowerOverviewAsync(123)).Reservations.Count==0,"Empty
 var callsBefore=repositoryCalls;
 try { await service.GetBorrowerOverviewAsync(0);throw new Exception("Invalid identity accepted"); } catch(ArgumentOutOfRangeException) { }
 Check(repositoryCalls==callsBefore,"Invalid identity reached repository");
-var desk=service.GetCustodianOverview();Check(desk.OutstandingCount==5 && desk.Count("Approved")==3 && desk.Overdue.Summary.TotalRecords==2,"Staff totals mismatch");
-Check(desk.ScheduledMaintenance.TotalCount==3 && desk.OngoingMaintenance.TotalCount==1,"Maintenance states mixed");
-reportFailed=true;desk=service.GetCustodianOverview();Check(desk.Overdue==null && desk.Equipment.TotalEquipment==12 && desk.Pending!=null,"Staff partial failure hid healthy sections");
+var desk=await service.GetCustodianOverviewAsync();
+Check(desk.PendingCount==12 && desk.ApprovedCount==3 && desk.OutstandingCount==5 && desk.PendingRequests.Count==1,"Custodian totals or preview incorrect");
+Check(countCalls==1 && previewCalls==1,"Custodian must read counts and preview once each");
+previewFailed=true;desk=await service.GetCustodianOverviewAsync();
+Check(desk.PendingRequests==null && desk.PendingCount==12,"Preview failure hid healthy counts");
+previewFailed=false;countsFailed=true;
+var previewsBefore=previewCalls;
+try {await service.GetCustodianOverviewAsync();throw new Exception("Count failure was unexpectedly hidden");} catch(InvalidOperationException) { }
+Check(previewCalls==previewsBefore,"Preview started before count query completed");
+countsFailed=false;emptyCounts=true;desk=await service.GetCustodianOverviewAsync();
+Check(desk.PendingCount==0 && desk.ApprovedCount==0 && desk.OutstandingCount==0,"Absent statuses must be genuine zeros");
 var borrowerCalls=0;var adminCalls=0;var staffCalls=0;
-var roleService=Stub<IDashboardService>((name,args)=> {if(name=="GetBorrowerOverviewAsync"){borrowerCalls++;Check((int)args[0]==123,"Controller accepted query identity");return Task.FromResult(borrower);}if(name=="GetAdminOverview"){adminCalls++;return new AdminDashboardViewModel();}staffCalls++;return desk;});
+var roleService=Stub<IDashboardService>((name,args)=> {if(name=="GetBorrowerOverviewAsync"){borrowerCalls++;Check((int)args[0]==123,"Controller accepted query identity");return Task.FromResult(borrower);}if(name=="GetAdminOverview"){adminCalls++;return new AdminDashboardViewModel();}Check(name=="GetCustodianOverviewAsync","Unexpected role service call");staffCalls++;return Task.FromResult(desk);});
 IActionResult Act(string role,string id=null) {
  var claims=new List<Claim>{new(ClaimTypes.Role,role)};if(id!=null)claims.Add(new(ClaimTypes.NameIdentifier,id));
  var context=new DefaultHttpContext{User=new ClaimsPrincipal(new ClaimsIdentity(claims,"checks"))};
@@ -67,5 +85,5 @@ Check(((ViewResult)Act("Borrower","123")).ViewName=="Borrower" && borrowerCalls=
 Check(((ViewResult)Act("Custodian")).ViewName=="Custodian" && staffCalls==1,"Custodian route mismatch");
 Check(((ViewResult)Act("Admin")).ViewName=="Admin" && adminCalls==1 && staffCalls==1,"Admin behavior changed");
 Check(Act("Unknown") is ForbidResult,"Unknown role allowed");
-Console.WriteLine("PASS: async dashboard reads, claim forwarding, reservation mapping/order, returned-item exclusion, due dates, failure propagation, empty results, staff section failures and role routing (fake dependencies; no database).");
+Console.WriteLine("PASS: async dashboard reads, claim forwarding, reservation mapping/order, returned-item exclusion, due dates, failure propagation, empty results, custodian count/preview retrieval, preview failure, count failure propagation and role routing (fake dependencies; no database).");
 public class ReadProxy:DispatchProxy {public Func<string,object[],object> Read {get;set;}protected override object Invoke(MethodInfo method,object[] args)=>Read(method.Name,args);}

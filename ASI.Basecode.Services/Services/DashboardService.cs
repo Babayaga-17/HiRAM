@@ -8,6 +8,7 @@ using ASI.Basecode.Services.ServiceModels.Dashboard;
 using DocumentFormat.OpenXml.VariantTypes;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 namespace ASI.Basecode.Services.Services;
@@ -62,22 +63,42 @@ public class DashboardService : IDashboardService
         };
     }
 
-    public CustodianDashboardViewModel GetCustodianOverview() => new()
+    public async Task<CustodianDashboardViewModel> GetCustodianOverviewAsync()
     {
-        Pending = Read("pending requests", () => _reservationService.GetReservations(ReservationStatuses.Pending)),
-        Approved = Read("approved reservations", () => _reservationService.GetReservations(ReservationStatuses.Approved)),
-        Borrowed = Read("borrowed reservations", () => _reservationService.GetReservations(ReservationStatuses.Borrowed)),
-        Overdue = Read("overdue loans", () => reports.GetBorrowingReport(new BorrowingReportFilter { Status = ReservationStatuses.Overdue }, 1, 4)),
-        Equipment = Read("equipment", () => equipment.GetEquipmentPage(new EquipmentListRequest())),
-        ScheduledMaintenance = Read("scheduled maintenance", () => maintenance.GetPage(null, MaintenanceStatuses.Scheduled, 1)),
-        OngoingMaintenance = Read("ongoing maintenance", () => maintenance.GetPage(null, MaintenanceStatuses.InProgress, 1))
-    };
+        var counts = await _reservationRepository.CountByStatus();
+
+        int? Count(string status)
+        {
+            if (counts == null)
+                return null;
+
+            return counts.TryGetValue(status, out var count) ? count : 0;
+        }
+
+        List<PendingReservationListItem> pendingRequests = null;
+
+        try
+        {
+            pendingRequests = await _reservationService.GetPendingReservationPreviewAsync();
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(exception, "Custodian dashboard pending requests could not be loaded.");
+        }
+
+        return new CustodianDashboardViewModel
+        {
+            PendingCount = Count(ReservationStatuses.Pending),
+            ApprovedCount = Count(ReservationStatuses.Approved),
+            OutstandingCount = Count(ReservationStatuses.Borrowed) + Count(ReservationStatuses.Overdue),
+            PendingRequests = pendingRequests
+        };
+    }
 
     public AdminDashboardViewModel GetAdminOverview() => new()
     {
         Accounts = Read("accounts", () => accounts.GetUserAccounts()),
         Equipment = Read("equipment", () => equipment.GetEquipmentPage(new EquipmentListRequest())),
-        Reservations = Read("reservations", () => _reservationService.GetReservations(ReservationStatuses.Pending)),
         Overdue = Read("overdue loans", () => reports.GetBorrowingReport(new BorrowingReportFilter { Status = ReservationStatuses.Overdue }, 1, 4)),
         Borrowers = Read("borrowers", () => borrowers.GetPage(null, null, 1, 1)),
         ScheduledMaintenance = Read("scheduled maintenance", () => maintenance.GetPage(null, MaintenanceStatuses.Scheduled, 1)),

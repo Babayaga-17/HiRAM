@@ -41,7 +41,8 @@ public class DashboardController : ControllerBase<DashboardController>
 
         if (User.IsInRole("Custodian"))
         {
-            return View("Custodian", await Task.FromResult(_dashboardService.GetCustodianOverview()));
+            var custodianOverview = await _dashboardService.GetCustodianOverviewAsync();
+            return View("Custodian", custodianOverview);
         }
 
         if (User.IsInRole("Admin"))
