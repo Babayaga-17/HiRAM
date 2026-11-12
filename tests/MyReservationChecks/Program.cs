@@ -57,7 +57,7 @@ var controllerService=Stub<IReservationService>((name,args)=> {identityCalls++;C
 ReservationController Controller(string id) {
  var claims=new List<Claim>{new(ClaimTypes.Role,"Borrower")};if(id!=null)claims.Add(new(ClaimTypes.NameIdentifier,id));
  var context=new DefaultHttpContext{User=new(new ClaimsIdentity(claims,"test"))};
- return new ReservationController(new HttpContextAccessor{HttpContext=context},NullLoggerFactory.Instance,new ConfigurationBuilder().Build(),controllerService,null,null){ControllerContext=new(){HttpContext=context}};
+ return new ReservationController(new HttpContextAccessor{HttpContext=context},NullLoggerFactory.Instance,new ConfigurationBuilder().Build(),controllerService,null){ControllerContext=new(){HttpContext=context}};
 }
 Check((await Controller(null).MyReservation()) is ChallengeResult&&(await Controller("-1").MyReservation()) is ChallengeResult&&identityCalls==0,"Invalid claims queried data");
 Check(!((MyReservationPageViewModel)((ViewResult)await Controller("123").MyReservation()).Model).IsAvailable,"Read failure became successful empty");
@@ -68,7 +68,7 @@ var detailsService=Stub<IReservationService>((name,args)=> {
  Check(name=="GetReservationDetails" && args.Length==2 && (int)args[1]==123,"Borrower details must use the ownership-scoped service method");
  return (int)args[0]==1 ? new ReservationViewModel {ReservationId=1,Status="Pending"} : null;
 });
-var detailController=new ReservationController(new HttpContextAccessor{HttpContext=borrowerContext},NullLoggerFactory.Instance,new ConfigurationBuilder().Build(),detailsService,null,null){ControllerContext=new(){HttpContext=borrowerContext}};
+var detailController=new ReservationController(new HttpContextAccessor{HttpContext=borrowerContext},NullLoggerFactory.Instance,new ConfigurationBuilder().Build(),detailsService,null){ControllerContext=new(){HttpContext=borrowerContext}};
 detailController.Url=Stub<IUrlHelper>((name,args)=>name=="IsLocalUrl" && args[0] is string url && url.StartsWith("/") && !url.StartsWith("//"));
 Check(detailController.ReservationDetails(1,"https://outside.example") is ViewResult,"Owned details did not render");
 Check(detailController.ViewData["ReservationReturnUrl"]==null,"External return URL accepted");

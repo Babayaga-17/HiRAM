@@ -27,7 +27,6 @@ public class ReservationController : ControllerBase<ReservationController>
 
     private readonly IReservationService _reservationService;
     private readonly IEquipmentService _equipmentService;
-    private readonly IEquipmentReservationService _equipmentReservationService;
 
     public ReservationController(
         IHttpContextAccessor httpContextAccessor,
@@ -35,15 +34,11 @@ public class ReservationController : ControllerBase<ReservationController>
         IConfiguration configuration,
         IReservationService reservationService,
         IEquipmentService equipmentService,
-        IEquipmentReservationService equipmentReservationService,
         IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
         _reservationService = reservationService;
         _equipmentService = equipmentService;
-        _equipmentReservationService = equipmentReservationService;
     }
-
-
 
     [HttpGet]
     [Authorize(Roles = RoleNames.Borrower)]
@@ -74,8 +69,7 @@ public class ReservationController : ControllerBase<ReservationController>
     [Authorize(Roles = RoleNames.Borrower)]
     public IActionResult Create()
     {
-        var draft = HttpContext.Session.GetString(
-            "ReservationDraft:Create");
+        var draft = HttpContext.Session.GetString("ReservationDraft:Create");
 
         var defaultPickup = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(8))
             .DateTime
@@ -103,26 +97,28 @@ public class ReservationController : ControllerBase<ReservationController>
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
             return Challenge();
 
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid)
         {
-            try
+            LoadEquipment(model);
+            return View(model);
+        }
+            
+        try
+        {
+            var result = _reservationService.Submit(model, borrowerUserId);
+            if (result.Error == null)
             {
-                var result = _reservationService.Submit(model, borrowerUserId);
-                if (result.Error == null)
-                {
-                    HttpContext.Session.Remove(SelectionKey);
-                    HttpContext.Session.Remove("ReservationDraft:Create");
-                    TempData["ReservationNumber"] = result.ReservationNumber;
-                    return RedirectToAction(nameof(Submitted));
-                }
-                ModelState.AddModelError(string.Empty, result.Error);
+                HttpContext.Session.Remove(SelectionKey);
+                HttpContext.Session.Remove("ReservationDraft:Create");
+                TempData["ReservationNumber"] = result.ReservationNumber;
+                return RedirectToAction(nameof(Submitted));
             }
-            catch (Exception)
-            {
-                //_logger.LogError(exception, "Unable to submit equipment reservation for borrower {UserId}.", borrowerUserId);
-                ModelState.AddModelError(string.Empty,
-                    "Your reservation could not be completed. Please try again; availability will be checked again.");
-            }
+            ModelState.AddModelError(string.Empty, result.Error);
+        }
+        catch (Exception)
+        {
+            //_logger.LogError(exception, "Unable to submit equipment reservation for borrower {UserId}.", borrowerUserId);
+            ModelState.AddModelError(string.Empty, "Your reservation could not be completed. Please try again; availability will be checked again.");
         }
 
         LoadEquipment(model);
@@ -135,21 +131,18 @@ public class ReservationController : ControllerBase<ReservationController>
     {
         returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
         ViewData["ReservationReturnUrl"] = returnUrl;
-        if (!int.TryParse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier),
-            out var borrowerUserId))
+
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
             return Challenge();
 
-        var reservation =
-            _reservationService.GetReservationDetails(id, borrowerUserId);
+        var reservation = _reservationService.GetReservationDetails(id, borrowerUserId);
 
         if (reservation == null)
             return NotFound();
 
         if (reservation.Status != ReservationStatuses.Pending)
         {
-            TempData["ReservationError"] =
-                "Only pending reservations can be edited.";
+            TempData["ReservationError"] = "Only pending reservations can be edited.";
 
             return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
         }
@@ -176,9 +169,7 @@ public class ReservationController : ControllerBase<ReservationController>
 
         if (selection == null)
         {
-            HttpContext.Session.SetString(
-                selectionKey,
-                string.Join(",", model.EquipmentIds));
+            HttpContext.Session.SetString(selectionKey, string.Join(",", model.EquipmentIds));
         }
         else
         {
@@ -261,15 +252,12 @@ public class ReservationController : ControllerBase<ReservationController>
     [Authorize(Roles = RoleNames.Borrower)]
     public IActionResult ChangeEquipment(int? id, [Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose,RowVersion")] ReservationEditFormModel model)
     {
-        if (!int.TryParse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier),
-            out var borrowerUserId))
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
             return Challenge();
 
         if (id.HasValue)
         {
-            var reservation = _reservationService
-                .GetReservationDetails(id.Value, borrowerUserId);
+            var reservation = _reservationService.GetReservationDetails(id.Value, borrowerUserId);
 
             if (reservation == null)
                 return NotFound();
@@ -371,7 +359,7 @@ public class ReservationController : ControllerBase<ReservationController>
         {
             try
             {
-                var error = _equipmentReservationService.Cancel(id, model, borrowerUserId);
+                var error = _reservationService.Cancel(id, model, borrowerUserId);
 
                 if (error == null)
                 {
@@ -400,13 +388,11 @@ public class ReservationController : ControllerBase<ReservationController>
     {
         returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
         ViewData["ReservationReturnUrl"] = returnUrl;
-        if (!int.TryParse(
-            User.FindFirstValue(ClaimTypes.NameIdentifier),
-            out var borrowerUserId))
+
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
             return Challenge();
 
-        var reservation =
-            _reservationService.GetReservationDetails(id, borrowerUserId);
+        var reservation = _reservationService.GetReservationDetails(id, borrowerUserId);
 
         if (reservation == null)
             return NotFound();
@@ -448,15 +434,7 @@ public class ReservationController : ControllerBase<ReservationController>
             .ToList();
     }
 
-
-
-
-
-
-
-
-
-
+    #region CUSTODIAN, ADMIN
 
     [HttpGet]
     public IActionResult Index()
@@ -503,7 +481,9 @@ public class ReservationController : ControllerBase<ReservationController>
         }
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
     public IActionResult Approve(int id, string remarks)
     {
         try
@@ -519,7 +499,9 @@ public class ReservationController : ControllerBase<ReservationController>
         return RedirectToAction(nameof(Review), new { id });
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
     public IActionResult Reject(int id, string reason)
     {
         try
@@ -535,7 +517,9 @@ public class ReservationController : ControllerBase<ReservationController>
         return RedirectToAction(nameof(Review), new { id });
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
     public IActionResult Release(ReleaseReservationRequest request)
     {
         var id = request?.ReservationId ?? 0;
@@ -553,6 +537,7 @@ public class ReservationController : ControllerBase<ReservationController>
     }
 
     [HttpGet]
+    [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
     public IActionResult Returns()
     {
         var model = _reservationService.GetReservations(ReservationStatuses.Borrowed);
@@ -560,6 +545,7 @@ public class ReservationController : ControllerBase<ReservationController>
     }
 
     [HttpGet]
+    [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
     public IActionResult Return(int id)
     {
         var reservation = _reservationService.GetReservationDetails(id);
@@ -569,8 +555,7 @@ public class ReservationController : ControllerBase<ReservationController>
 
         if (reservation.Status != ReservationStatuses.Borrowed)
         {
-            TempData["ReservationError"] =
-                "Only borrowed reservations can be processed for return.";
+            TempData["ReservationError"] = "Only borrowed reservations can be processed for return.";
 
             return RedirectToAction(nameof(Returns));
         }
@@ -580,30 +565,22 @@ public class ReservationController : ControllerBase<ReservationController>
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
     public IActionResult Return(ReturnReservationRequest request)
     {
         if (!ModelState.IsValid)
-        {
-            return ShowReturnForm(
-                request,
-                "Check the form. Inspection notes must be 500 characters or fewer.");
-        }
+            return ShowReturnForm(request, "Check the form. Inspection notes must be 500 characters or fewer.");
 
         try
         {
-            var (ok, message) = _reservationService.Return(
-                request,
-                CurrentUserId(),
-                CurrentName());
+            var (ok, message) = _reservationService.Return(request, CurrentUserId(), CurrentName());
 
             if (!ok)
                 return ShowReturnForm(request, message);
 
             TempData["ReservationSuccess"] = message;
 
-            return RedirectToAction(
-                nameof(Review),
-                new { id = request.ReservationId });
+            return RedirectToAction(nameof(Review), new { id = request.ReservationId });
         }
         catch (Exception exception)
         {
@@ -622,24 +599,21 @@ public class ReservationController : ControllerBase<ReservationController>
         }
     }
 
-    private IActionResult ShowReturnForm(
-        ReturnReservationRequest request,
-        string error)
+    #endregion
+
+    private IActionResult ShowReturnForm(ReturnReservationRequest request, string error)
     {
-        var reservation =
-            _reservationService.GetReservationDetails(request.ReservationId);
+        var reservation = _reservationService.GetReservationDetails(request.ReservationId);
 
         if (reservation == null)
             return NotFound();
 
         if (reservation.Status != ReservationStatuses.Borrowed)
         {
-            TempData["ReservationError"] =
+            TempData["ReservationError"] = 
                 "This reservation is no longer awaiting return.";
 
-            return RedirectToAction(
-                nameof(Review),
-                new { id = request.ReservationId });
+            return RedirectToAction(nameof(Review), new { id = request.ReservationId });
         }
 
         ViewData["ReturnError"] = error;

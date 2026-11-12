@@ -26,10 +26,8 @@ public class DashboardService : IDashboardService
     public DashboardService(
                             IReservationRepository reservationRepository,
                             IReservationService reservationService,
-        
                             IUserAccountService accounts, 
                             IBorrowerProfileService borrowers,
-                            IEquipmentReservationRepository borrowerReservations, 
                             IReportService reports, 
                             IEquipmentService equipment, 
                             IMaintenanceService maintenance, 

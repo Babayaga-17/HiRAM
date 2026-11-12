@@ -66,11 +66,8 @@ namespace ASI.Basecode.Services.Services
 
         public (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId)
         {
-            var errors = new List<ValidationResult>();
-            if (!Validator.TryValidateObject(form, new ValidationContext(form), errors, true))
-                return (null, errors.First().ErrorMessage);
-
             var ids = form.EquipmentIds.Distinct().OrderBy(id => id).ToList();
+
             if (ids.Any(id => id <= 0))
                 return (null, "Review your equipment selection.");
 
@@ -118,8 +115,6 @@ namespace ASI.Basecode.Services.Services
         public string Edit(int reservationId, ReservationEditFormModel form, int borrowerUserId)
         {
             var errors = new List<ValidationResult>();
-            if (!Validator.TryValidateObject(form, new ValidationContext(form), errors, true))
-                return errors.First().ErrorMessage;
 
             var version = ReadRowVersion(form.RowVersion);
             if (version == null)
@@ -169,6 +164,37 @@ namespace ASI.Basecode.Services.Services
             }, "This reservation changed while you were editing. Reload it and try again.");
         }
 
+        public string Cancel(int reservationId, ReservationCancelFormModel form, int borrowerUserId)
+        {
+            var errors = new List<ValidationResult>();
+            if (!Validator.TryValidateObject(form, new ValidationContext(form), errors, true))
+                return errors.First().ErrorMessage;
+
+            var version = ReadRowVersion(form.RowVersion);
+            if (version == null)
+                return "Reload the reservation before cancelling.";
+
+            return ExecuteChange(() =>
+            {
+                var reservation = _reservationRepository.GetReservationForUpdate(reservationId, borrowerUserId);
+                if (reservation == null)
+                    return "Reservation not found.";
+                if (reservation.Status != ReservationStatuses.Pending)
+                    return "Only pending reservations can be cancelled.";
+                if (!reservation.RowVersion.SequenceEqual(version))
+                    return "This reservation has changed. Reload it before cancelling.";
+
+                var now = PhilippineTimeNow();
+                reservation.Status = ReservationStatuses.Cancelled;
+                reservation.CancelledAt = now;
+                reservation.CancellationReason = string.IsNullOrWhiteSpace(form.Reason) ? null : form.Reason.Trim();
+                reservation.UpdatedBy = borrowerUserId.ToString();
+                reservation.UpdatedAt = now;
+                _notifications.ReservationChanged(reservation, NotificationEvents.ReservationCancelled);
+                return null;
+            }, "This reservation changed while you were cancelling. Reload it and try again.");
+        }
+
         private static byte[] ReadRowVersion(string value)
         {
             if (string.IsNullOrWhiteSpace(value)) return null;
@@ -180,18 +206,6 @@ namespace ASI.Basecode.Services.Services
             catch (FormatException)
             {
                 return null;
-            }
-        }
-
-        public string ExecuteChange(Func<string> operation, string concurrencyMessage)
-        {
-            try
-            {
-                return _reservationRepository.ExecuteInTransaction(operation);
-            }
-            catch (ReservationConcurrencyException)
-            {
-                return concurrencyMessage;
             }
         }
 
@@ -248,74 +262,16 @@ namespace ASI.Basecode.Services.Services
             };
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        // ---------------------------------------------------------------- existing (pending only)
-
-        public List<PendingReservationListItem> GetPendingReservations()
+        private string ExecuteChange(Func<string> operation, string concurrencyMessage)
         {
-            return _reservationRepository.GetPendingReservations()
-                .ToList()
-                .Select(ToListItem)
-                .ToList();
-        }
-
-        public PendingReservationDetailsViewModel GetPendingReservationById(int reservationId)
-        {
-            var reservation = _reservationRepository.GetPendingReservationById(reservationId);
-            if (reservation == null)
-                return null;
-
-            var listItem = ToListItem(reservation);
-            var borrower = reservation.BorrowerUser;
-            var user = borrower?.User;
-
-            return new PendingReservationDetailsViewModel
+            try
             {
-                ReservationId = listItem.ReservationId,
-                ReservationNumber = listItem.ReservationNumber,
-                BorrowerName = listItem.BorrowerName,
-                BorrowerUserCode = listItem.BorrowerUserCode,
-                DepartmentName = listItem.DepartmentName,
-                EligibilityStatus = listItem.EligibilityStatus,
-                Purpose = listItem.Purpose,
-                RequestedAt = listItem.RequestedAt,
-                StartDateTime = listItem.StartDateTime,
-                ExpectedReturnDateTime = listItem.ExpectedReturnDateTime,
-                ItemCount = listItem.ItemCount,
-                EquipmentSummary = listItem.EquipmentSummary,
-                Status = listItem.Status,
-                ContactNumber = user?.ContactNumber,
-                Program = borrower?.Program,
-                YearLevel = borrower?.YearLevel,
-                Items = reservation.ReservationItems
-                    .OrderBy(item => item.Equipment?.EquipmentName)
-                    .Select(item => new PendingReservationItemViewModel
-                    {
-                        EquipmentName = item.Equipment?.EquipmentName ?? "Unknown equipment",
-                        EquipmentCode = item.Equipment?.EquipmentCode,
-                        ConditionStatus = item.Equipment?.ConditionStatus,
-                        StorageLocation = item.Equipment?.StorageLocation
-                    })
-                    .ToList()
-            };
-        }
-
-        public int CountPendingReservations()
-        {
-            return _reservationRepository.CountPendingReservations();
+                return _reservationRepository.ExecuteInTransaction(operation);
+            }
+            catch (ReservationConcurrencyException)
+            {
+                return concurrencyMessage;
+            }
         }
 
         // ---------------------------------------------------------------- tabs + details (any status)
@@ -539,8 +495,7 @@ namespace ASI.Basecode.Services.Services
             if (request == null)
                 return (false, "The return form was empty.");
 
-            var reservation =
-                _reservationRepository.GetReservationForUpdate(request.ReservationId);
+            var reservation = _reservationRepository.GetReservationForUpdate(request.ReservationId);
 
             if (reservation == null)
                 return (false, "Reservation not found.");

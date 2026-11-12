@@ -109,10 +109,10 @@ try
     var details = reservationService.GetReservationDetails(editableId, userId);
     Check(details.Equipment.Count == 2 && details.ReservationNumber == editable.ReservationNumber,
         "Details map equipment and reservation fields from repository");
-    Check(CancellationService(db).GetPendingReservations(userId).Any(r => r.ReservationId == editableId),
+    Check(await HasPendingReservation(db, userId, editableId),
         "Pending list includes borrower's request");
     Check(reservationService.GetReservationDetails(editableId, userId + 10000) == null
-        && CancellationService(db).GetPendingReservations(userId + 10000).Count == 0,
+        && (await reservationService.GetBorrowerReservationsAsync(userId + 10000, "Pending", 1, 5)).FilteredCount == 0,
         "Reads do not expose another borrower's reservations");
 
     var originalVersion = Convert.ToBase64String(details.RowVersion);
@@ -146,19 +146,19 @@ try
     Check(unchanged.StartDateTime == editStart && unchanged.Equipment.Count == 1,
         "Rejected edit leaves stored schedule and equipment unchanged");
 
-    Check(CancellationService(db).Cancel(editableId, new ReservationCancelFormModel
+    Check(reservationService.Cancel(editableId, new ReservationCancelFormModel
         { RowVersion = currentVersion }, userId + 10000) != null,
         "Another borrower cannot cancel the reservation");
-    Check(CancellationService(db).Cancel(editableId, new ReservationCancelFormModel
+    Check(reservationService.Cancel(editableId, new ReservationCancelFormModel
         { RowVersion = originalVersion }, userId) != null,
         "Stale cancellation version is rejected");
-    Check(CancellationService(db).Cancel(editableId, new ReservationCancelFormModel
+    Check(reservationService.Cancel(editableId, new ReservationCancelFormModel
         { RowVersion = currentVersion, Reason = "Activity postponed" }, userId) == null,
         "Pending cancellation saves through repository");
     var cancelled = reservationService.GetReservationDetails(editableId, userId);
     Check(cancelled.Status == ReservationStatuses.Cancelled && cancelled.CancelledAt.HasValue
         && cancelled.CancellationReason == "Activity postponed"
-        && !CancellationService(db).GetPendingReservations(userId).Any(r => r.ReservationId == editableId),
+        && !(await HasPendingReservation(db, userId, editableId)),
         "Cancelled record remains in details and leaves the pending list");
     Check(Submit(Form(editStart, editStart.AddHours(3), second.EquipmentId)).Error == null,
         "Cancellation releases the equipment's reserved period");
@@ -195,13 +195,15 @@ ReservationService Service(HiramDbContext context)
         new NotificationService(new NotificationRepository(unit)),
         new EquipmentService(new EquipmentRepository(unit), null));
 }
-EquipmentReservationService CancellationService(HiramDbContext context)
+async Task<bool> HasPendingReservation(HiramDbContext context, int borrowerId, int reservationId)
 {
-    var unit = new UnitOfWork(context);
-    return new EquipmentReservationService(new EquipmentReservationRepository(unit),
-        new ReservationRepository(unit), Service(context),
-        new EquipmentService(new EquipmentRepository(unit), null),
-        new NotificationService(new NotificationRepository(unit)));
+    var service = Service(context);
+    for (var pageNumber = 1; ; pageNumber++)
+    {
+        var page = await service.GetBorrowerReservationsAsync(borrowerId, "Pending", pageNumber, 20);
+        if (page.Items.Any(item => item.ReservationId == reservationId)) return true;
+        if (pageNumber >= page.TotalPages) return false;
+    }
 }
 
 sealed class TestDb(DbContextOptions<HiramDbContext> options) : HiramDbContext(options)

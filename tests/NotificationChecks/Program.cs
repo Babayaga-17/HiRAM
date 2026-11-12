@@ -53,7 +53,6 @@ try
     db.Add(equipment); db.SaveChanges();
     var equipmentService = new EquipmentService(new EquipmentRepository(unit), null);
     var submissions = new ReservationService(new ReservationRepository(unit), notifications, equipmentService);
-    var cancellations = new EquipmentReservationService(new EquipmentReservationRepository(unit), new ReservationRepository(unit), submissions, equipmentService, notifications);
     ReservationFormModel Request(int day) => new() { EquipmentIds = new() { equipment.EquipmentId }, Purpose = "Class presentation",
         Pickup = DateTime.Today.AddDays(day).AddHours(10), ExpectedReturn = DateTime.Today.AddDays(day).AddHours(12) };
     var submitted = submissions.Submit(Request(7), borrower.UserId);
@@ -70,7 +69,7 @@ try
     Check(db.Notifications.Any(n => n.EventType == NotificationEvents.ReservationRejected && n.Body.Contains("examination")), "Rejection reason included");
     var cancelledNumber = submissions.Submit(Request(9), borrower.UserId).ReservationNumber;
     var cancelled = db.Reservations.Single(r => r.ReservationNumber == cancelledNumber);
-    Check(cancellations.Cancel(cancelled.ReservationId, new ReservationCancelFormModel { RowVersion = Convert.ToBase64String(cancelled.RowVersion), Reason = "Schedule changed" }, borrower.UserId) == null, "Cancellation succeeds");
+    Check(submissions.Cancel(cancelled.ReservationId, new ReservationCancelFormModel { RowVersion = Convert.ToBase64String(cancelled.RowVersion), Reason = "Schedule changed" }, borrower.UserId) == null, "Cancellation succeeds");
     Check(db.Notifications.Any(n => n.EventType == NotificationEvents.ReservationCancelled && n.RecipientUserId == custodian.UserId), "Cancellation notifies custodian");
 
     var menu = await notifications.GetMenuAsync(borrower.UserId, token);

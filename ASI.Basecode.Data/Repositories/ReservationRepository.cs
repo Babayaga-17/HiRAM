@@ -81,6 +81,10 @@ namespace ASI.Basecode.Data.Repositories
                 .ToListAsync();
         }
 
+
+
+
+
         public BorrowerProfile GetBorrowerProfile(int borrowerUserId)
         {
             return GetDbSet<BorrowerProfile>().AsNoTracking()

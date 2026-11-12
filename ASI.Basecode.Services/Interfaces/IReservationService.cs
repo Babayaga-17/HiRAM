@@ -10,17 +10,14 @@ namespace ASI.Basecode.Services.Interfaces
     public interface IReservationService
     {
         (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId);
-        public string ExecuteChange(Func<string> operation, string concurrencyMessage);
+        //public string ExecuteChange(Func<string> operation, string concurrencyMessage);
         public ReservationViewModel GetReservationDetails(int reservationId, int borrowerUserId);
         string Edit(int reservationId, ReservationEditFormModel form, int borrowerUserId);
-
-
-
-
+        string Cancel(int reservationId, ReservationCancelFormModel form, int borrowerUserId);
         Task<MyReservationPageViewModel> GetBorrowerReservationsAsync(int borrowerUserId, string status, int page, int pageSize);
-        List<PendingReservationListItem> GetPendingReservations();
-        PendingReservationDetailsViewModel GetPendingReservationById(int reservationId);
-        int CountPendingReservations();
+
+
+
         ReservationListViewModel GetReservations(string status);
         ReservationDetailsViewModel GetReservationDetails(int reservationId);
         (bool ok, string message) Approve(int reservationId, int? actorUserId, string actorName, string remarks);
