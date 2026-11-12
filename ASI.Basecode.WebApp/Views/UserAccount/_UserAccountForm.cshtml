@@ -3,7 +3,10 @@
 @model UserAccountFormViewModel
 @{
     var roles = ViewData["Roles"] as List<RoleListItem> ?? new List<RoleListItem>();
+    var departments = ViewData["Departments"] as List<DepartmentOption> ?? new List<DepartmentOption>();
     var isSelf = ViewData["IsSelf"] as bool? == true;
+    var borrowerRoleId = roles.FirstOrDefault(role => role.RoleName == RoleNames.Borrower)?.RoleId;
+    var showBorrower = borrowerRoleId.HasValue && Model.RoleId == borrowerRoleId;
 }
 <form class="category-form" id="userAccountForm" asp-controller="UserAccount" asp-action="@(Model.IsEdit ? "Edit" : "Create")" method="post" novalidate>
     <div asp-validation-summary="ModelOnly"></div>
@@ -82,7 +85,7 @@
                     <option value="">Select a role</option>
                     @foreach (var role in roles)
                     {
-                        <option value="@role.RoleId">@(role.IsActive ? role.RoleName : role.RoleName + " (inactive)")</option>
+                        <option value="@role.RoleId">@(role.IsActive? role.RoleName: role.RoleName + " (inactive)")</option>
                     }
                 </select>
                 <small>Controls which menus and functions the user can open.</small>
@@ -188,10 +191,102 @@
         }
     </div>
 
+    <div id="borrowerDetails" class="borrower-details" data-borrower-role-id="@borrowerRoleId" style="display:@(showBorrower ? "block" : "none");">
+        <div class="form-divider"></div>
+
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-user" /></svg></span>
+            <div><h2>Borrower details</h2><p>Required when the role is Borrower.</p></div>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="DepartmentId">Department <span class="required">*</span></label>
+                <select asp-for="DepartmentId">
+                    <option value="">Select a department</option>
+                    @foreach (var department in departments)
+                    {
+                        <option value="@department.DepartmentId">@department.DepartmentName</option>
+                    }
+                </select>
+                <span asp-validation-for="DepartmentId"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="Program">Program <span class="required">*</span></label>
+                <input asp-for="Program" type="text" maxlength="150" placeholder="e.g. BSCS" />
+                <span asp-validation-for="Program"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="YearLevel">Year level <span class="required">*</span></label>
+                <select asp-for="YearLevel">
+                    <option value="">Select a year level</option>
+                    @for (var level = 1; level <= 5; level++)
+                    {
+                        <option value="@level">Year @level</option>
+                    }
+                </select>
+                <span asp-validation-for="YearLevel"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="EligibilityStatus">Eligibility <span class="required">*</span></label>
+                @if (Model.EligibilityLocked)
+                {
+                    <select asp-for="EligibilityStatus" disabled>
+                        <option value="@Model.EligibilityStatus">@Model.EligibilityStatus</option>
+                    </select>
+                    <small>Eligibility is managed by registration review or suspension.</small>
+                }
+                else
+                {
+                    <select asp-for="EligibilityStatus">
+                        @foreach (var status in UserAccountFormViewModel.EligibilityOptions)
+                        {
+                            <option value="@status">@status</option>
+                        }
+                    </select>
+                }
+                <span asp-validation-for="EligibilityStatus"></span>
+            </div>
+
+            <div class="form-group">
+                <label for="BorrowerType">Borrower type <span class="required">*</span></label>
+                <select asp-for="BorrowerType">
+                    <option value="">Select a type</option>
+                    @foreach (var type in UserAccountFormViewModel.BorrowerTypeOptions)
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </select>
+                <span asp-validation-for="BorrowerType"></span>
+            </div>
+        </div>
+    </div>
+
     <div class="form-actions">
-        <a class="button button-secondary" asp-controller="UserAccount" asp-action="@(Model.IsEdit ? "Details" : "Index")" asp-route-id="@(Model.IsEdit ? Model.UserId.ToString() : null)">Cancel</a>
+        <a class="button button-secondary" asp-controller="UserAccount" asp-action="@(Model.IsEdit ? "Details" : "Index")" asp-route-id="@(Model.IsEdit? Model.UserId.ToString() : null)">Cancel</a>
         <button class="button button-primary" type="submit" id="userAccountSubmit">
             <svg class="icon"><use href="#i-check" /></svg>@(Model.IsEdit ? "Save changes" : "Create user")
         </button>
     </div>
 </form>
+
+<script>
+    (function () {
+        var roleSelect = document.getElementById("RoleId");
+        var details = document.getElementById("borrowerDetails");
+        if (!roleSelect || !details) { return; }
+
+        var borrowerRoleId = details.getAttribute("data-borrower-role-id");
+
+        function refreshBorrowerDetails() {
+            var isBorrower = !!borrowerRoleId && roleSelect.value === borrowerRoleId;
+            details.style.display = isBorrower ? "block" : "none";
+        }
+
+        roleSelect.addEventListener("change", refreshBorrowerDetails);
+        refreshBorrowerDetails();
+    })();
+</script>

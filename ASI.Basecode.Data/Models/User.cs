@@ -19,8 +19,6 @@ public partial class User
 
     public string ContactNumber { get; set; }
 
-    public string ProfilePhotoStoragePath { get; set; }
-
     public string CreatedBy { get; set; }
 
     public DateTime CreatedAt { get; set; }
@@ -28,6 +26,8 @@ public partial class User
     public string UpdatedBy { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+    public string ProfilePhotoStoragePath { get; set; }
 
     public virtual Account Account { get; set; }
 
