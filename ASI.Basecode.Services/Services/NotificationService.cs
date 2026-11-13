@@ -94,9 +94,17 @@ public class NotificationService : INotificationService
 
     public async Task<NotificationMenuViewModel> GetMenuAsync(int userId, CancellationToken token)
     {
-        var unread = await _notifications.CountAsync(userId, null, false, token);
-        var rows = await _notifications.GetPageAsync(userId, null, null, 0, 5, token);
-        return new NotificationMenuViewModel { IsAvailable = true, UnreadCount = unread, Items = rows.Select(Item).ToList() };
+        try
+        {
+            var unread = await _notifications.CountAsync(userId, null, false, token);
+            var rows = await _notifications.GetPageAsync(userId, null, null, 0, 5, token);
+            return new NotificationMenuViewModel { IsAvailable = true, UnreadCount = unread, Items = rows.Select(Item).ToList() };
+        } 
+        catch (Exception exception)
+        {
+            return null;
+        }
+        
     }
 
     public async Task<NotificationDetailsViewModel> GetDetailsAsync(int userId, long id, CancellationToken token)

@@ -20,6 +20,8 @@ namespace ASI.Basecode.Services.Interfaces
         Task<(bool Found, bool EmailQueued)> ApproveRegistrationAsync(int userId, string version, string updatedBy);
         string ResetUserAccountAccess(int userId, int currentUserId, string updatedBy, string ipAddress);
 
+        Task<Dictionary<string, int>> CountAccountsByStatusAsync();
+        Task<List<UserAccountListItem>> GetPendingRegistrationPreviewAsync();
         List<DepartmentOption> GetActiveDepartments();
         void FillBorrowerProfile(UserAccountFormViewModel model);
     }

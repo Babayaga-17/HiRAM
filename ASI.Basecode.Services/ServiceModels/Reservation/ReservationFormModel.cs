@@ -21,7 +21,7 @@ public class ReservationFormModel : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
+        var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,  
             TimeZoneInfo.FindSystemTimeZoneById("Asia/Manila"));
         if (Pickup.HasValue && Pickup.Value < now)
             yield return new ValidationResult("Pickup must be in the future.", new[] { nameof(Pickup) });

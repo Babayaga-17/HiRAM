@@ -102,7 +102,7 @@ else
                 </p>
 
                 <a class="button button-primary"
-                   asp-controller="EquipmentReservation"
+                   asp-controller="Reservation"
                    asp-action="@(reservationId.HasValue ? "Edit" : "Create")"
                    asp-route-id="@reservationId">
                     Continue to reservation
@@ -164,7 +164,9 @@ else
                     <div class="equipment-card-actions">
                         <a class="button button-secondary view-equipment"
                            asp-controller="BrowseEquipment" asp-action="Details"
-                           asp-route-id="@item.EquipmentId" asp-route-reservationId="@reservationId">View details</a>
+                           asp-route-id="@item.EquipmentId" asp-route-reservationId="@reservationId">
+                            View details
+                        </a>
                         <button type="button" class="button button-primary select-equipment">Select</button>
                     </div>
                 </article>
@@ -184,8 +186,6 @@ else
             <span></span>
             <nav class="pager" id="pager" aria-label="Pagination"></nav>
         </div>
-
-
     </div>
 }
 

@@ -18,7 +18,8 @@ namespace ASI.Basecode.Data.Interfaces
         int CountActiveAccountsByRole(byte roleId, int? excludeUserId = null);
         void UpdateAccount(Account account);
         bool UpdateRegistration(int userId, Action<Account> applyChanges);
-
         Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc);
+        Task<Dictionary<string, int>> CountAccountsByStatusAsync();
+        Task<List<Account>> GetPendingRegistrationPreviewAsync();
     }
 }

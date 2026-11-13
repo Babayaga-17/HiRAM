@@ -7,6 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Views\EquipmentReservation\**" />
+    <Content Remove="Views\EquipmentReservation\**" />
+    <EmbeddedResource Remove="Views\EquipmentReservation\**" />
+    <None Remove="Views\EquipmentReservation\**" />
+    <TypeScriptCompile Remove="Views\EquipmentReservation\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="appsettings.json.rej" />
   </ItemGroup>
 
@@ -40,6 +48,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Views\BrowseEquipment\" />
     <Folder Include="Views\EquipmentCategory\" />
     <Folder Include="wwwroot\img\" />
   </ItemGroup>

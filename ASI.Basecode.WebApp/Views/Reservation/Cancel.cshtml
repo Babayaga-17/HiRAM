@@ -30,10 +30,12 @@
         equipment. You will need a new reservation if you change your mind.
     </p>
 
-    <form asp-controller="EquipmentReservation"
+    <form asp-controller="Reservation"
           asp-action="Cancel"
           asp-route-id="@reservation.ReservationId"
+               asp-route-returnUrl="@ViewData["ReservationReturnUrl"]"
           method="post">
+        <input type="hidden" name="returnUrl" value="@ViewData["ReservationReturnUrl"]" />
 
         <input asp-for="RowVersion" type="hidden" />
 
@@ -52,7 +54,9 @@
 
         <div class="form-actions">
             <a class="button button-secondary"
-               asp-action="Details"
+               asp-controller="Reservation"
+               asp-action="ReservationDetails"
+               asp-route-returnUrl="@ViewData["ReservationReturnUrl"]"
                asp-route-id="@reservation.ReservationId">
                 Keep reservation
             </a>

@@ -109,10 +109,10 @@ try
     var details = reservationService.GetReservationDetails(editableId, userId);
     Check(details.Equipment.Count == 2 && details.ReservationNumber == editable.ReservationNumber,
         "Details map equipment and reservation fields from repository");
-    Check(reservationService.GetPendingReservations(userId).Any(r => r.ReservationId == editableId),
+    Check(await HasPendingReservation(db, userId, editableId),
         "Pending list includes borrower's request");
     Check(reservationService.GetReservationDetails(editableId, userId + 10000) == null
-        && reservationService.GetPendingReservations(userId + 10000).Count == 0,
+        && (await reservationService.GetBorrowerReservationsAsync(userId + 10000, "Pending", 1, 5)).FilteredCount == 0,
         "Reads do not expose another borrower's reservations");
 
     var originalVersion = Convert.ToBase64String(details.RowVersion);
@@ -158,7 +158,7 @@ try
     var cancelled = reservationService.GetReservationDetails(editableId, userId);
     Check(cancelled.Status == ReservationStatuses.Cancelled && cancelled.CancelledAt.HasValue
         && cancelled.CancellationReason == "Activity postponed"
-        && !reservationService.GetPendingReservations(userId).Any(r => r.ReservationId == editableId),
+        && !(await HasPendingReservation(db, userId, editableId)),
         "Cancelled record remains in details and leaves the pending list");
     Check(Submit(Form(editStart, editStart.AddHours(3), second.EquipmentId)).Error == null,
         "Cancellation releases the equipment's reserved period");
@@ -188,8 +188,23 @@ finally
 TestDb Open() => new(new DbContextOptionsBuilder<HiramDbContext>().UseSqlServer(connection).Options);
 Equipment NewEquipment(string code) => new() { EquipmentCode = code, EquipmentName = "Test " + code,
     ConditionStatus = EquipmentConditions.Good, IsActive = true, CreatedBy = "test" };
-EquipmentReservationService Service(HiramDbContext context) => new(new EquipmentReservationRepository(new UnitOfWork(context)),
-    new EquipmentService(new EquipmentRepository(new UnitOfWork(context)), null), new NotificationService(new NotificationRepository(new UnitOfWork(context))));
+ReservationService Service(HiramDbContext context)
+{
+    var unit = new UnitOfWork(context);
+    return new ReservationService(new ReservationRepository(unit),
+        new NotificationService(new NotificationRepository(unit)),
+        new EquipmentService(new EquipmentRepository(unit), null));
+}
+async Task<bool> HasPendingReservation(HiramDbContext context, int borrowerId, int reservationId)
+{
+    var service = Service(context);
+    for (var pageNumber = 1; ; pageNumber++)
+    {
+        var page = await service.GetBorrowerReservationsAsync(borrowerId, "Pending", pageNumber, 20);
+        if (page.Items.Any(item => item.ReservationId == reservationId)) return true;
+        if (pageNumber >= page.TotalPages) return false;
+    }
+}
 
 sealed class TestDb(DbContextOptions<HiramDbContext> options) : HiramDbContext(options)
 {

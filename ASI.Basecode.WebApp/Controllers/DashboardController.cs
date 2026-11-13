@@ -1,56 +1,76 @@
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.WebApp.Mvc;
+using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
 [Authorize(Roles = $"{RoleNames.Borrower}, {RoleNames.Custodian}, {RoleNames.Admin}")]
-public class DashboardController : Controller
+public class DashboardController : ControllerBase<DashboardController>
 {
-    private readonly IReservationService _reservationService;
+    private readonly IDashboardService _dashboardService;
 
-    public DashboardController(IReservationService reservationService)
+    public DashboardController(IHttpContextAccessor httpContextAccessor,
+                                ILoggerFactory loggerFactory,
+                                IConfiguration configuration,
+                                IDashboardService dashboardService,
+                                IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
-        _reservationService = reservationService;
+        _dashboardService = dashboardService;
     }
 
-    public IActionResult Index()
+    [HttpGet]
+    public async Task<IActionResult> Index()
     {
-        if (User.IsInRole("Borrower"))
-            return View("Borrower");
+        string viewName = null;
 
-        if (User.IsInRole("Custodian"))
+        try
         {
-            List<PendingReservationListItem> pending;
-            try
+            if (User.IsInRole(RoleNames.Borrower))
             {
-                pending = _reservationService.GetPendingReservations();
-            }
-            catch
-            {
-                pending = new List<PendingReservationListItem>();
+                viewName = RoleNames.Borrower;
+                if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
+                    return Challenge();
+                var model = await _dashboardService.GetBorrowerOverviewAsync(borrowerUserId);
+
+                return View(viewName, model);
             }
 
-            return View("Custodian", pending);
+            if (User.IsInRole(RoleNames.Custodian))
+            {
+                viewName = RoleNames.Custodian;
+                var model = await _dashboardService.GetCustodianOverviewAsync();
+
+                return View(viewName, model);
+            }
+
+            if (User.IsInRole(RoleNames.Admin))
+            {
+                viewName = RoleNames.Admin;
+                var model = await _dashboardService.GetAdminOverviewAsync();
+
+                return View(viewName, model);
+            }
+
+            return Forbid();
         }
-
-        if (User.IsInRole("Admin"))
+        catch (Exception exception)
         {
-            try
-            {
-                ViewBag.PendingCount = _reservationService.CountPendingReservations();
-            }
-            catch
-            {
-                ViewBag.PendingCount = null;
-            }
+            _logger.LogError(
+                exception, "Unable to load the {Dashboard} dashboard.", viewName);
 
-            return View("Admin");
+            ViewData["DashboardError"] = "Your dashboard could not be loaded. Refresh to try again.";
+
+            return View(viewName);
         }
-
-        return Forbid();
     }
 }

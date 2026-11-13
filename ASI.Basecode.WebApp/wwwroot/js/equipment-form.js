@@ -18,8 +18,7 @@
     const photos = [];
 
     function countSavedPhotos() {
-        return picker.parentElement
-            .querySelectorAll("[data-saved-photo]:not([data-pending-removal])").length;
+        return picker.parentElement.querySelectorAll("[data-saved-photo]:not([data-pending-removal])").length;
     }
 
     picker.parentElement.querySelectorAll("[data-toggle-saved-photo]").forEach((button, index) => {
