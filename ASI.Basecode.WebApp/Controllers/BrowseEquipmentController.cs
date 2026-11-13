@@ -65,7 +65,10 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
                 .Select(item => item.EquipmentId)
                 .ToList();
 
-            var selected = GetSelectedIds(reservationId).Where(selectableIds.Contains).ToList();
+            var selected = GetSelectedIds(reservationId)
+                .Where(selectableIds.Contains)
+                .Take(ReservationPolicy.MaxEquipmentPerReservation)
+                .ToList();
             SaveSelectedIds(selected, reservationId);
             ViewBag.SelectedIds = selected;
 
@@ -224,6 +227,9 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
                 return BadRequest(new { message = "Equipment in " + equipment.ConditionStatus + " condition cannot be selected." });
 
             var selected = GetSelectedIds(reservationId);
+
+            if (!selected.Contains(id) && selected.Count >= ReservationPolicy.MaxEquipmentPerReservation)
+                return BadRequest(new { message = $"You can select up to {ReservationPolicy.MaxEquipmentPerReservation} equipment items per reservation." });
 
             if (!selected.Contains(id))
             {

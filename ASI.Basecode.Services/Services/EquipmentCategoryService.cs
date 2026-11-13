@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Data.Exceptions;
+using ASI.Basecode.Data.Exceptions;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Services.Exceptions;
@@ -7,6 +7,7 @@ using ASI.Basecode.Services.ServiceModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using ErrorMessages = ASI.Basecode.Resources.Messages.Errors;
 
 namespace ASI.Basecode.Services.Services
@@ -14,6 +15,17 @@ namespace ASI.Basecode.Services.Services
     public class EquipmentCategoryService : IEquipmentCategoryService
     {
         private readonly IEquipmentCategoryRepository _equipmentCategoryRepository;
+
+        // One shared mapping used by every list/detail query. It is an Expression so EF Core still translates it to SQL.
+        private static readonly Expression<Func<EquipmentCategory, EquipmentCategoryListItem>> ToListItem = category => new EquipmentCategoryListItem
+        {
+            CategoryId = category.CategoryId,
+            CategoryCode = category.CategoryCode,
+            CategoryName = category.CategoryName,
+            Description = category.Description ?? string.Empty,
+            EquipmentCount = category.Equipment.Count,
+            IsActive = category.IsActive
+        };
 
         public EquipmentCategoryService(IEquipmentCategoryRepository equipmentCategoryRepository)
         {
@@ -31,7 +43,7 @@ namespace ASI.Basecode.Services.Services
             {
                 CategoryCode = model.CategoryCode,
                 CategoryName = model.CategoryName,
-                Description = model.Description ?? null,
+                Description = model.Description,
                 IsActive = model.IsActive,
                 CreatedBy = createdBy
             };
@@ -90,10 +102,7 @@ namespace ASI.Basecode.Services.Services
 
             ValidateCategoryDeletion(equipmentCategory);
 
-            if (_equipmentCategoryRepository.DeleteEquipmentCategory(categoryId))
-                return true;
-
-            return false;
+            return _equipmentCategoryRepository.DeleteEquipmentCategory(categoryId);
         }
 
         private static void ValidateCategoryDeletion(EquipmentCategoryListItem equipmentCategory)
@@ -117,30 +126,14 @@ namespace ASI.Basecode.Services.Services
 
         public List<EquipmentCategoryListItem> GetEquipmentCategories()
         {
-            return _equipmentCategoryRepository.GetEquipmentCategories().Select(equipmentCategory => new EquipmentCategoryListItem
-            {
-                CategoryId = equipmentCategory.CategoryId,
-                CategoryCode = equipmentCategory.CategoryCode,
-                CategoryName = equipmentCategory.CategoryName,
-                Description = equipmentCategory.Description ?? string.Empty,
-                EquipmentCount = equipmentCategory.Equipment.Count,
-                IsActive = equipmentCategory.IsActive
-            }).ToList();
+            return _equipmentCategoryRepository.GetEquipmentCategories().Select(ToListItem).ToList();
         }
 
         public EquipmentCategoryListItem GetEquipmentCategoryById(int id)
         {
             return _equipmentCategoryRepository.GetEquipmentCategories()
                 .Where(equipmentCategory => equipmentCategory.CategoryId == id)
-                .Select(equipmentCategory => new EquipmentCategoryListItem
-                {
-                    CategoryId = equipmentCategory.CategoryId,
-                    CategoryCode = equipmentCategory.CategoryCode,
-                    CategoryName = equipmentCategory.CategoryName,
-                    Description = equipmentCategory.Description ?? string.Empty,
-                    EquipmentCount = equipmentCategory.Equipment.Count,
-                    IsActive = equipmentCategory.IsActive
-                })
+                .Select(ToListItem)
                 .SingleOrDefault();
         }
 
@@ -202,15 +195,7 @@ namespace ASI.Basecode.Services.Services
                 .ThenBy(category => category.CategoryId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(category => new EquipmentCategoryListItem
-                {
-                    CategoryId = category.CategoryId,
-                    CategoryName = category.CategoryName,
-                    CategoryCode = category.CategoryCode,
-                    Description = category.Description ?? string.Empty,
-                    EquipmentCount = category.Equipment.Count,
-                    IsActive = category.IsActive
-                })
+                .Select(ToListItem)
                 .ToList();
 
             return new EquipmentCategoryIndexViewModel

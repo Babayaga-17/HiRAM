@@ -28,6 +28,7 @@ public class MaintenanceService : IMaintenanceService
         model.Records = query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.MaintenanceId).Skip((model.Page - 1) * 20).Take(20).ToList();
         return model;
     }
+    private static readonly string TooFarMessage = $"Expected completion cannot be more than {MaintenanceForm.MaxMaintenanceDays} days from now.";
     public MaintenanceRecord GetDetails(int id) => repository.Records().FirstOrDefault(r => r.MaintenanceId == id);
     public async Task<(int Id, bool EmailSent)> ScheduleAsync(MaintenanceForm form, int userId)
     {
@@ -62,6 +63,7 @@ public class MaintenanceService : IMaintenanceService
             {
                 if (record.StartDateTime > now) throw new ValidationException("Maintenance cannot begin before its scheduled start.");
                 if (!form.ExpectedCompletionDateTime.HasValue || form.ExpectedCompletionDateTime <= now) throw new ValidationException("Provide an expected completion after the current time.");
+                if (form.ExpectedCompletionDateTime > now.AddDays(MaintenanceForm.MaxMaintenanceDays)) throw new ValidationException(TooFarMessage);
                 if (repository.HasReservationConflict(record.EquipmentId, record.StartDateTime)) throw new ValidationException("Resolve conflicting reservations before proceeding.");
                 record.ExpectedCompletionDateTime = form.ExpectedCompletionDateTime;
                 record.Status = MaintenanceStatuses.InProgress;
@@ -69,6 +71,7 @@ public class MaintenanceService : IMaintenanceService
             else if (form.Operation == "estimate" && record.Status == MaintenanceStatuses.InProgress)
             {
                 if (!form.ExpectedCompletionDateTime.HasValue || form.ExpectedCompletionDateTime <= now) throw new ValidationException("Provide a future expected completion.");
+                if (form.ExpectedCompletionDateTime > now.AddDays(MaintenanceForm.MaxMaintenanceDays)) throw new ValidationException(TooFarMessage);
                 record.ExpectedCompletionDateTime = form.ExpectedCompletionDateTime;
             }
             else if (form.Operation == "complete" && record.Status == MaintenanceStatuses.InProgress)
