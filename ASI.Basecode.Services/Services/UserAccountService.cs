@@ -397,9 +397,8 @@ namespace ASI.Basecode.Services.Services
         /// <summary>
         /// Approves the pending account and borrower eligibility in a repository-owned transaction.
         /// </summary>
-        public Task<(bool Found, bool EmailQueued)> ApproveRegistrationAsync(int userId, string version, string updatedBy)
-        {
-            var queued = false;
+        public Task<bool> ApproveRegistrationAsync(int userId, string version, string updatedBy)
+        {   
             var found = _accountRepository.UpdateRegistration(userId, account =>
             {
                 EnsureNotChanged(account, version);
@@ -422,9 +421,9 @@ namespace ASI.Basecode.Services.Services
                 profile.EligibilityStatus = EligibilityStatuses.Eligible;
                 profile.UpdatedBy = updatedBy;
                 profile.UpdatedAt = now;
-                queued = _notifications.RegistrationApproved(account);
+                _notifications.RegistrationApproved(account);
             });
-            return Task.FromResult((found, found && queued));
+            return Task.FromResult(found);
         }
 
         /// <summary>Issues a temporary password and clears failed attempts and lockout.</summary>
@@ -656,8 +655,7 @@ namespace ASI.Basecode.Services.Services
             return _accountRepository.CountAccountsByStatusAsync();
         }
 
-        public async Task<List<UserAccountListItem>>
-            GetPendingRegistrationPreviewAsync()
+        public async Task<List<UserAccountListItem>> GetPendingRegistrationPreviewAsync()
         {
             var accounts = await _accountRepository.GetPendingRegistrationPreviewAsync();
 
