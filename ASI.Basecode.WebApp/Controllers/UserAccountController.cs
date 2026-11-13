@@ -404,9 +404,9 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
         {
 
-            var result = await _userAccountService.ApproveRegistrationAsync(id, version, UserId);
+            var found = await _userAccountService.ApproveRegistrationAsync(id, version, UserId);
 
-            if (!result.Found)
+            if (!found)
 
             {
 
@@ -416,11 +416,9 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
             }
 
-            TempData["UserAccountSuccess"] = "Registration approved. The account is active and the borrower is eligible.";
+            TempData["UserAccountSuccess"] =
 
-            if (!result.EmailQueued)
-
-                TempData["UserAccountWarning"] = "Registration approved, but no email could be queued. Please inform the user separately.";
+                "Registration approved. The account is active and the borrower is eligible.";
 
         }
 

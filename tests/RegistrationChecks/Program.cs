@@ -78,9 +78,9 @@ try
     Check(!sent && db.Users.Any(u => u.UserCode == "EMAIL-FAIL"), "Email failure does not undo saved registration");
 
     email.Fail = false;
-    var management = new UserAccountService(users, accounts, roles, new UnitOfWork(db), new NotificationService(new NotificationRepository(new UnitOfWork(db))));
+    var management = new UserAccountService(users, accounts, roles, profiles, new UnitOfWork(db), new NotificationService(new NotificationRepository(new UnitOfWork(db))));
     var login = new AccountService(accounts, users, photos);
-    bool Approve(int id, string version, string actor) => management.ApproveRegistrationAsync(id, version, actor).GetAwaiter().GetResult().Found;
+    bool Approve(int id, string version, string actor) => management.ApproveRegistrationAsync(id, version, actor).GetAwaiter().GetResult();
     void RejectApproval(Action action, string name)
     {
         try { action(); }
@@ -92,17 +92,11 @@ try
     try { identityFactory.CreateClaimsIdentity(accounts.GetAccountByUserId(studentId)); throw new Exception("Pending sign-in should be rejected"); }
     catch (InvalidOperationException) { Check(true, "Pending account cannot receive a sign-in identity"); }
     var approvalEmailAttempts = email.Attempts;
-    var committedBeforeEmail = false;
-    email.BeforeSend = () =>
-    {
-        using var verification = new IsolatedTestDb(new DbContextOptionsBuilder<HiramDbContext>()
-            .UseSqlServer(db.Database.GetConnectionString()).Options);
-        committedBeforeEmail = verification.Accounts.Any(a => a.UserId == studentId && a.AccountStatus == "Active")
-            && verification.BorrowerProfiles.Any(p => p.UserId == studentId && p.EligibilityStatus == "Eligible");
-    };
     db.ChangeTracker.Clear();
-    Account loginAccount = null;
-    Check(login.AuthenticateAccount("STUDENT-1@example.test", "TestPass123", ref loginAccount) == ASI.Basecode.Resources.Constants.Enums.LoginResult.PendingApproval, "Pending credentials are rejected with an awaiting-approval result");
+    var pendingLogin = login.AuthenticateAccount("STUDENT-1@example.test", "TestPass123");
+    Check(pendingLogin.Result == ASI.Basecode.Resources.Constants.Enums.LoginResult.Failed
+        && pendingLogin.FailureReason == ASI.Basecode.Resources.Constants.Enums.LoginFailureReason.PendingApproval,
+        "Pending credentials are rejected with an awaiting-approval result");
     db.ChangeTracker.Clear();
     RejectApproval(() => management.SetUserAccountStatus(studentId, true, "0", 999, "admin", null), "Generic activation cannot bypass approval");
     var editedPending = new UserAccountFormViewModel(management.GetUserAccountById(studentId));
@@ -111,21 +105,21 @@ try
     RejectApproval(() => Approve(studentId, "1", "admin"), "Stale approval rejected");
     Check(email.Attempts == approvalEmailAttempts, "Rejected approvals do not send email");
     var approvalResult = await management.ApproveRegistrationAsync(studentId, "0", "admin");
-    Check(approvalResult.Found && approvalResult.EmailQueued, "Pending registration approved and email queued");
+    Check(approvalResult, "Pending registration approved");
     Check(email.Attempts == approvalEmailAttempts, "Approval does not send SMTP within its request");
-    var dispatcher = new NotificationEmailDispatcher(new NotificationRepository(new UnitOfWork(db)), email, NullLogger<NotificationEmailDispatcher>.Instance);
-    await dispatcher.DispatchNextAsync(CancellationToken.None);
-    Check(committedBeforeEmail && email.Attempts == approvalEmailAttempts + 1, "Approval email runs after both records commit");
-    Check(email.LastRecipient == "STUDENT-1@example.test" && email.LastSubject == "Your HiRAM registration is approved", "Approval notification targets registered email");
-    email.BeforeSend = null;
+    Check(db.Notifications.Count(n => n.RecipientUserId == studentId && n.EventType == NotificationEvents.RegistrationApproved) == 1,
+        "Approval creates one borrower in-app notification");
+    Check(!db.NotificationEmails.Any(), "Registration and approval create no queued notification emails");
     db.ChangeTracker.Clear();
     var approved = users.GetProfileByUserId(studentId);
     Check(approved.Account.AccountStatus == "Active" && approved.BorrowerProfileUser.EligibilityStatus == "Eligible", "Approval persists Active and Eligible together");
     Check(approved.Account.UpdatedBy == "admin" && approved.BorrowerProfileUser.UpdatedBy == "admin", "Both records identify approving actor");
-    Check(login.AuthenticateAccount("STUDENT-1@example.test", "TestPass123", ref loginAccount) == ASI.Basecode.Resources.Constants.Enums.LoginResult.Success, "Approved account can authenticate");
+    Check(login.AuthenticateAccount("STUDENT-1@example.test", "TestPass123").Result == ASI.Basecode.Resources.Constants.Enums.LoginResult.Success, "Approved account can authenticate");
     RejectApproval(() => Approve(studentId, approved.Account.UpdatedAt.Value.Ticks.ToString(), "admin"), "Already approved account cannot be approved again");
     Check(!Approve(int.MaxValue, "0", "admin"), "Missing account returns not found");
-    Check(email.Attempts == approvalEmailAttempts + 1, "Repeat and missing approvals do not send email");
+    Check(email.Attempts == approvalEmailAttempts, "Repeat and missing approvals do not send email");
+    Check(db.Notifications.Count(n => n.RecipientUserId == studentId && n.EventType == NotificationEvents.RegistrationApproved) == 1,
+        "Repeated approval does not duplicate the in-app notification");
 
     await Service().RegisterAsync(Form("APPROVAL-ROLLBACK"), null, null);
     var rollbackId = db.Users.Single(u => u.UserCode == "APPROVAL-ROLLBACK").UserId;
@@ -137,6 +131,8 @@ try
     finally { db.ChangeTracker.Clear(); db.Database.ExecuteSqlRaw("DROP TRIGGER dbo.ApprovalCheckFailure;"); }
     var rolledBack = users.GetProfileByUserId(rollbackId);
     Check(rolledBack.Account.AccountStatus == "PendingApproval" && rolledBack.BorrowerProfileUser.EligibilityStatus == "Ineligible", "Database failure rolls back both approval changes");
+    Check(!db.Notifications.Any(n => n.RecipientUserId == rollbackId && n.EventType == NotificationEvents.RegistrationApproved),
+        "Database failure rolls back the approval notification");
     Check(email.Attempts == attemptsBeforeFailure, "Database failure does not send approval email");
     var blocked = db.BorrowerProfiles.Single(p => p.UserId == rollbackId);
     blocked.EligibilityStatus = "Suspended"; db.SaveChanges(); db.ChangeTracker.Clear();
@@ -149,21 +145,24 @@ try
         using var context = new IsolatedTestDb(new DbContextOptionsBuilder<HiramDbContext>()
             .UseSqlServer(db.Database.GetConnectionString()).Options);
         var unit = new UnitOfWork(context);
-        var service = new UserAccountService(new UserRepository(unit), new AccountRepository(unit), new RoleRepository(unit), unit, new NotificationService(new NotificationRepository(unit)));
-        try { return service.ApproveRegistrationAsync(concurrentId, "0", "admin").GetAwaiter().GetResult().Found; }
+        var service = new UserAccountService(new UserRepository(unit), new AccountRepository(unit), new RoleRepository(unit), new BorrowerProfileRepository(unit), unit, new NotificationService(new NotificationRepository(unit)));
+        try { return service.ApproveRegistrationAsync(concurrentId, "0", "admin").GetAwaiter().GetResult(); }
         catch (ASI.Basecode.Services.Exceptions.UserAccountValidationException) { return false; }
     });
     var concurrentResults = await Task.WhenAll(ConcurrentApproval(), ConcurrentApproval());
     Check(concurrentResults.Count(result => result) == 1, "Two concurrent approvals produce exactly one success");
+    Check(db.Notifications.Count(n => n.RecipientUserId == concurrentId && n.EventType == NotificationEvents.RegistrationApproved) == 1,
+        "Concurrent approval commits one in-app notification");
 
     await Service().RegisterAsync(Form("APPROVAL-EMAIL-FAIL"), null, null);
     var emailFailId = db.Users.Single(u => u.UserCode == "APPROVAL-EMAIL-FAIL").UserId;
     db.ChangeTracker.Clear();
     email.Fail = true;
-    var emailFailure = await management.ApproveRegistrationAsync(emailFailId, "0", "admin");
-    Check(emailFailure.Found && emailFailure.EmailQueued, "Approval queues email independently of provider failures");
-    while (await dispatcher.DispatchNextAsync(CancellationToken.None)) { }
-    Check(db.NotificationEmails.Any(e => e.Notification.RecipientUserId == emailFailId && e.DeliveryStatus == "Pending" && e.AttemptCount == 1), "Email failure schedules a retry");
+    var attemptsBeforeApproval = email.Attempts;
+    Check(await management.ApproveRegistrationAsync(emailFailId, "0", "admin"), "Approval does not depend on the email provider");
+    Check(email.Attempts == attemptsBeforeApproval && !db.NotificationEmails.Any(), "Approval neither sends nor queues email");
+    Check(db.Notifications.Any(n => n.RecipientUserId == emailFailId && n.EventType == NotificationEvents.RegistrationApproved),
+        "Approval still notifies the borrower when the email provider is unavailable");
     db.ChangeTracker.Clear();
     var emailFailedUser = users.GetProfileByUserId(emailFailId);
     Check(emailFailedUser.Account.AccountStatus == "Active" && emailFailedUser.BorrowerProfileUser.EligibilityStatus == "Eligible", "Email failure preserves both approval changes");
@@ -198,13 +197,9 @@ class FakeEmail : IEmailManager
 {
     public bool Fail;
     public int Attempts;
-    public string LastRecipient, LastSubject;
-    public Action BeforeSend;
     public Task SendAsync(string recipient, string subject, string body, CancellationToken token = default)
     {
         Interlocked.Increment(ref Attempts);
-        LastRecipient = recipient; LastSubject = subject;
-        BeforeSend?.Invoke();
         return Fail ? Task.FromException(new Exception("Simulated email failure")) : Task.CompletedTask;
     }
 }

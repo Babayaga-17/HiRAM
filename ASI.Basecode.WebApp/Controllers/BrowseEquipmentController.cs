@@ -90,6 +90,11 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
 
             return View(equipments);
         }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            // The browser cancelled this request; no page response is needed.
+            return new EmptyResult();
+        }
         catch (Exception exception) when (!HttpContext.RequestAborted.IsCancellationRequested)
         {
             _logger.LogError(exception, "Unable to load equipment for browsing.");

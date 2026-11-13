@@ -351,8 +351,9 @@ namespace ASI.Basecode.Services.Services
             var maintenance = _equipmentRepository.GetEquipments()
                 .Where(equipment => equipment.IsActive)
                 .SelectMany(equipment => equipment.MaintenanceRecords)
-                .Where(record => (record.Status == MaintenanceStatuses.Scheduled || record.Status == MaintenanceStatuses.InProgress)
-                    && record.StartDateTime < end)
+                .Where(record =>
+                    record.Status == MaintenanceStatuses.Scheduled ||
+                    record.Status == MaintenanceStatuses.InProgress)
                 .Select(record => new
                 {
                     record.EquipmentId,
@@ -360,20 +361,23 @@ namespace ASI.Basecode.Services.Services
                     record.Equipment.EquipmentName,
                     record.Equipment.CategoryId,
                     record.Status,
-                    record.StartDateTime,
-                    record.EndDateTime
+                    Start = record.StartDateTime,
+                    End = record.ExpectedCompletionDateTime ?? end
                 })
+                .Where(record =>
+                    record.Start < end &&
+                    record.End > start)
                 .ToList()
-                .Select(row => new EquipmentCalendarEvent
+                .Select(record => new EquipmentCalendarEvent
                 {
-                    EquipmentId = row.EquipmentId,
-                    EquipmentCode = row.EquipmentCode,
-                    EquipmentName = row.EquipmentName,
-                    CategoryId = row.CategoryId,
+                    EquipmentId = record.EquipmentId,
+                    EquipmentCode = record.EquipmentCode,
+                    EquipmentName = record.EquipmentName,
+                    CategoryId = record.CategoryId,
                     Type = AvailabilityPeriodTypes.Maintenance,
-                    Status = row.Status,
-                    Start = row.StartDateTime,
-                    End = end
+                    Status = record.Status,
+                    Start = record.Start,
+                    End = record.End
                 })
                 .ToList();
 

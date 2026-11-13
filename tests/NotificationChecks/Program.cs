@@ -21,8 +21,6 @@ try
 {
     if (db.Database.GetDbConnection().Database != database) throw new Exception("Unexpected database");
     db.Database.EnsureCreated();
-    // Exercise the lease state contract on the generated test schema as well.
-    db.Database.ExecuteSqlRaw("ALTER TABLE dbo.NotificationEmails ADD CONSTRAINT CK_Test_EmailLease CHECK ((delivery_status='Processing' AND lease_token IS NOT NULL AND locked_until IS NOT NULL) OR (delivery_status<>'Processing' AND lease_token IS NULL AND locked_until IS NULL));");
     var borrowerRole = new Role { RoleName = "Borrower", IsActive = true, CreatedBy = "test" };
     var adminRole = new Role { RoleName = "Admin", IsActive = true, CreatedBy = "test" };
     var custodianRole = new Role { RoleName = "Custodian", IsActive = true, CreatedBy = "test" };
@@ -43,11 +41,11 @@ try
     var borrower = db.Users.Include(u => u.Account).Single(u => u.UserCode == "BORROWER");
     Check(db.Notifications.Count(n => n.EventType == NotificationEvents.RegistrationSubmitted) == 1, "New registration notifies only active admins");
     Check(db.Notifications.Any(n => n.RecipientUserId == admin.UserId && n.RelatedUserId == borrower.UserId), "New user's generated ID is linked atomically");
-    Check(db.NotificationEmails.Count() == 1 && mail.Attempts == 1, "Admin notification queued; registration receipt remains separate");
-    var management = new UserAccountService(users, accounts, roles, unit, notifications);
-    await management.ApproveRegistrationAsync(borrower.UserId, "0", "admin");
+    Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Registration creates no notification email; direct receipt remains separate");
+    var management = new UserAccountService(users, accounts, roles, new BorrowerProfileRepository(unit), unit, notifications);
+    Check(await management.ApproveRegistrationAsync(borrower.UserId, "0", "admin"), "Pending registration approved");
     Check(db.Notifications.Count(n => n.EventType == NotificationEvents.RegistrationApproved && n.RecipientUserId == borrower.UserId) == 1, "Approval creates borrower notification");
-    Check(db.NotificationEmails.Count() == 2 && mail.Attempts == 1, "Approval queues email without direct SMTP duplication");
+    Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Approval creates no queued or direct email");
 
     var equipment = new Equipment { EquipmentCode = "TEST-EQUIP", EquipmentName = "Test projector", IsActive = true, ConditionStatus = "Good", CreatedBy = "test" };
     db.Add(equipment); db.SaveChanges();
@@ -56,7 +54,7 @@ try
     ReservationFormModel Request(int day) => new() { EquipmentIds = new() { equipment.EquipmentId }, Purpose = "Class presentation",
         Pickup = DateTime.Today.AddDays(day).AddHours(10), ExpectedReturn = DateTime.Today.AddDays(day).AddHours(12) };
     var submitted = submissions.Submit(Request(7), borrower.UserId);
-    Check(submitted.Error == null, "Reservation submission succeeds with queued notification");
+    Check(submitted.Error == null, "Reservation submission succeeds with in-app notification");
     var reservation = db.Reservations.Single(r => r.ReservationNumber == submitted.ReservationNumber);
     Check(db.Notifications.Any(n => n.ReservationId == reservation.ReservationId && n.EventType == NotificationEvents.ReservationSubmitted && n.RecipientUserId == custodian.UserId), "Submission notifies custodian");
     var reviews = new ReservationService(new ReservationRepository(unit), notifications, equipmentService);
@@ -71,6 +69,7 @@ try
     var cancelled = db.Reservations.Single(r => r.ReservationNumber == cancelledNumber);
     Check(submissions.Cancel(cancelled.ReservationId, new ReservationCancelFormModel { RowVersion = Convert.ToBase64String(cancelled.RowVersion), Reason = "Schedule changed" }, borrower.UserId) == null, "Cancellation succeeds");
     Check(db.Notifications.Any(n => n.EventType == NotificationEvents.ReservationCancelled && n.RecipientUserId == custodian.UserId), "Cancellation notifies custodian");
+    Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Reservation events create no queued or direct email");
 
     var menu = await notifications.GetMenuAsync(borrower.UserId, token);
     var own = db.Notifications.AsNoTracking().First(n => n.RecipientUserId == borrower.UserId);
@@ -96,36 +95,7 @@ try
     finally { db.ChangeTracker.Clear(); db.Database.ExecuteSqlRaw("DROP TRIGGER dbo.NotificationCheckFailure;"); }
     Check(!db.Users.Any(u => u.UserCode == "ROLLBACK"), "Notification failure rolls back registration graph");
 
-    var dispatcher = new NotificationEmailDispatcher(repository, mail, NullLogger<NotificationEmailDispatcher>.Instance);
-    while (await dispatcher.DispatchNextAsync(token)) { }
-    Check(db.NotificationEmails.All(e => e.DeliveryStatus == EmailDeliveryStatuses.Sent && e.SentAt != null && e.LeaseToken == null), "Dispatcher completes queued emails and clears leases");
-
-    Notification Fixture(string title) => new() { EventKey = Guid.NewGuid(), EventType = NotificationEvents.RegistrationApproved,
-        RecipientUserId = borrower.UserId, RelatedUserId = borrower.UserId, Title = title, Body = "Test", CreatedAt = DateTime.UtcNow,
-        NotificationEmail = new NotificationEmail { RecipientEmail = "test@example.invalid", Subject = title, Body = "Test", DeliveryStatus = "Pending", NextAttemptAt = DateTime.UtcNow, CreatedAt = DateTime.UtcNow } };
-    var retry = Fixture("Retry"); db.Notifications.Add(retry); db.SaveChanges();
-    mail.Fail = true;
-    for (var i = 0; i < 5; i++)
-    {
-        await dispatcher.DispatchNextAsync(token);
-        db.NotificationEmails.Where(e => e.NotificationId == retry.NotificationId).ExecuteUpdate(s => s.SetProperty(e => e.NextAttemptAt, DateTime.UtcNow.AddMinutes(-1)));
-    }
-    var failed = db.NotificationEmails.AsNoTracking().Single(e => e.NotificationId == retry.NotificationId);
-    Check(failed.DeliveryStatus == "Failed" && failed.AttemptCount == 5, "Retry limit ends in failed state");
-    Check(!failed.LastError.Contains("SECRET"), "Stored email error is sanitized");
-    Check(await notifications.GetDetailsAsync(borrower.UserId, retry.NotificationId, token) != null, "Email failure preserves in-app notification");
-
-    var race = Fixture("Lease race"); db.Notifications.Add(race); db.SaveChanges();
-    async Task<NotificationEmail> Claim() { using var other = Open(); return await new NotificationRepository(new UnitOfWork(other)).ClaimEmailAsync(DateTime.UtcNow, DateTime.UtcNow.AddMinutes(2), Guid.NewGuid(), 5, token); }
-    var claims = await Task.WhenAll(Task.Run(Claim), Task.Run(Claim));
-    Check(claims.Count(c => c != null) == 1, "Concurrent workers claim a delivery only once");
-    var claimed = claims.Single(c => c != null);
-    Check(!await repository.CompleteEmailAsync(claimed.NotificationEmailId, Guid.NewGuid(), DateTime.UtcNow, token), "Wrong lease cannot complete delivery");
-    db.NotificationEmails.Where(e => e.NotificationEmailId == claimed.NotificationEmailId).ExecuteUpdate(s => s.SetProperty(e => e.LockedUntil, DateTime.UtcNow.AddMinutes(-1)));
-    var reclaimed = await repository.ClaimEmailAsync(DateTime.UtcNow, DateTime.UtcNow.AddMinutes(2), Guid.NewGuid(), 5, token);
-    Check(reclaimed.NotificationEmailId == claimed.NotificationEmailId && reclaimed.AttemptCount == 2, "Expired worker lease is recoverable");
-    Check(!await repository.CompleteEmailAsync(claimed.NotificationEmailId, claimed.LeaseToken.Value, DateTime.UtcNow, token), "Stale worker cannot acknowledge a reclaimed delivery");
-    Check(await repository.CompleteEmailAsync(reclaimed.NotificationEmailId, reclaimed.LeaseToken.Value, DateTime.UtcNow, token), "Current lease can complete delivery");
+    Check(!db.NotificationEmails.Any(), "In-app notification workflows leave the legacy email queue empty");
     Console.WriteLine($"All {passed} notification checks passed.");
 }
 finally
@@ -138,9 +108,9 @@ sealed class TestDb(DbContextOptions<HiramDbContext> options) : HiramDbContext(o
 { protected override void OnConfiguring(DbContextOptionsBuilder builder) { } }
 sealed class TestEmail : IEmailManager
 {
-    public bool Fail; public int Attempts;
+    public int Attempts;
     public Task SendAsync(string recipient, string subject, string body, CancellationToken token = default)
-    { Attempts++; return Fail ? Task.FromException(new Exception("SECRET provider failure")) : Task.CompletedTask; }
+    { Attempts++; return Task.CompletedTask; }
 }
 sealed class TestPhoto : IProfilePhotoService
 {

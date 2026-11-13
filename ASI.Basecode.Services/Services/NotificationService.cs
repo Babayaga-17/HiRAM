@@ -20,12 +20,11 @@ public class NotificationService : INotificationService
         NotificationEvents.RegistrationSubmitted, "New registration awaiting review",
         $"{user.FirstName} {user.LastName} ({user.UserCode}) registered as a borrower. Review their school details and profile before approving access.", user, null);
 
-    public bool RegistrationApproved(Account account)
+    public void RegistrationApproved(Account account)
     {
         Stage(new[] { (account.UserId, account.Email) }, NotificationEvents.RegistrationApproved, "Your HiRAM registration is approved",
             "Your HiRAM registration has been approved. Your account is active and you are eligible to request equipment. " +
             "You can now sign in with your registered email address and password. Equipment requests remain subject to availability and approval.", account.User, null);
-        return !string.IsNullOrWhiteSpace(account.Email);
     }
 
     public void ReservationChanged(Reservation reservation, string eventType)
@@ -57,22 +56,36 @@ public class NotificationService : INotificationService
             eventType, title, body, null, reservation);
     }
 
-    private void Stage(IEnumerable<(int UserId, string Email)> recipients, string eventType, string title, string body, User user, Reservation reservation)
+    private void Stage(
+        IEnumerable<(int UserId, string Email)> recipients,
+        string eventType,
+        string title,
+        string body,
+        User user,
+        Reservation reservation)
     {
         var now = DateTime.UtcNow;
         var eventKey = Guid.NewGuid();
-        // Keep within the persisted message contract even when old data has unbounded notes.
-        body = body.Length > 2000 ? body.Substring(0, 1999) + "…" : body;
-        var messages = recipients.DistinctBy(r => r.UserId).Select(recipient => new Notification
-        {
-            RecipientUserId = recipient.UserId, EventKey = eventKey, EventType = eventType,
-            RelatedUser = user, Reservation = reservation, Title = title, Body = body, CreatedAt = now,
-            NotificationEmail = string.IsNullOrWhiteSpace(recipient.Email) ? null : new NotificationEmail
+
+        body = body.Length > 2000
+            ? body.Substring(0, 1999) + "…"
+            : body;
+
+        var messages = recipients
+            .DistinctBy(recipient => recipient.UserId)
+            .Select(recipient => new Notification
             {
-                RecipientEmail = recipient.Email, Subject = title, Body = body,
-                DeliveryStatus = EmailDeliveryStatuses.Pending, AttemptCount = 0, NextAttemptAt = now, CreatedAt = now
-            }
-        }).ToList();
+                RecipientUserId = recipient.UserId,
+                EventKey = eventKey,
+                EventType = eventType,
+                RelatedUser = user,
+                Reservation = reservation,
+                Title = title,
+                Body = body,
+                CreatedAt = now
+            })
+            .ToList();
+
         _notifications.Stage(messages);
     }
 
