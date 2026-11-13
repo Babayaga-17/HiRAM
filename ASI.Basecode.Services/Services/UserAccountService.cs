@@ -34,7 +34,6 @@ namespace ASI.Basecode.Services.Services
         private readonly IUserRepository _userRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly IRoleRepository _roleRepository;
-        //private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationService _notifications;
 
@@ -42,14 +41,12 @@ namespace ASI.Basecode.Services.Services
             IUserRepository userRepository,
             IAccountRepository accountRepository,
             IRoleRepository roleRepository,
-            //IAuditLogRepository auditLogRepository,
             IUnitOfWork unitOfWork,
             INotificationService notifications)
         {
             _userRepository = userRepository;
             _accountRepository = accountRepository;
             _roleRepository = roleRepository;
-            //_auditLogRepository = auditLogRepository;
             _unitOfWork = unitOfWork;
             _notifications = notifications;
         }

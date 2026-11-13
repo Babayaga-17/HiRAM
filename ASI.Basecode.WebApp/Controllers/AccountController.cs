@@ -132,8 +132,7 @@ namespace ASI.Basecode.WebApp.Controllers
 
             if (result == SendResetCodeStatus.Cooldown)
             {
-                TempData["ResendError"] =
-                    "A code was requested recently. Please wait before requesting another.";
+                TempData["ResendError"] = "A code was requested recently. Please wait before requesting another.";
 
                 return RedirectToAction("VerifyCode", new { email });
             }

@@ -78,15 +78,13 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
 
                 try
                 {
-                    var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(
-                        item.CoverPhotoStoragePath, cancellationToken);
+                    var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(item.CoverPhotoStoragePath, cancellationToken);
 
                     item.ImageUrls.Add(coverUrl);
                 }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogWarning(
-                        exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
+                    _logger.LogWarning(exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
                 }
             }
 
