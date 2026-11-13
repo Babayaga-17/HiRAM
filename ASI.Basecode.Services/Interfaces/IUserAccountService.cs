@@ -19,5 +19,8 @@ namespace ASI.Basecode.Services.Interfaces
         bool SetUserAccountStatus(int userId, bool activate, string version, int currentUserId, string updatedBy, string ipAddress);
         Task<(bool Found, bool EmailQueued)> ApproveRegistrationAsync(int userId, string version, string updatedBy);
         string ResetUserAccountAccess(int userId, int currentUserId, string updatedBy, string ipAddress);
+
+        List<DepartmentOption> GetActiveDepartments();
+        void FillBorrowerProfile(UserAccountFormViewModel model);
     }
 }

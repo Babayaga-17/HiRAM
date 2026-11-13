@@ -16,6 +16,12 @@ public class UserAccountFormViewModel : IValidatableObject
     public const string PasswordPattern = @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,64}$";
     public const string PasswordRuleText = "Password must be 8 to 64 characters and include an uppercase letter, a lowercase letter, and a number.";
 
+    /// <summary>Values allowed by CK_BorrowerProfiles_borrower_type.</summary>
+    public static readonly string[] BorrowerTypeOptions = { "Student", "Faculty" };
+
+    /// <summary>Values the form lets an administrator choose. Suspended is set by the suspension flow only.</summary>
+    public static readonly string[] EligibilityOptions = { "Eligible", "Ineligible" };
+
     public int UserId { get; set; }
 
     [Required(ErrorMessage = "User ID is required.")]
@@ -55,6 +61,21 @@ public class UserAccountFormViewModel : IValidatableObject
 
     [Required(ErrorMessage = "Status is required.")]
     public string AccountStatus { get; set; } = AccountStatuses.Active;
+
+    // Borrower details. Required on the server only when the role is Borrower (see UserAccountService).
+    public int? DepartmentId { get; set; }
+
+    [StringLength(150, ErrorMessage = "Program must not exceed 150 characters.")]
+    public string Program { get; set; } = string.Empty;
+
+    public byte? YearLevel { get; set; }
+
+    public string EligibilityStatus { get; set; } = "Eligible";
+
+    public string BorrowerType { get; set; } = string.Empty;
+
+    /// <summary>True when eligibility cannot be changed here (pending registration or suspended borrower).</summary>
+    public bool EligibilityLocked { get; set; }
 
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
@@ -97,4 +118,12 @@ public class UserAccountFormViewModel : IValidatableObject
             yield return new ValidationResult(PasswordRuleText, new[] { nameof(Password) });
         }
     }
+}
+
+/// <summary>Active department shown in the Borrower department dropdown.</summary>
+public class DepartmentOption
+{
+    public int DepartmentId { get; set; }
+
+    public string DepartmentName { get; set; } = string.Empty;
 }
