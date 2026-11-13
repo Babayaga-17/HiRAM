@@ -22,5 +22,7 @@ namespace ASI.Basecode.Services.Interfaces
 
         Task<Dictionary<string, int>> CountAccountsByStatusAsync();
         Task<List<UserAccountListItem>> GetPendingRegistrationPreviewAsync();
+        List<DepartmentOption> GetActiveDepartments();
+        void FillBorrowerProfile(UserAccountFormViewModel model);
     }
 }

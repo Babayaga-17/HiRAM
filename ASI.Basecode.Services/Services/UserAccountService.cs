@@ -1,5 +1,6 @@
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
+using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
@@ -8,12 +9,12 @@ using ASI.Basecode.Services.ServiceModels;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using ErrorMessages = ASI.Basecode.Resources.Messages.Errors;
 
 namespace ASI.Basecode.Services.Services
@@ -31,9 +32,12 @@ namespace ASI.Basecode.Services.Services
     /// </summary>
     public class UserAccountService : IUserAccountService
     {
+        private const string SuspendedEligibility = "Suspended";
         private readonly IUserRepository _userRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly IRoleRepository _roleRepository;
+        private readonly IBorrowerProfileRepository _borrowerProfileRepository;
+        //private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationService _notifications;
 
@@ -41,12 +45,16 @@ namespace ASI.Basecode.Services.Services
             IUserRepository userRepository,
             IAccountRepository accountRepository,
             IRoleRepository roleRepository,
+            IBorrowerProfileRepository borrowerProfileRepository,
+            //IAuditLogRepository auditLogRepository,
             IUnitOfWork unitOfWork,
             INotificationService notifications)
         {
             _userRepository = userRepository;
             _accountRepository = accountRepository;
             _roleRepository = roleRepository;
+            _borrowerProfileRepository = borrowerProfileRepository;
+            //_auditLogRepository = auditLogRepository;
             _unitOfWork = unitOfWork;
             _notifications = notifications;
         }
@@ -83,6 +91,44 @@ namespace ASI.Basecode.Services.Services
                 .ToList();
         }
 
+        /// <summary>Active departments for the Borrower department dropdown.</summary>
+        public List<DepartmentOption> GetActiveDepartments()
+
+        {
+
+            return _borrowerProfileRepository.GetActiveDepartments()
+
+                .Select(department => new DepartmentOption
+
+                {
+
+                    DepartmentId = department.DepartmentId,
+
+                    DepartmentName = department.DepartmentName
+
+                })
+
+                .ToList();
+
+        }
+
+        /// <summary>Copies the stored BorrowerProfile into the form model (edit screen only).</summary>
+        public void FillBorrowerProfile(UserAccountFormViewModel model)
+        {
+            if (model == null || model.UserId <= 0)
+                return;
+
+            var profile = _borrowerProfileRepository.GetForUpdate(model.UserId);
+            if (profile == null)
+                return;
+
+            model.DepartmentId = profile.DepartmentId;
+            model.Program = profile.Program ?? string.Empty;
+            model.YearLevel = profile.YearLevel;
+            model.BorrowerType = profile.BorrowerType ?? string.Empty;
+            model.EligibilityStatus = profile.EligibilityStatus ?? EligibilityStatuses.Eligible;
+            model.EligibilityLocked = IsEligibilityLocked(model.AccountStatus, profile);
+        }
         private static IQueryable<UserAccountListItem> Project(IQueryable<Account> accounts)
         {
             return accounts.Select(account => new UserAccountListItem
@@ -121,6 +167,9 @@ namespace ASI.Basecode.Services.Services
             if (string.IsNullOrEmpty(model.Password))
                 errors[nameof(UserAccountFormViewModel.Password)] = "Password is required.";
             var role = GetAssignableRole(model.RoleId, null, errors);
+            var isBorrower = IsBorrowerRole(role);
+            if (isBorrower)
+                ValidateBorrowerProfile(model, errors);
             if (errors.Count > 0)
                 throw new UserAccountValidationException(errors);
 
@@ -146,6 +195,20 @@ namespace ASI.Basecode.Services.Services
                     CreatedAt = now
                 }
             };
+
+            if (isBorrower)
+            {
+                user.BorrowerProfileUser = new BorrowerProfile
+                {
+                    DepartmentId = model.DepartmentId.Value,
+                    Program = model.Program,
+                    YearLevel = model.YearLevel,
+                    BorrowerType = model.BorrowerType,
+                    EligibilityStatus = model.EligibilityStatus,
+                    CreatedBy = createdBy,
+                    CreatedAt = now
+                };
+            }
 
             SaveInTransaction(() =>
             {
@@ -173,6 +236,18 @@ namespace ASI.Basecode.Services.Services
 
             var errors = GetDuplicateErrors(model.UserCode, model.Email, model.UserId);
             var role = GetAssignableRole(model.RoleId, account.RoleId, errors);
+            var profile = _borrowerProfileRepository.GetForUpdate(model.UserId);
+            var isBorrower = IsBorrowerRole(role);
+
+            model.EligibilityLocked = profile != null && IsEligibilityLocked(account.AccountStatus, profile);
+            if (isBorrower)
+            {
+                // A locked eligibility keeps the stored value, whatever the form posted.
+                if (model.EligibilityLocked)
+                    model.EligibilityStatus = profile.EligibilityStatus;
+                ValidateBorrowerProfile(model, errors);
+            }
+
             if (errors.Count > 0)
                 throw new UserAccountValidationException(errors);
 
@@ -187,6 +262,10 @@ namespace ASI.Basecode.Services.Services
                     throw new UserAccountValidationException(nameof(UserAccountFormViewModel.AccountStatus), ErrorMessages.CannotDeactivateOwnAccount);
             }
 
+            if (!isBorrower && profile != null && _borrowerProfileRepository.HasReservations(model.UserId))
+                throw new UserAccountValidationException(nameof(UserAccountFormViewModel.RoleId),
+                    "This borrower has reservations, so the Borrower details cannot be removed. Resolve or cancel the reservations first.");
+
             if (IsActiveAdmin(account) && (roleChanged || model.AccountStatus != AccountStatuses.Active))
                 EnsureAnotherActiveAdmin(account);
 
@@ -200,6 +279,19 @@ namespace ASI.Basecode.Services.Services
             Track(changes, "Email", account.Email, model.Email);
             Track(changes, "Role", account.Role.RoleName, role.RoleName);
             Track(changes, "Status", account.AccountStatus, model.AccountStatus);
+
+            if (isBorrower)
+            {
+                Track(changes, "Department", Text(profile?.DepartmentId), Text(model.DepartmentId));
+                Track(changes, "Program", profile?.Program, model.Program);
+                Track(changes, "Year level", Text(profile?.YearLevel), Text(model.YearLevel));
+                Track(changes, "Borrower type", profile?.BorrowerType, model.BorrowerType);
+                Track(changes, "Eligibility", profile?.EligibilityStatus, model.EligibilityStatus);
+            }
+            else if (profile != null)
+            {
+                changes.Add("Borrower details removed");
+            }
 
             if (changes.Count == 0)
                 return true;
@@ -219,6 +311,25 @@ namespace ASI.Basecode.Services.Services
             account.AccountStatus = model.AccountStatus;
             account.UpdatedBy = updatedBy;
             account.UpdatedAt = now;
+
+            if (isBorrower)
+            {
+                if (profile == null)
+                {
+                    profile = new BorrowerProfile
+                    {
+                        UserId = model.UserId,
+                        CreatedBy = updatedBy,
+                        CreatedAt = now
+                    };
+                    account.User.BorrowerProfileUser = profile; // EF inserts it with the tracked User
+                }
+                ApplyBorrowerProfile(profile, model, updatedBy, now);
+            }
+            else if (profile != null)
+            {
+               _borrowerProfileRepository.Delete(profile);
+            }
 
             SaveInTransaction(() =>
             {
@@ -342,6 +453,63 @@ namespace ASI.Basecode.Services.Services
 
         #endregion
 
+        #region Borrower details
+
+        /// <summary>
+        /// Borrower fields are required when the role is Borrower. Eligibility is skipped when it is locked,
+        /// because the stored value is kept in that case.
+        /// </summary>
+        private void ValidateBorrowerProfile(UserAccountFormViewModel model, Dictionary<string, string> errors)
+        {
+            if (!model.DepartmentId.HasValue || !_borrowerProfileRepository.GetActiveDepartments().Any(department => department.DepartmentId == model.DepartmentId.Value))
+                errors[nameof(UserAccountFormViewModel.DepartmentId)] = "Select an active department.";
+
+            if (string.IsNullOrWhiteSpace(model.Program))
+                errors[nameof(UserAccountFormViewModel.Program)] = "Program is required.";
+            else if (model.Program.Length > 150)
+                errors[nameof(UserAccountFormViewModel.Program)] = "Program must not exceed 150 characters.";
+
+            if (!model.YearLevel.HasValue || model.YearLevel.Value < 1 || model.YearLevel.Value > 5)
+                errors[nameof(UserAccountFormViewModel.YearLevel)] = "Select a year level from 1 to 5.";
+
+            if (!UserAccountFormViewModel.BorrowerTypeOptions.Contains(model.BorrowerType))
+                errors[nameof(UserAccountFormViewModel.BorrowerType)] = "Select Student or Faculty.";
+
+            if (!model.EligibilityLocked && !UserAccountFormViewModel.EligibilityOptions.Contains(model.EligibilityStatus))
+                errors[nameof(UserAccountFormViewModel.EligibilityStatus)] = "Select a valid eligibility status.";
+        }
+
+        private static void ApplyBorrowerProfile(BorrowerProfile profile, UserAccountFormViewModel model, string updatedBy, DateTime now)
+        {
+            profile.DepartmentId = model.DepartmentId.Value;
+            profile.Program = model.Program;
+            profile.YearLevel = model.YearLevel;
+            profile.BorrowerType = model.BorrowerType;
+            profile.EligibilityStatus = model.EligibilityStatus;
+            profile.UpdatedBy = updatedBy;
+            profile.UpdatedAt = now;
+        }
+
+        /// <summary>Pending registrations and suspended borrowers keep their stored eligibility.</summary>
+        private static bool IsEligibilityLocked(string accountStatus, BorrowerProfile profile)
+        {
+            return accountStatus == AccountStatuses.PendingApproval
+                || profile.EligibilityStatus == SuspendedEligibility
+                || profile.SuspendedAt.HasValue;
+        }
+
+        private static bool IsBorrowerRole(Role role)
+        {
+            return role != null && string.Equals(role.RoleName, RoleNames.Borrower, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string Text(object value)
+        {
+            return value == null ? string.Empty : Convert.ToString(value, CultureInfo.InvariantCulture);
+        }
+
+        #endregion
+
         #region Helpers
 
         private Dictionary<string, string> GetDuplicateErrors(string userCode, string email, int? excludeUserId = null)
@@ -447,6 +615,9 @@ namespace ASI.Basecode.Services.Services
             model.ContactNumber = Clean(model.ContactNumber);
             model.Email = Clean(model.Email)?.ToLowerInvariant();
             model.AccountStatus = Clean(model.AccountStatus) ?? AccountStatuses.Active;
+            model.Program = Clean(model.Program);
+            model.BorrowerType = Clean(model.BorrowerType);
+            model.EligibilityStatus = Clean(model.EligibilityStatus) ?? EligibilityStatuses.Eligible;
         }
 
         /// <summary>12 characters with upper, lower, digit and symbol; ambiguous characters excluded.</summary>
