@@ -23,6 +23,7 @@ namespace ASI.Basecode.Services.Interfaces
         EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null);
         EquipmentIndexViewModel GetEquipmentPage(EquipmentListRequest request);
         List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId);
-        
+        Task<int> CountEquipmentAsync();
+
     }
 }

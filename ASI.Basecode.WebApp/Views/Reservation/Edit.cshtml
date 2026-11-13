@@ -11,6 +11,11 @@
     <link rel="stylesheet"
           href="~/css/equipment-reservation.css"
           asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/reservation-create.css" asp-append-version="true" />
 }
 
-<partial name="_ReservationPage" model="Model" />
+<partial name="_ReservationPage.cshtml" model="Model" />
+
+@section Scripts {
+    <script src="~/js/reservation-create.js" asp-append-version="true"></script>
+}

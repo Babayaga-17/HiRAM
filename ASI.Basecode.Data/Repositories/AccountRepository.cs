@@ -100,5 +100,32 @@ namespace ASI.Basecode.Data.Repositories
             transaction.Commit();
             return true;
         }
+
+        public Task<Dictionary<string, int>> CountAccountsByStatusAsync()
+        {
+            return GetDbSet<Account>()
+                .AsNoTracking()
+                .GroupBy(account => account.AccountStatus)
+                .Select(group => new
+                {
+                    Status = group.Key,
+                    Count = group.Count()
+                })
+                .ToDictionaryAsync(row => row.Status, row => row.Count);
+        }
+
+        public Task<List<Account>> GetPendingRegistrationPreviewAsync()
+        {
+            return GetDbSet<Account>()
+                .AsNoTracking()
+                .Where(account =>
+                    account.AccountStatus == AccountStatuses.PendingApproval)
+                .OrderBy(account => account.User.LastName)
+                .ThenBy(account => account.User.FirstName)
+                .ThenBy(account => account.UserId)
+                .Take(4)
+                .Include(account => account.User)
+                .ToListAsync();
+        }
     }
 }

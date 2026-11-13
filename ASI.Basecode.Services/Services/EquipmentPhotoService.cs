@@ -6,6 +6,5 @@ namespace ASI.Basecode.Services.Services;
 
 public class EquipmentPhotoService : SupabasePhotoStorage, IEquipmentPhotoService
 {
-    public EquipmentPhotoService(HttpClient httpClient, IOptions<SupabaseStorageOptions> options)
-        : base(httpClient, options, options.Value.Bucket) { }
+    public EquipmentPhotoService(HttpClient httpClient, IOptions<SupabaseStorageOptions> options) : base(httpClient, options, options.Value.Bucket) { }
 }

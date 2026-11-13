@@ -1,0 +1,203 @@
+@using System
+@using ASI.Basecode.Resources.Constants
+@using ASI.Basecode.Services.ServiceModels.Reservation
+@model MyReservationPageViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "My reservations";
+    ViewData["TopbarPage"] = "My reservations";
+    var returnUrl = Url.Action("MyReservation", "Reservation", new { status = Model.Status, page = Model.Page, pageSize = Model.PageSize });
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/my-reservations.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/my-reservation-list.css" asp-append-version="true" />
+}
+
+<div class="my-reservation-page">
+    <div class="page-heading">
+        <div>
+            <h1>My reservations</h1>
+            <p>Track your equipment requests, pickups, and borrowing history.</p>
+        </div>
+        <a class="button button-primary" asp-controller="BrowseEquipment" asp-action="Index">
+            Browse equipment
+            <svg class="icon" aria-hidden="true">
+                <use href="#i-arrow" />
+            </svg>
+        </a>
+    </div>
+    <section aria-labelledby="myReservationsHeading">
+        <div class="mr-toolbar">
+            <h2 id="myReservationsHeading">
+                Your reservations
+                @if (Model.IsAvailable)
+                {
+                    <span>@Model.FilteredCount.ToString("N0")</span>
+                }
+            </h2>
+            <form method="get" asp-controller="Reservation" asp-action="MyReservation" class="mr-filters" data-reservation-filters>
+                <div>
+                    <label for="reservationPageSize">Show</label>
+                    <select id="reservationPageSize" name="pageSize">
+                        @foreach (var size in new[] { 5, 10, 20 })
+                        {
+                            <option value="@size" selected="@(Model.PageSize == size)">@size</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label for="reservationStatus">Status</label>
+                    <select id="reservationStatus" name="status">
+                        <option value="" selected="@(Model.Status == null)">All statuses</option>
+                        @foreach (var status in MyReservationPageViewModel.StatusOptions)
+                        {
+                            <option value="@status" selected="@(Model.Status == status)">@status</option>
+                        }
+                    </select>
+                </div>
+                <button class="button button-secondary" type="submit" data-apply-filters>Apply</button>
+            </form>
+        </div>
+        @if (!Model.IsAvailable)
+        {
+            <div class="mr-state" role="status">
+                <h3>Reservations are unavailable</h3>
+                <p>We couldn't load your reservations. Please try again.</p>
+                <a class="mr-text-link" href="@returnUrl">Try again</a>
+            </div>
+        }
+        else if (Model.FilteredCount == 0)
+        {
+            <div class="mr-state">
+                <h3>@(Model.TotalCount == 0 ? "No reservations yet" : "No matching reservations")</h3>
+                <p>@(Model.TotalCount == 0 ? "Browse equipment to make your first request." : "You have no reservations with this status.")</p>
+                @if (Model.Status != null)
+                {
+                    <a class="mr-text-link" asp-action="MyReservation" asp-route-pageSize="@Model.PageSize">Clear status filter</a>
+                }
+            </div>
+        }
+        else
+        {
+            <ul class="mr-cards">
+                @foreach (var reservation in Model.Items)
+                {
+                    var names = reservation.EquipmentNames;
+                    var pending = reservation.Status == ReservationStatuses.Pending;
+                    <li>
+                        <article class="mr-card" aria-labelledby="my-reservation-@reservation.ReservationId">
+                            <div class="mr-card-content">
+                                <div class="mr-identity">
+                                    <div class="mr-reference">
+                                        <span>@reservation.ReservationNumber</span>
+                                        <span class="reservation-status-badge reservation-status-@reservation.Status.ToLowerInvariant()">@(pending ? "Pending approval" : reservation.Status)</span>
+                                    </div>
+                                    <h3 id="my-reservation-@reservation.ReservationId">
+                                        @(names.Count > 0 ? names[0] : "Equipment")@if (names.Count > 1) {
+                                        <span class="mr-more"> + @(names.Count - 1) more</span>
+                                    }
+                                </h3>
+                                <p>@names.Count @(names.Count == 1 ? "equipment item" : "equipment items")</p>
+                            </div>
+                            <dl class="mr-date">
+                                <dt>Scheduled pickup</dt>
+                                <dd>
+                                    <time datetime="@reservation.PickupAt.ToString("s")">
+                                        @reservation.PickupAt.ToString("MMM d, yyyy")
+                                        <span>@reservation.PickupAt.ToString("h:mm tt")</span>
+                                    </time>
+                                </dd>
+                            </dl>
+                            <dl class="mr-date @(reservation.Status == ReservationStatuses.Overdue ? "mr-overdue" : "")">
+                                <dt>Expected return</dt>
+                                <dd>
+                                    <time datetime="@reservation.ReturnBy.ToString("s")">
+                                        @reservation.ReturnBy.ToString("MMM d, yyyy")
+                                        <span>@reservation.ReturnBy.ToString("h:mm tt")</span>
+                                    </time>
+                                </dd>
+                            </dl>
+                            <a class="mr-text-link mr-details"
+                               asp-controller="Reservation" asp-action="ReservationDetails"
+                               asp-route-id="@reservation.ReservationId" asp-route-returnUrl="@returnUrl" aria-label="View details for reservation @reservation.ReservationNumber">
+                                View details
+                                <svg class="icon" aria-hidden="true">
+                                    <use href="#i-arrow" />
+                                </svg>
+                            </a>
+                        </div>
+                        @if (pending)
+                        {
+                            <div class="mr-actions">
+                                <a class="mr-text-link"
+                                   asp-controller="Reservation" asp-action="Edit"
+                                   asp-route-id="@reservation.ReservationId"
+                                   asp-route-returnUrl="@returnUrl" aria-label="Edit reservation @reservation.ReservationNumber">
+                                    Edit reservation
+                                </a>
+                                <a class="mr-text-link mr-cancel"
+                                   asp-controller="Reservation"
+                                   asp-action="Cancel"
+                                   asp-route-id="@reservation.ReservationId"
+                                   asp-route-returnUrl="@returnUrl" aria-label="Cancel reservation @reservation.ReservationNumber">
+                                    Cancel reservation
+                                </a>
+                            </div>
+                        }
+                    </article>
+                </li>
+            }
+        </ul>
+        <div class="table-footer mr-footer">
+            <span>
+                Showing @Model.FirstItem–@Model.LastItem of @Model.FilteredCount.ToString("N0") reservations
+                <span class="mr-timezone">· Philippine time (UTC+8)</span>
+            </span>
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="pager" aria-label="Reservation pagination">
+                    @if (Model.Page > 1)
+                    {
+                        <a class="pager-link"
+                           asp-action="MyReservation" asp-route-page="@(Model.Page - 1)"
+                           asp-route-status="@Model.Status" asp-route-pageSize="@Model.PageSize">
+                            Previous
+                        </a>
+                    }
+
+                    @for (var p = Math.Max(1, Model.Page - 2); p <= Math.Min(Model.TotalPages, Model.Page + 2); p++)
+                    {
+                        if (p == Model.Page)
+                        {
+                            <span class="pager-link pager-active" aria-current="page">@p</span>
+                        }
+                        else
+                        {
+                            <a class="pager-link"
+                               asp-action="MyReservation" asp-route-page="@p"
+                               asp-route-status="@Model.Status" asp-route-pageSize="@Model.PageSize">
+                                @p
+                            </a>
+                        }
+                    }
+
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <a class="pager-link"
+                           asp-action="MyReservation" asp-route-page="@(Model.Page + 1)"
+                           asp-route-status="@Model.Status" asp-route-pageSize="@Model.PageSize">
+                            Next
+                        </a>
+                    }
+                </nav>
+            }
+        </div>
+                }
+    </section>
+</div>
+
+@section Scripts
+{
+    <script src="~/js/my-reservations.js" asp-append-version="true"></script>
+}

@@ -1,75 +1,94 @@
 @using System.Linq
-@using ASI.Basecode.Services.ServiceModels
-@model List<PendingReservationListItem>
+@using ASI.Basecode.Resources.Constants
+@using ASI.Basecode.Services.ServiceModels.Dashboard
+@model CustodianDashboardViewModel
 @{
     Layout = "_AppLayout";
-    ViewData["Title"] = "Custodian Dashboard";
+    ViewData["Title"] = "Custodian dashboard";
     ViewData["TopbarPage"] = "Dashboard";
-    var pending = Model ?? new List<PendingReservationListItem>();
+    var overview = Model ?? new CustodianDashboardViewModel();
+    string Number(int? count) => count?.ToString("N0") ?? "—";
 }
-
-<header class="page-heading">
-    <div>
-        <h1>Equipment desk dashboard</h1>
-        <p>Review borrowing requests and track equipment due back.</p>
-    </div>
-    <a class="button button-primary heading-action" asp-controller="Reservation" asp-action="Pending">
-        Review requests <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
-    </a>
-</header>
-
-<section class="dashboard-queue" aria-labelledby="approvalsHeading">
-    <div class="dashboard-queue-heading">
+@section Styles {
+    <link rel="stylesheet" href="~/css/role-dashboard.css" asp-append-version="true" />
+}
+<div class="role-dashboard custodian-dashboard">
+    <header class="rd-heading">
         <div>
-            <h2 id="approvalsHeading">Pending approval queue</h2>
-            <p>@pending.Count @(pending.Count == 1 ? "request" : "requests") awaiting review.</p>
+            <h1>Custodian dashboard</h1>
+            <p>Review requests and coordinate equipment borrowing.</p>
         </div>
-        <a class="button button-secondary" asp-controller="Reservation" asp-action="Returns">View returns</a>
-    </div>
-    @if (pending.Count == 0)
-    {
-        <p class="dashboard-empty">There are no pending requests right now.</p>
-    }
-    else
-    {
-        <div class="table-scroll" role="region" aria-label="Pending approval queue" tabindex="0">
-            <table class="category-table">
-                <thead>
-                    <tr>
-                        <th scope="col">Request</th>
-                        <th scope="col">Borrower</th>
-                        <th scope="col">Equipment</th>
-                        <th scope="col">Schedule</th>
-                        <th scope="col" class="actions-column">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var request in pending.Take(5))
-                    {
-                        <tr>
-                            <td>
-                                <strong>@request.ReservationNumber</strong>
-                                <div class="pending-muted">@request.Purpose</div>
-                            </td>
-                            <td>@request.BorrowerName</td>
-                            <td>@request.EquipmentSummary</td>
-                            <td>@request.StartDateTime.ToString("MMM d, yyyy h:mm tt")</td>
-                            <td class="actions-column">
-                                <a class="icon-button"
-                                   asp-controller="Reservation"
-                                   asp-action="Details"
-                                   asp-route-id="@request.ReservationId"
-                                   aria-label="View @request.ReservationNumber"
-                                   title="View request">
-                                    <svg class="icon"><use href="#i-eye" /></svg>
-                                </a>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    </header>
+    <section class="stats-grid rd-summary" aria-label="Equipment desk overview">
+        <div class="stat-card">
+            <span class="stat-copy">
+                <span>Pending review</span>
+                <strong>@Number(overview.PendingCount)</strong>
+                <small>Reservation requests</small>
+            </span>
         </div>
-    }
-</section>
-
-<partial name="_InventoryLinks" />
+        <div class="stat-card">
+            <span class="stat-copy">
+                <span>Awaiting release</span>
+                <strong>@Number(overview.ApprovedCount)</strong>
+                <small>Approved; equipment not yet released</small>
+            </span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-copy">
+                <span>Outstanding reservations</span>
+                <strong>@Number(overview.OutstandingCount)</strong>
+                <small>Reservations with equipment still out</small>
+            </span>
+        </div>
+    </section>
+    <section class="rd-panel" aria-labelledby="custodianReviewHeading">
+        <header class="rd-panel-heading">
+            <div>
+                <h2 id="custodianReviewHeading">Requests to review</h2>
+                <p>Oldest submitted first · Up to four requests</p>
+            </div>
+            <a class="rd-link" asp-controller="Reservation" asp-action="Pending">
+                View all
+                <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+            </a>
+        </header>
+        @if (overview.PendingRequests == null)
+        {
+            <p class="rd-state" role="status">
+                @ViewData["DashboardError"]
+            </p>
+        }
+        else if (overview.PendingRequests.Count == 0)
+        {
+            <p class="rd-state">No reservation requests are awaiting review.</p>
+        }
+        else
+        {
+            <ul class="rd-staff-list">
+                @foreach (var request in overview.PendingRequests)
+                {
+                    <li>
+                        <div class="rd-record-title">
+                            <strong>@request.ReservationNumber</strong>
+                            <span class="rd-status status-pending">Pending</span>
+                        </div>
+                        <p>@request.BorrowerName · @request.EquipmentSummary</p>
+                        <div class="rd-record-bottom">
+                            <span>Pickup @request.StartDateTime.ToString("MMM d, yyyy · h:mm tt")</span>
+                            <a class="rd-row-action"
+                               asp-controller="Reservation"
+                               asp-action="Review"
+                               asp-route-id="@request.ReservationId" aria-label="Review request @request.ReservationNumber">
+                                Review
+                                <svg class="icon" aria-hidden="true">
+                                    <use href="#i-arrow" />
+                                </svg>
+                            </a>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</div>

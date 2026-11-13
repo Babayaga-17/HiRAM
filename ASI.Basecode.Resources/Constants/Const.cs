@@ -45,9 +45,11 @@
     public static class ReservationStatuses
     {
         public const string Pending = "Pending";
+
         public const string Approved = "Approved";
         public const string Rejected = "Rejected";
         public const string Borrowed = "Borrowed";
+
         public const string Returned = "Returned";
         public const string Overdue = "Overdue";
         public const string Cancelled = "Cancelled";
@@ -65,15 +67,6 @@
     public static class ReservationFilters
     {
         public const string All = "All";
-    }
-
-    /// <summary>
-    /// Statuses that reports calculate while building a row. The value is the same text as the
-    /// stored status, but here it is worked out from the due date and not read from the database.
-    /// </summary>
-    public static class ReservationDisplayStatuses
-    {
-        public const string Overdue = ReservationStatuses.Overdue;
     }
 
     /// <summary>
