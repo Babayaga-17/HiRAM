@@ -65,8 +65,7 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
         }
         catch (EquipmentCategoryValidationException exception)
         {
-            foreach (var error in exception.Errors)
-                ModelState.AddModelError(error.Key, error.Value);
+            AddValidationErrors(exception);
 
             return View(model);
         }
@@ -117,8 +116,7 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
         }
         catch (EquipmentCategoryValidationException exception)
         {
-            foreach (var error in exception.Errors)
-                ModelState.AddModelError(error.Key, error.Value);
+            AddValidationErrors(exception);
 
             return View(equipmentCategoryListItem);
         }
@@ -194,6 +192,12 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
         }
 
         return RedirectToList(request);
+    }
+
+    private void AddValidationErrors(EquipmentCategoryValidationException exception)
+    {
+        foreach (var error in exception.Errors)
+            ModelState.AddModelError(error.Key, error.Value);
     }
 
     private IActionResult RedirectToList(EquipmentCategoryListRequest request)

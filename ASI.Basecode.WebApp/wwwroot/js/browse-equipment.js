@@ -1,4 +1,4 @@
-﻿;(function () {
+﻿; (function () {
     const PAGE_SIZE = 12;
 
     const root = document.getElementById("browseRoot");
@@ -18,6 +18,8 @@
 
     const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
     const selected = new Set((root.dataset.selected || "").split(",").filter(Boolean).map(Number));
+    const maxSelected = Number(root.dataset.maxSelected) || 3;
+    const limitNote = document.getElementById("selectionLimitNote");
     let page = 1;
 
     cards.forEach(card => {
@@ -106,6 +108,12 @@
 
     async function toggleSelection(card) {
         const id = Number(card.dataset.id);
+
+        if (!selected.has(id) && selected.size >= maxSelected) {
+            alert("You can select up to " + maxSelected + " equipment items per reservation.");
+            return;
+        }
+
         const url = selected.has(id) ? root.dataset.deselectUrl : root.dataset.selectUrl;
 
         try {
@@ -121,8 +129,11 @@
             const isSelected = selected.has(Number(card.dataset.id));
             const selectable = card.dataset.selectable === "true";
 
-            button.disabled = !selectable;
-            button.textContent = !selectable ? "Not available" : (isSelected ? "Selected" : "Select");
+            const limitReached = !isSelected && selected.size >= maxSelected;
+
+            button.disabled = !selectable || limitReached;
+            button.textContent = !selectable ? "Not available" : (isSelected ? "Selected" : (limitReached ? "Limit reached" : "Select"));
+            button.title = limitReached ? "You can select up to " + maxSelected + " items." : "";
             button.classList.toggle("is-selected", isSelected);
             card.classList.toggle("is-selected", isSelected);
         });
@@ -130,6 +141,7 @@
         const chosen = cards.filter(card => selected.has(Number(card.dataset.id)));
         tray.hidden = chosen.length === 0;
         trayCount.textContent = chosen.length;
+        limitNote.hidden = chosen.length < maxSelected;
         trayList.innerHTML = "";
 
         chosen.forEach(card => {
@@ -213,7 +225,7 @@
     render();
     requestAnimationFrame(() => { document.getElementById("mainContent").scrollTop = restoreScroll; });
 })();
-;(function () {
+; (function () {
     const PAGE_SIZE = 12;
 
     const root = document.getElementById("browseRoot");
@@ -233,6 +245,8 @@
 
     const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
     const selected = new Set((root.dataset.selected || "").split(",").filter(Boolean).map(Number));
+    const maxSelected = Number(root.dataset.maxSelected) || 3;
+    const limitNote = document.getElementById("selectionLimitNote");
     let page = 1;
 
     cards.forEach(card => {
@@ -321,6 +335,12 @@
 
     async function toggleSelection(card) {
         const id = Number(card.dataset.id);
+
+        if (!selected.has(id) && selected.size >= maxSelected) {
+            alert("You can select up to " + maxSelected + " equipment items per reservation.");
+            return;
+        }
+
         const url = selected.has(id) ? root.dataset.deselectUrl : root.dataset.selectUrl;
 
         try {
@@ -336,8 +356,11 @@
             const isSelected = selected.has(Number(card.dataset.id));
             const selectable = card.dataset.selectable === "true";
 
-            button.disabled = !selectable;
-            button.textContent = !selectable ? "Not available" : (isSelected ? "Selected" : "Select");
+            const limitReached = !isSelected && selected.size >= maxSelected;
+
+            button.disabled = !selectable || limitReached;
+            button.textContent = !selectable ? "Not available" : (isSelected ? "Selected" : (limitReached ? "Limit reached" : "Select"));
+            button.title = limitReached ? "You can select up to " + maxSelected + " items." : "";
             button.classList.toggle("is-selected", isSelected);
             card.classList.toggle("is-selected", isSelected);
         });
@@ -345,6 +368,7 @@
         const chosen = cards.filter(card => selected.has(Number(card.dataset.id)));
         tray.hidden = chosen.length === 0;
         trayCount.textContent = chosen.length;
+        limitNote.hidden = chosen.length < maxSelected;
         trayList.innerHTML = "";
 
         chosen.forEach(card => {

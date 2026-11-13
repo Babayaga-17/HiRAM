@@ -44,6 +44,7 @@ else
     <div id="browseRoot"
          data-state-key="hiram.browse.@(reservationId?.ToString() ?? "new")"
          data-selected="@string.Join(",", selectedIds)"
+         data-max-selected="@ReservationPolicy.MaxEquipmentPerReservation"
          data-placeholder="@placeholderUrl"
          data-select-url="@Url.Action("Select", "BrowseEquipment", new { reservationId })"
          data-deselect-url="@Url.Action("Deselect", "BrowseEquipment", new { reservationId })"
@@ -92,21 +93,26 @@ else
 
         <section class="content-card selection-tray" id="selectionTray" aria-label="Selected equipment" hidden>
             <div class="selection-tray-head">
-                <h2>Selected equipment (<span id="selectionCount">0</span>)</h2>
+                <h2>Selected equipment (<span id="selectionCount">0</span> of @ReservationPolicy.MaxEquipmentPerReservation)</h2>
                 <button type="button" class="text-button" id="clearSelection">Clear selection</button>
             </div>
             <ul class="selection-chips" id="selectionChips"></ul>
+            <p class="selection-limit-note" id="selectionLimitNote" role="status" hidden>
+                You have reached the limit of @ReservationPolicy.MaxEquipmentPerReservation items. Remove one to choose another.
+            </p>
             <div class="selection-tray-footer">
                 <p class="selection-tray-note">
                     Ready to reserve? Choose your pickup and return schedule on the next page.
                 </p>
 
-                <a class="button button-primary"
-                   asp-controller="EquipmentReservation"
-                   asp-action="@(reservationId.HasValue ? "Edit" : "Create")"
-                   asp-route-id="@reservationId">
-                    Continue to reservation
-                </a>
+                <div class="selection-tray-actions">
+                    <a class="button button-primary"
+                       asp-controller="EquipmentReservation"
+                       asp-action="@(reservationId.HasValue ? "Edit" : "Create")"
+                       asp-route-id="@reservationId">
+                        Continue to reservation
+                    </a>
+                </div>
             </div>
         </section>
 

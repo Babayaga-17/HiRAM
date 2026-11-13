@@ -37,6 +37,9 @@ public class EquipmentReservationService : IEquipmentReservationService
         if (ids.Any(id => id <= 0))
             return (null, "Review your equipment selection.");
 
+        if (ids.Count > ReservationPolicy.MaxEquipmentPerReservation)
+            return (null, $"You can reserve up to {ReservationPolicy.MaxEquipmentPerReservation} equipment items at a time.");
+
         var number = "RES-" + Guid.NewGuid().ToString("N").Substring(0, 26);
         var error = ExecuteChange(() =>
         {
@@ -65,7 +68,9 @@ public class EquipmentReservationService : IEquipmentReservationService
                 CreatedBy = actor,
                 ReservationItems = ids.Select(id => new ReservationItem
                 {
-                    EquipmentId = id, CreatedAt = now, CreatedBy = actor
+                    EquipmentId = id,
+                    CreatedAt = now,
+                    CreatedBy = actor
                 }).ToList()
             };
             _reservationRepository.AddReservation(reservation);
@@ -102,6 +107,9 @@ public class EquipmentReservationService : IEquipmentReservationService
         if (ids.Any(id => id <= 0))
             return "Review your equipment selection.";
 
+        if (ids.Count > ReservationPolicy.MaxEquipmentPerReservation)
+            return $"You can reserve up to {ReservationPolicy.MaxEquipmentPerReservation} equipment items at a time.";
+
         return ExecuteChange(() =>
         {
             var reservation = _reservationRepository.GetReservationForUpdate(reservationId, borrowerUserId);
@@ -127,7 +135,9 @@ public class EquipmentReservationService : IEquipmentReservationService
             {
                 reservation.ReservationItems.Add(new ReservationItem
                 {
-                    EquipmentId = id, CreatedAt = now, CreatedBy = actor
+                    EquipmentId = id,
+                    CreatedAt = now,
+                    CreatedBy = actor
                 });
             }
 
