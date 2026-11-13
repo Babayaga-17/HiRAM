@@ -1,0 +1,79 @@
+/* Shared shell retained. Inner grids: (width - gutter) at 2:1, and (width - 2 gutters) / 3. */
+.admin-overview { display: grid; gap: 20px; min-width: 0; }
+.admin-overview h1 { margin: 0 0 6px; font-size: 26px; line-height: 1.25; letter-spacing: -.03em; }
+.admin-overview h2 { margin: 0; font-size: 16px; line-height: 1.4; }
+.admin-overview p { margin: 0; color: var(--muted); }
+.admin-overview .ao-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.admin-overview .ao-heading .button { flex: none; }
+.admin-overview small { display: block; font-size: 12px; font-weight: 400; line-height: 1.5; color: var(--muted); }
+.admin-overview .ao-priorities { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 20px; align-items: start; }
+.admin-overview .ao-panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-panel); overflow: hidden; }
+.admin-overview .ao-panel-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding: 18px 20px 12px; }
+.admin-overview .ao-panel-heading p { margin-top: 5px; font-size: 12px; }
+.admin-overview h2 span { display: inline-block; margin-left: 8px; font-variant-numeric: tabular-nums; color: var(--link); }
+.admin-overview .ao-overdue h2 span { color: var(--danger-ink); }
+.admin-overview .ao-link { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; color: var(--link); font-size: 12px; font-weight: 600; }
+.admin-overview .ao-panel-heading > .ao-link { flex: none; min-height: 28px; }
+.admin-overview .icon { width: 16px; height: 16px; }
+.admin-overview a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.admin-overview a:focus-visible { outline: 2px solid var(--link); outline-offset: -3px; }
+.admin-overview .ao-registration-list, .admin-overview .ao-loan-list { list-style: none; margin: 0; padding: 0 20px; }
+.admin-overview .ao-registration-list li { display: flex; align-items: center; gap: 14px; padding: 10px 0; border-top: 1px solid var(--line); min-height: 62px; }
+.admin-overview .ao-person { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.admin-overview .ao-person strong { font-size: 13px; }
+.admin-overview .ao-person small { margin-top: 2px; }
+.admin-overview .ao-badge { flex: none; padding: 3px 8px; color: var(--pending-ink); background: var(--pending-soft); border-radius: 5px; font-size: 11px; }
+.admin-overview .ao-review { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 8px; color: var(--link); font-weight: 600; font-size: 13px; }
+.admin-overview .ao-caption { padding: 8px 20px 12px; font-size: 11px; }
+.admin-overview .ao-state { padding: 18px 20px 24px; font-size: 13px; line-height: 1.6; }
+.admin-overview .ao-loan-list li { border-top: 1px solid var(--line); }
+.admin-overview .ao-loan-list a { display: grid; gap: 2px; padding: 10px 0; overflow-wrap: anywhere; }
+.admin-overview .ao-loan-list strong { display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+.admin-overview .ao-loan-list span { font-size: 12px; }
+.admin-overview .ao-loan-list small { color: var(--danger-ink); }
+.admin-overview .ao-footer-link { margin: 0 20px 4px; }
+.admin-overview .ao-operations { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 20px; align-items: start; }
+.admin-overview .ao-readiness { padding: 0 20px; }
+.admin-overview .ao-readiness > strong { display: block; font: 600 24px/1.3 var(--font-heading); font-variant-numeric: tabular-nums; }
+.admin-overview .ao-readiness small { display: inline; font-family: var(--font-body); }
+.admin-overview .ao-readiness p { font-size: 12px; }
+.admin-overview .ao-meter { height: 7px; margin: 14px 0; background: var(--neutral-soft); border-radius: 4px; overflow: hidden; }
+.admin-overview .ao-meter svg { display: block; height: 100%; fill: var(--primary); }
+.admin-overview .ao-facts { margin: 0; padding: 0 20px; }
+.admin-overview .ao-facts > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 6px 0; font-size: 12px; }
+.admin-overview .ao-facts dt { color: var(--muted); }
+.admin-overview .ao-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.admin-overview .ao-facts dd a { display: inline-flex; justify-content: end; align-items: center; min-width: 44px; min-height: 28px; color: var(--link); }
+.admin-overview .ao-inline-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0 12px; margin: 8px 20px 4px; }
+.admin-overview .ao-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 0 20px; }
+.admin-overview .ao-footer > span { margin-right: auto; font-size: 11px; color: var(--muted); }
+@media (max-width: 1150px) {
+    .admin-overview .ao-priorities { grid-template-columns: minmax(0,3fr) minmax(0,2fr); }
+    .admin-overview .ao-operations { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .admin-overview .ao-operations > section:last-child { grid-column: 1 / -1; }
+    .admin-overview .ao-badge { display: none; }
+}
+@media (max-width: 700px) {
+    .admin-overview .ao-priorities, .admin-overview .ao-operations { grid-template-columns: minmax(0,1fr); }
+    .admin-overview .ao-heading { align-items: start; flex-direction: column; }
+    .admin-overview h1 { font-size: 24px; }
+    .admin-overview .ao-panel-heading { padding-inline: 16px; }
+    .admin-overview .ao-panel-heading > .ao-link { min-height: 44px; }
+    .admin-overview .ao-registration-list, .admin-overview .ao-loan-list { padding-inline: 16px; }
+    .admin-overview .ao-facts > div { font-size: 13px; }
+}
+/* Review refinement: readable data labels and aligned peer panels; actions close the spare space. */
+.admin-overview h2 span { font-family: inherit; font-size: inherit; font-style: normal; }
+.admin-overview .ao-panel-heading p, .admin-overview .ao-link,
+.admin-overview .ao-loan-list strong, .admin-overview .ao-loan-list span,
+.admin-overview .ao-facts > div, .admin-overview .ao-readiness p { font-size: 13px; }
+.admin-overview .ao-caption, .admin-overview .ao-footer > span, .admin-overview .ao-badge { font-size: 12px; }
+.admin-overview .ao-priorities, .admin-overview .ao-operations { align-items: stretch; }
+.admin-overview .ao-panel { display: flex; flex-direction: column; }
+.admin-overview .ao-footer-link { margin-top: auto; }
+.admin-overview .ao-inline-links { margin-top: auto; padding-top: 8px; }
+/* Reuse the inventory/category overview component; this overview has four metrics. */
+.admin-overview .ao-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 0; }
+@media (max-width: 620px) {
+    .admin-overview .ao-summary { grid-template-columns: minmax(0, 1fr); }
+}

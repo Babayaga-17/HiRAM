@@ -10,6 +10,7 @@
     ViewData["Title"] = "Reservation Details";
     ViewData["TopbarPage"] = "My reservations";
 
+    var returnUrl = ViewData["ReservationReturnUrl"] as string;
     var statusLabel = Model.Status switch
     {
         ReservationStatuses.Pending => "Pending approval",
@@ -95,8 +96,7 @@
 }
 
 <a class="back-link"
-   asp-controller="EquipmentReservation"
-   asp-action="Index">
+   href="@(returnUrl ?? Url.Action("MyReservation", "Reservation"))">
     <svg class="icon" aria-hidden="true">
         <use href="#i-chevron" />
     </svg>
@@ -215,16 +215,18 @@
         {
             <div class="reservation-action-links reservation-detail-actions">
                 <a class="button button-secondary"
-                   asp-controller="EquipmentReservation"
+                   asp-controller="Reservation"
                    asp-action="Edit"
-                   asp-route-id="@Model.ReservationId">
+                   asp-route-id="@Model.ReservationId"
+                   asp-route-returnUrl="@returnUrl">
                     Edit reservation
                 </a>
 
                 <a class="button reservation-cancel-link"
-                   asp-controller="EquipmentReservation"
+                   asp-controller="Reservation"
                    asp-action="Cancel"
-                   asp-route-id="@Model.ReservationId">
+                   asp-route-id="@Model.ReservationId"
+                   asp-route-returnUrl="@returnUrl">
                     Cancel reservation
                 </a>
             </div>

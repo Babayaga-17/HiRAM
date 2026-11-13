@@ -151,11 +151,11 @@ else
                                     <div class="row-actions">
                                         @if (request.Status == ReservationStatuses.Approved)
                                         {
-                                            <a class="button button-primary rs-small" asp-controller="Reservation" asp-action="Details" asp-route-id="@request.ReservationId">Release</a>
+                                            <a class="button button-primary rs-small" asp-controller="Reservation" asp-action="Review" asp-route-id="@request.ReservationId">Release</a>
                                         }
                                         <a class="icon-button"
                                            asp-controller="Reservation"
-                                           asp-action="Details"
+                                           asp-action="Review"
                                            asp-route-id="@request.ReservationId"
                                            aria-label="View @request.ReservationNumber"
                                            title="View request">

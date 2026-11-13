@@ -60,7 +60,7 @@
     function updateFields() {
         const student = type.value === "Student";
         get("studentFields").hidden = !student;
-        get("schoolIdLabel").textContent = student ? "Student ID" : "Employee ID";
+        get("schoolIdLabelText").textContent = student ? "Student ID" : "Employee ID";
         for (const id of ["Program", "YearLevel"]) {
             get(id).disabled = !student;
             get(id).required = student;

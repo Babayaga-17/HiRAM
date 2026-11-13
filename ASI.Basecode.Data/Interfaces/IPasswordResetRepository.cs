@@ -9,7 +9,6 @@ namespace ASI.Basecode.Data.Interfaces
         void AddToken(PasswordResetToken token);
         bool TryAddToken(PasswordResetToken token, DateTime cooldownCutoffUtc);
         PasswordResetToken GetLatestActiveToken(int accountId);
-
         PasswordResetToken GetLatestToken(int accountId);
         void Save();
     }

@@ -103,7 +103,7 @@ namespace ASI.Basecode.Services.Services
 
                 timeline.Add(Step("Borrowed", borrowed ? Stamp(reservation.BorrowedAt.Value) : "Not yet borrowed", borrowed ? "done" : "pending"));
                 timeline.Add(Step("Due back", Stamp(reservation.ExpectedReturnDateTime),
-                    row.DisplayStatus == ReservationDisplayStatuses.Overdue ? "alert" : (returned ? "done" : "pending")));
+                    row.DisplayStatus == ReservationStatuses.Overdue ? "alert" : (returned ? "done" : "pending")));
                 timeline.Add(Step("Returned", returned ? Stamp(reservation.ReturnedAt.Value) : "Not yet returned", returned ? "done" : "pending"));
             }
 
@@ -132,7 +132,7 @@ namespace ASI.Basecode.Services.Services
                 ConditionReturned = JoinDistinct(items.Select(item => item.ConditionAtReturn), ", "),
                 ReceivedBy = reservation.ReceivedByUser == null ? null : FullName(reservation.ReceivedByUser),
                 Remarks = JoinDistinct(items.Select(item => item.BorrowingRemarks), "; "),
-                ActionNeeded = row.DisplayStatus == ReservationDisplayStatuses.Overdue
+                ActionNeeded = row.DisplayStatus == ReservationStatuses.Overdue
             };
         }
 
@@ -240,7 +240,7 @@ namespace ASI.Basecode.Services.Services
                 query = query.Where(reservation => reservation.StartDateTime < to);
             }
 
-            if (filter.Status == ReservationDisplayStatuses.Overdue)
+            if (filter.Status == ReservationStatuses.Overdue)
             {
                 query = query.Where(reservation =>
                     (reservation.Status == ReservationStatuses.Borrowed || reservation.Status == ReservationStatuses.Overdue)
@@ -330,7 +330,7 @@ namespace ASI.Basecode.Services.Services
                 BorrowedAt = reservation.BorrowedAt,
                 ReturnedAt = reservation.ReturnedAt,
                 Status = reservation.Status,
-                DisplayStatus = overdue ? ReservationDisplayStatuses.Overdue : (reservation.Status == ReservationStatuses.Overdue ? ReservationStatuses.Borrowed : reservation.Status),
+                DisplayStatus = overdue ? ReservationStatuses.Overdue : (reservation.Status == ReservationStatuses.Overdue ? ReservationStatuses.Borrowed : reservation.Status),
                 LateText = late.HasValue ? FormatLate(late.Value) : null
             };
         }

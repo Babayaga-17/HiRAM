@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 namespace ASI.Basecode.WebApp.Controllers;
 
 [Authorize]
+[Authorize(Roles = $"{RoleNames.Borrower}, {RoleNames.Custodian}, {RoleNames.Admin}")]
 public class NotificationController : Controller
 {
     private readonly INotificationService _notifications;
@@ -68,7 +69,14 @@ public class NotificationController : Controller
             {
                 var staff = model.EventType == NotificationEvents.ReservationSubmitted || model.EventType == NotificationEvents.ReservationCancelled;
                 if (!staff || User.IsInRole(RoleNames.Custodian) || User.IsInRole(RoleNames.Admin))
-                { model.RelatedUrl = Url.Action("Details", staff ? "Reservation" : "EquipmentReservation", new { id = model.ReservationId }); model.RelatedLabel = "View reservation"; }
+                {
+                    model.RelatedUrl = Url.Action(
+                        staff ? "Review" : "ReservationDetails",
+                        "Reservation",
+                        new { id = model.ReservationId });
+
+                    model.RelatedLabel = "View reservation"; 
+                }
             }
             return View(model);
         }

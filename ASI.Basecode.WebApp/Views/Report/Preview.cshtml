@@ -90,14 +90,14 @@
                     <tbody>
                         @foreach (var row in rows)
                         {
-                            <tr class="@(row.DisplayStatus == ReservationDisplayStatuses.Overdue ? "is-overdue" : "")">
+                            <tr class="@(row.DisplayStatus == ReservationStatuses.Overdue ? "is-overdue" : "")">
                                 <td><b>@row.ReservationNumber</b></td>
                                 <td>@row.BorrowerName</td>
                                 <td>@row.EquipmentSummary</td>
                                 <td>@Time(row.BorrowedAt)</td>
                                 <td>@row.ExpectedReturnDateTime.ToString("MMM d, h:mm tt")</td>
                                 <td>@Time(row.ReturnedAt)</td>
-                                <td><b class="@(row.DisplayStatus == ReservationDisplayStatuses.Overdue ? "pv-late" : "")">@row.DisplayStatus</b></td>
+                                <td><b class="@(row.DisplayStatus == ReservationStatuses.Overdue ? "pv-late" : "")">@row.DisplayStatus</b></td>
                                 <td class="@(row.IsLate ? "pv-late" : "")">@(row.LateText ?? "—")</td>
                             </tr>
                         }

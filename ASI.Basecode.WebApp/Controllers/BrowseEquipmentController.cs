@@ -17,14 +17,14 @@ using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Borrower, Admin")]
+[Authorize(Roles = RoleNames.Borrower)]
 public class BrowseEquipmentController : ControllerBase<BrowseEquipmentController>
 {
     private const string SelectionKey = "SelectedEquipmentIds";
 
     private readonly IEquipmentService _equipmentService;
     private readonly IEquipmentCategoryService _equipmentCategoryService;
-    private readonly IEquipmentReservationService _reservationService;
+    private readonly IReservationService _reservationService;
     private readonly IEquipmentPhotoService _equipmentPhotoService;
 
     public BrowseEquipmentController(
@@ -33,7 +33,7 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         IConfiguration configuration,
         IEquipmentService equipmentService,
         IEquipmentCategoryService equipmentCategoryService,
-        IEquipmentReservationService reservationService,
+        IReservationService reservationService,
         IEquipmentPhotoService equipmentPhotoService,
         IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
@@ -41,7 +41,7 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         _equipmentCategoryService = equipmentCategoryService;
         _reservationService = reservationService;
         _equipmentPhotoService = equipmentPhotoService;
-    }
+    }   
 
     [HttpGet]
     public async Task<IActionResult> Index(int? reservationId)
@@ -81,15 +81,13 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
 
                 try
                 {
-                    var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(
-                        item.CoverPhotoStoragePath, cancellationToken);
+                    var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(item.CoverPhotoStoragePath, cancellationToken);
 
                     item.ImageUrls.Add(coverUrl);
                 }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogWarning(
-                        exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
+                    _logger.LogWarning(exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
                 }
             }
 

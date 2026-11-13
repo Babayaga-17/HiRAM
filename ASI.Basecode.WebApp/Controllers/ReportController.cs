@@ -1,4 +1,5 @@
-﻿using ASI.Basecode.Services.Interfaces;
+﻿using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
@@ -12,7 +13,7 @@ using System.Linq;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Custodian, Admin")]
+[Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
 public class ReportController : ControllerBase<ReportController>
 {
     private const int PageSize = 8;

@@ -47,7 +47,7 @@ public abstract class SupabasePhotoStorage
             expiresIn = 3600
         });
 
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        using var response = await _httpClient.SendAsync(request, cancellationToken); // exception
 
         EnsureSuccess(response, "create a photo URL");
 

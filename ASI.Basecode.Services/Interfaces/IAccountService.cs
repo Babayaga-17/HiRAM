@@ -12,7 +12,7 @@ namespace ASI.Basecode.Services.Interfaces
 {
     public interface IAccountService
     {
-        LoginResult AuthenticateAccount(string email, string password, ref Account account);
+        LoginResponse AuthenticateAccount(string email, string password);
         Task RecordSuccessfulLoginAsync(int accountId);
         Task<MyProfileViewModel> GetProfileAsync(int userId, CancellationToken cancellationToken = default);
     }

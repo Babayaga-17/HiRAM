@@ -22,7 +22,16 @@
         {
             Success = 0,
             Failed = 1,
-            PendingApproval = 2,
+        }
+
+        public enum LoginFailureReason
+        {
+            InvalidCredentials,
+            PendingApproval,
+            Inactive,
+            Suspended,
+            Disabled,
+            TemporarilyLocked
         }
 
         public enum SendResetCodeStatus

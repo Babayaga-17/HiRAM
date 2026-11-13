@@ -2,6 +2,7 @@ using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.Services;
 using ASI.Basecode.WebApp.Authentication;
@@ -37,19 +38,18 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IAccountService, AccountService>();
             this._services.AddScoped<IEquipmentCategoryService, EquipmentCategoryService>();
             this._services.AddScoped<IEquipmentService, EquipmentService>();
-            this._services.AddScoped<IEquipmentReservationService, EquipmentReservationService>();
             this._services.AddScoped<IPasswordResetService, PasswordResetService>();
             this._services.AddScoped<IBorrowerProfileService, BorrowerProfileService>();
             this._services.AddScoped<IUserAccountService, UserAccountService>();
             this._services.AddScoped<IReservationService, ReservationService>();
             this._services.AddScoped<IReportService, ReportService>();
+            this._services.AddScoped<IDashboardService, DashboardService>();
             this._services.AddHttpClient<IEquipmentPhotoService, EquipmentPhotoService>();
             this._services.AddHttpClient<IProfilePhotoService, ProfilePhotoService>();
 
             this._services.Configure<SupabaseStorageOptions>(this.Configuration.GetSection(SupabaseStorageOptions.SectionName));
 
             this._services.AddScoped<IMaintenanceService, MaintenanceService>();
-            this._services.AddScoped<IEmailManager, ASI.Basecode.Services.Manager.EmailManager>();
             this._services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
 
             // Repositories
@@ -58,7 +58,6 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<INotificationEmailDispatcher, NotificationEmailDispatcher>();
             this._services.AddHostedService<Workers.NotificationEmailWorker>();
             this._services.AddScoped<IBorrowerProfileRepository, BorrowerProfileRepository>();
-            this._services.AddScoped<IEquipmentReservationRepository, EquipmentReservationRepository>();
             this._services.AddScoped<IUserRepository, UserRepository>();
             this._services.AddScoped<IAccountRepository, AccountRepository>();
             this._services.AddScoped<IEquipmentCategoryRepository, EquipmentCategoryRepository>();
@@ -70,6 +69,8 @@ namespace ASI.Basecode.WebApp
 
             // Manager Class
             this._services.AddScoped<SignInManager>();
+            this._services.AddScoped<IEmailManager, EmailManager>();
+
 
             this._services.AddHttpClient();
         }

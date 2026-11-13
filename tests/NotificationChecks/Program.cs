@@ -51,14 +51,15 @@ try
 
     var equipment = new Equipment { EquipmentCode = "TEST-EQUIP", EquipmentName = "Test projector", IsActive = true, ConditionStatus = "Good", CreatedBy = "test" };
     db.Add(equipment); db.SaveChanges();
-    var submissions = new EquipmentReservationService(new EquipmentReservationRepository(unit), new EquipmentService(new EquipmentRepository(unit), null), notifications);
+    var equipmentService = new EquipmentService(new EquipmentRepository(unit), null);
+    var submissions = new ReservationService(new ReservationRepository(unit), notifications, equipmentService);
     ReservationFormModel Request(int day) => new() { EquipmentIds = new() { equipment.EquipmentId }, Purpose = "Class presentation",
         Pickup = DateTime.Today.AddDays(day).AddHours(10), ExpectedReturn = DateTime.Today.AddDays(day).AddHours(12) };
     var submitted = submissions.Submit(Request(7), borrower.UserId);
     Check(submitted.Error == null, "Reservation submission succeeds with queued notification");
     var reservation = db.Reservations.Single(r => r.ReservationNumber == submitted.ReservationNumber);
     Check(db.Notifications.Any(n => n.ReservationId == reservation.ReservationId && n.EventType == NotificationEvents.ReservationSubmitted && n.RecipientUserId == custodian.UserId), "Submission notifies custodian");
-    var reviews = new ReservationService(new ReservationRepository(unit), notifications);
+    var reviews = new ReservationService(new ReservationRepository(unit), notifications, equipmentService);
     Check(reviews.Approve(reservation.ReservationId, custodian.UserId, "staff", null).ok, "Reservation review and notification commit");
     Check(db.Notifications.Any(n => n.ReservationId == reservation.ReservationId && n.EventType == NotificationEvents.ReservationApproved && n.RecipientUserId == borrower.UserId), "Approval notifies requesting borrower");
     Check(!reviews.Approve(reservation.ReservationId, custodian.UserId, "staff", null).ok && db.Notifications.Count(n => n.EventType == NotificationEvents.ReservationApproved) == 1, "Repeated decision does not duplicate notification");

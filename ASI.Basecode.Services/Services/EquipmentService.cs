@@ -649,5 +649,10 @@ namespace ASI.Basecode.Services.Services
         {
             return _equipmentRepository.GetEquipmentPhotos(equipmentId);
         }
+
+        public Task<int> CountEquipmentAsync()
+        {
+            return _equipmentRepository.CountEquipmentAsync();
+        }
     }
 }

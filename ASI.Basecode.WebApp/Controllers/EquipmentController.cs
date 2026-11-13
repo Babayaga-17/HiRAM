@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-[Authorize(Roles = "Borrower, Custodian, Admin")]
+[Authorize(Roles = $"{RoleNames.Borrower}, {RoleNames.Custodian}, {RoleNames.Admin}")]
 public class EquipmentController : ControllerBase<EquipmentController>
 {
     private readonly IEquipmentService _equipmentService;
@@ -57,14 +57,12 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
                 try
                 {
-                    var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(
-                        item.CoverPhotoStoragePath, cancellationToken);
+                    var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(item.CoverPhotoStoragePath, cancellationToken);
                     item.ImageUrls.Add(coverUrl);
                 }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
-                    _logger.LogWarning(
-                        exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
+                    _logger.LogWarning(exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
                 }
             }
 
@@ -270,9 +268,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
         {
             if (photo.Length == 0 || photo.Length > EquipmentPhotoPolicy.MaxPhotoBytes)
             {
-                ModelState.AddModelError(
-                    nameof(photos),
-                    $"Each photo must be nonempty and at most {EquipmentPhotoPolicy.MaxPhotoSizeMb} MB.");
+                ModelState.AddModelError(nameof(photos), $"Each photo must be nonempty and at most {EquipmentPhotoPolicy.MaxPhotoSizeMb} MB.");
                 break;
             }
 
@@ -280,8 +276,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
             if (format == null)
             {
-                ModelState.AddModelError(
-                    nameof(photos), "Choose JPG, PNG, or WebP images.");
+                ModelState.AddModelError(nameof(photos), "Choose JPG, PNG, or WebP images.");
                 break;
             }
 

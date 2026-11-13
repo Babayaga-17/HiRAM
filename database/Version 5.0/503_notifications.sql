@@ -1,3 +1,4 @@
+use HiramDb;
 -- Incremental update: select the existing HiRAM database before running.
 -- No existing user/reservation records are modified. All timestamps are UTC.
 -- After applying, scaffold the entities and context; do not edit generated files manually.

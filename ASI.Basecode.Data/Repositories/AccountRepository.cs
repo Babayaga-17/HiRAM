@@ -17,11 +17,19 @@ namespace ASI.Basecode.Data.Repositories
         {
         }
 
-        public Account GetByEmail(string email)
+        public Account GetAccountByEmail(string email)
         {
             return GetDbSet<Account>().Include(account => account.User)
                                       .Include(account => account.Role)
                                       .FirstOrDefault(account => account.Email == email);
+        }
+
+        public async Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc)
+        {
+            await GetDbSet<Account>()
+                .Where(account => account.AccountId == accountId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(account => account.LastLoginAt, (DateTime?)loginAtUtc));
         }
 
         // User and Role Management (WBS 5.1)
@@ -93,12 +101,31 @@ namespace ASI.Basecode.Data.Repositories
             return true;
         }
 
-        public async Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc)
+        public Task<Dictionary<string, int>> CountAccountsByStatusAsync()
         {
-            await GetDbSet<Account>()
-                .Where(account => account.AccountId == accountId)
-                .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(account => account.LastLoginAt, (DateTime?)loginAtUtc));
+            return GetDbSet<Account>()
+                .AsNoTracking()
+                .GroupBy(account => account.AccountStatus)
+                .Select(group => new
+                {
+                    Status = group.Key,
+                    Count = group.Count()
+                })
+                .ToDictionaryAsync(row => row.Status, row => row.Count);
+        }
+
+        public Task<List<Account>> GetPendingRegistrationPreviewAsync()
+        {
+            return GetDbSet<Account>()
+                .AsNoTracking()
+                .Where(account =>
+                    account.AccountStatus == AccountStatuses.PendingApproval)
+                .OrderBy(account => account.User.LastName)
+                .ThenBy(account => account.User.FirstName)
+                .ThenBy(account => account.UserId)
+                .Take(4)
+                .Include(account => account.User)
+                .ToListAsync();
         }
     }
 }

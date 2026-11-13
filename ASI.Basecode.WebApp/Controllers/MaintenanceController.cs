@@ -3,13 +3,15 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 namespace ASI.Basecode.WebApp.Controllers;
-[Authorize(Roles = "Custodian,Admin")]
+
+[Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
 public class MaintenanceController : Controller
 {
     private readonly IMaintenanceService maintenance;
