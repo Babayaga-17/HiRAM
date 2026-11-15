@@ -616,9 +616,7 @@ namespace ASI.Basecode.Services.Services
 
             var filteredCount = query.Count();
 
-            var totalPages = Math.Max(
-                1,
-                (int)Math.Ceiling((double)filteredCount / pageSize));
+            var totalPages = Math.Max(1, (int)Math.Ceiling((double)filteredCount / pageSize));
 
             page = Math.Clamp(page, 1, totalPages);
 

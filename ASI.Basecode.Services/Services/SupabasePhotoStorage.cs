@@ -76,9 +76,7 @@ public abstract class SupabasePhotoStorage
         return new Uri(_storageUrl, signedUrl.TrimStart('/')).AbsoluteUri;
     }
 
-    public async Task<Dictionary<string, string>> CreateReadUrlsAsync(
-    IEnumerable<string> storagePaths,
-    CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, string>> CreateReadUrlsAsync(IEnumerable<string> storagePaths, CancellationToken cancellationToken = default)
     {
         var paths = storagePaths
             .Where(path => !string.IsNullOrWhiteSpace(path))

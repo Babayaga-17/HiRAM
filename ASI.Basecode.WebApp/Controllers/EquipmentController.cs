@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
@@ -40,42 +41,30 @@ public class EquipmentController : ControllerBase<EquipmentController>
         _equipmentPhotoService = equipmentPhotoService;
     }
 
+    #region Actions
 
     [HttpGet]
-    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
+    [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
     public async Task<IActionResult> Index(EquipmentListRequest request)
     {
         try
         {
             LoadCategories(null, true);
+
             var model = _equipmentService.GetEquipmentPage(request);
-            var cancellationToken = HttpContext.RequestAborted;
 
-            foreach (var item in model.Items)
-            {
-                if (string.IsNullOrWhiteSpace(item.CoverPhotoStoragePath))
-                    continue;
-
-                try
-                {
-                    var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(item.CoverPhotoStoragePath, cancellationToken);
-                    item.ImageUrls.Add(coverUrl);
-                }
-                catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
-                {
-                    return new EmptyResult();
-                }
-                catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
-                {
-                    _logger.LogWarning(exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
-                }
-            }
+            await LoadCoverPhotosAsync(model.Items, HttpContext.RequestAborted);
 
             return View(model);
         }
-        catch (Exception) when (!HttpContext.RequestAborted.IsCancellationRequested)
+        catch (Exception exception)
+            when (!HttpContext.RequestAborted.IsCancellationRequested)
         {
-            TempData["EquipmentLoadError"] = "Unable to load equipment. Please try again.";
+            _logger.LogError(exception, "Unable to load equipment.");
+
+            TempData["EquipmentLoadError"] =
+                "Unable to load equipment. Please try again.";
+
             return View(new EquipmentIndexViewModel());
         }
     }
@@ -159,10 +148,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
         // Reservation editing remains on the borrower route until
         // its ownership checks are migrated.
         if (isBorrower && reservationId.HasValue)
-            return RedirectToAction(
-                "Details",
-                "BrowseEquipment",
-                new { id, reservationId });
+            return RedirectToAction("Details", "BrowseEquipment", new { id, reservationId });
 
         var equipment = isBorrower
             ? _equipmentService.GetBorrowableEquipmentById(id)
@@ -171,27 +157,16 @@ public class EquipmentController : ControllerBase<EquipmentController>
         if (equipment == null)
             return NotFound();
 
-        var cancellationToken = HttpContext.RequestAborted;
-
-        foreach (var photo in _equipmentService.GetEquipmentPhotos(id))
+        try
         {
-            try
-            {
-                equipment.ImageUrls.Add(
-                    await _equipmentPhotoService.CreateReadUrlAsync(
-                        photo.StoragePath, cancellationToken));
-            }
-            catch (Exception exception)
-                when (!cancellationToken.IsCancellationRequested)
-            {
-                _logger.LogWarning(
-                    exception,
-                    "Unable to load photo {PhotoId} for equipment {EquipmentId}.",
-                    photo.PhotoId, id);
-            }
-        }
+            await LoadDetailPhotosAsync(equipment, HttpContext.RequestAborted);
 
-        return View(equipment);
+            return View(equipment);
+        }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            return new EmptyResult();
+        }
     }
 
     [HttpGet]
@@ -250,60 +225,6 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
         LoadCategories(equipment.CategoryId);
         return View(equipment);
-    }
-
-    private List<(IFormFile File, string Path, string ContentType)> PreparePhotoUploads(List<IFormFile> photos, int availableSlots)
-    {
-        var uploads = new List<(IFormFile File, string Path, string ContentType)>();
-
-        if (photos == null || photos.Count == 0)
-            return uploads;
-
-        if (photos.Count > availableSlots)
-        {
-            var message = availableSlots == 0
-                ? "This equipment already has the maximum number of photos."
-                : $"Choose up to {availableSlots} photos.";
-
-            ModelState.AddModelError(nameof(photos), message);
-            return uploads;
-        }
-
-        foreach (var photo in photos)
-        {
-            if (photo.Length == 0 || photo.Length > EquipmentPhotoPolicy.MaxPhotoBytes)
-            {
-                ModelState.AddModelError(nameof(photos), $"Each photo must be nonempty and at most {EquipmentPhotoPolicy.MaxPhotoSizeMb} MB.");
-                break;
-            }
-
-            var format = GetPhotoFormat(photo);
-
-            if (format == null)
-            {
-                ModelState.AddModelError(nameof(photos), "Choose JPG, PNG, or WebP images.");
-                break;
-            }
-
-            uploads.Add((photo, $"equipment/{Guid.NewGuid():N}{format.Value.Extension}", format.Value.ContentType));
-        }
-
-        return uploads;
-    }
-
-    private async Task CleanUpPhotosAsync(IEnumerable<string> paths)
-    {
-        foreach (var path in paths)
-        {
-            try
-            {
-                await _equipmentPhotoService.DeleteAsync(path);
-            }
-            catch (Exception exception)
-            {
-                _logger.LogWarning(exception, "Unable to clean up equipment photo {PhotoPath}.", path);
-            }
-        }
     }
 
     [HttpGet]
@@ -461,6 +382,10 @@ public class EquipmentController : ControllerBase<EquipmentController>
         return RedirectToList(request);
     }
 
+#endregion
+
+    #region Helpers
+
     private IActionResult SetStatus(int id, bool isActive, EquipmentListRequest request, bool returnToDetails)
     {
         try
@@ -483,6 +408,88 @@ public class EquipmentController : ControllerBase<EquipmentController>
         return returnToDetails && _equipmentService.GetEquipmentById(id) != null
             ? RedirectToAction(nameof(Details), new { id })
             : RedirectToList(request);
+    }
+
+    private async Task LoadCoverPhotosAsync(IEnumerable<EquipmentListItem> items, CancellationToken cancellationToken)
+    {
+        var equipment = items.ToList();
+
+        var paths = equipment
+            .Select(item => item.CoverPhotoStoragePath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (paths.Count == 0)
+            return;
+
+        try
+        {
+            var urls = await _equipmentPhotoService.CreateReadUrlsAsync(paths, cancellationToken);
+
+            foreach (var item in equipment)
+            {
+                var path = item.CoverPhotoStoragePath;
+
+                if (!string.IsNullOrWhiteSpace(path) && urls.TryGetValue(path, out var url))
+                {
+                    item.ImageUrls.Add(url);
+                }
+            }
+
+            var missingCount = paths.Count - urls.Count;
+
+            if (missingCount > 0)
+            {
+                _logger.LogWarning(
+                    "Unable to load {Count} equipment cover photos.",
+                    missingCount);
+            }
+        }
+        catch (Exception exception)
+            //when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                exception, "Unable to load equipment cover photos.");
+        }
+    }
+
+    private async Task LoadDetailPhotosAsync(EquipmentListItem equipment, CancellationToken cancellationToken)
+    {
+        var photos = _equipmentService.GetEquipmentPhotos(equipment.EquipmentId);
+
+        var paths = photos
+            .Select(photo => photo.StoragePath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (paths.Count == 0)
+            return;
+
+        try
+        {
+            var urls = await _equipmentPhotoService.CreateReadUrlsAsync(paths, cancellationToken);
+
+            foreach (var photo in photos)
+            {
+                if (!string.IsNullOrWhiteSpace(photo.StoragePath) && urls.TryGetValue(photo.StoragePath, out var url))
+                {
+                    equipment.ImageUrls.Add(url);
+                }
+            }
+
+            var missingCount = paths.Count - urls.Count;
+
+            if (missingCount > 0)
+            {
+                _logger.LogWarning("Unable to load {Count} photos for equipment {EquipmentId}.", missingCount, equipment.EquipmentId);
+            }
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(exception, "Unable to load photos for equipment {EquipmentId}.", equipment.EquipmentId);
+        }
     }
 
     // Builds Category dropdown. The form lists active categories (plus the item's current one);
@@ -541,6 +548,60 @@ public class EquipmentController : ControllerBase<EquipmentController>
         }
     }
 
+    private List<(IFormFile File, string Path, string ContentType)> PreparePhotoUploads(List<IFormFile> photos, int availableSlots)
+    {
+        var uploads = new List<(IFormFile File, string Path, string ContentType)>();
+
+        if (photos == null || photos.Count == 0)
+            return uploads;
+
+        if (photos.Count > availableSlots)
+        {
+            var message = availableSlots == 0
+                ? "This equipment already has the maximum number of photos."
+                : $"Choose up to {availableSlots} photos.";
+
+            ModelState.AddModelError(nameof(photos), message);
+            return uploads;
+        }
+
+        foreach (var photo in photos)
+        {
+            if (photo.Length == 0 || photo.Length > EquipmentPhotoPolicy.MaxPhotoBytes)
+            {
+                ModelState.AddModelError(nameof(photos), $"Each photo must be nonempty and at most {EquipmentPhotoPolicy.MaxPhotoSizeMb} MB.");
+                break;
+            }
+
+            var format = GetPhotoFormat(photo);
+
+            if (format == null)
+            {
+                ModelState.AddModelError(nameof(photos), "Choose JPG, PNG, or WebP images.");
+                break;
+            }
+
+            uploads.Add((photo, $"equipment/{Guid.NewGuid():N}{format.Value.Extension}", format.Value.ContentType));
+        }
+
+        return uploads;
+    }
+
+    private async Task CleanUpPhotosAsync(IEnumerable<string> paths)
+    {
+        foreach (var path in paths)
+        {
+            try
+            {
+                await _equipmentPhotoService.DeleteAsync(path);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "Unable to clean up equipment photo {PhotoPath}.", path);
+            }
+        }
+    }
+
     /* 
      * Checks the file signature and returns the extension and MIME type used for the upload. 
      * 
@@ -574,5 +635,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
         return null;
     }
+
+    #endregion
 }
 
