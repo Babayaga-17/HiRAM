@@ -41,6 +41,8 @@ public class ReservationController : ControllerBase<ReservationController>
         _equipmentService = equipmentService;
     }
 
+    #region BORROWER Actions
+
     [HttpGet]
     [Authorize(Roles = RoleNames.Borrower)]
     public async Task<IActionResult> MyReservation(string status = null, int page = 1, int pageSize = 5)
@@ -239,15 +241,6 @@ public class ReservationController : ControllerBase<ReservationController>
         return View(model);
     }
 
-    [HttpGet]
-    [Authorize(Roles = RoleNames.Borrower)]
-    public IActionResult Submitted()
-    {
-        var number = TempData["ReservationNumber"] as string;
-        if (number == null) return RedirectToAction("Index", "BrowseEquipment");
-        return View(model: number);
-    }
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = RoleNames.Borrower)]
@@ -403,39 +396,19 @@ public class ReservationController : ControllerBase<ReservationController>
 
         return RedirectToAction(nameof(ReservationDetails), new { id, returnUrl });
     }
-
-    private void PrepareEditView(int reservationId, ReservationEditFormModel model)
+    
+    [HttpGet]
+    [Authorize(Roles = RoleNames.Borrower)]
+    public IActionResult Submitted()
     {
-        ViewData["ReservationId"] = reservationId;
-        LoadEquipment(model);
+        var number = TempData["ReservationNumber"] as string;
+        if (number == null) return RedirectToAction("Index", "BrowseEquipment");
+        return View(model: number);
     }
 
-    private void LoadEquipment(ReservationFormModel model)
-    {
-        model.Equipment = new List<EquipmentListItem>();
-        foreach (var id in (model.EquipmentIds ?? new List<int>()).Distinct())
-        {
-            var item = _equipmentService.GetBorrowableEquipmentById(id);
-            if (item == null || item.Status == EquipmentAvailability.Unavailable)
-            {
-                ViewData["SelectionError"] = "Some selected equipment can no longer be borrowed. Return to Browse Equipment and review your selection.";
-                continue;
-            }
-            model.Equipment.Add(item);
-        }
-    }
+    #endregion
 
-    private static List<int> ParseSelection(string value)
-    {
-        return (value ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Select(part => int.TryParse(part, out var id) ? id : 0)
-            .Where(id => id > 0)
-            .Distinct()
-            .ToList();
-    }
-
-    #region CUSTODIAN, ADMIN
+    #region CUSTODIAN & ADMIN Actions
 
     [HttpGet]
     [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
@@ -601,6 +574,39 @@ public class ReservationController : ControllerBase<ReservationController>
 
     #endregion
 
+    #region Helpers
+
+    private void PrepareEditView(int reservationId, ReservationEditFormModel model)
+    {
+        ViewData["ReservationId"] = reservationId;
+        LoadEquipment(model);
+    }
+
+    private void LoadEquipment(ReservationFormModel model)
+    {
+        model.Equipment = new List<EquipmentListItem>();
+        foreach (var id in (model.EquipmentIds ?? new List<int>()).Distinct())
+        {
+            var item = _equipmentService.GetBorrowableEquipmentById(id);
+            if (item == null || item.Status == EquipmentAvailability.Unavailable)
+            {
+                ViewData["SelectionError"] = "Some selected equipment can no longer be borrowed. Return to Browse Equipment and review your selection.";
+                continue;
+            }
+            model.Equipment.Add(item);
+        }
+    }
+
+    private static List<int> ParseSelection(string value)
+    {
+        return (value ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => int.TryParse(part, out var id) ? id : 0)
+            .Where(id => id > 0)
+            .Distinct()
+            .ToList();
+    }
+
     private IActionResult ShowReturnForm(ReturnReservationRequest request, string error)
     {
         var reservation = _reservationService.GetReservationDetails(request.ReservationId);
@@ -631,4 +637,6 @@ public class ReservationController : ControllerBase<ReservationController>
     {
         return User.Identity?.Name ?? "system";
     }
+
+    #endregion
 }
