@@ -11,6 +11,9 @@ public class MaintenancePageViewModel
     public string Status { get; set; }
     public int Page { get; set; } = 1;
     public int TotalCount { get; set; }
+    public int ScheduledCount { get; set; }
+    public int InProgressCount { get; set; }
+    public int PastEstimateCount { get; set; }
     public int TotalPages => System.Math.Max(1, (TotalCount + 19) / 20);
     public int? SelectedEquipmentId { get; set; }
     public List<EquipmentListItem> Equipment { get; set; } = new();

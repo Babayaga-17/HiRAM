@@ -19,11 +19,16 @@ public class MaintenanceService : IMaintenanceService
     { this.repository = repository; this.email = email; this.logger = logger; }
     public MaintenancePageViewModel GetPage(string search, string status, int page)
     {
+        var now = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(8)).DateTime;
+        var counts = repository.GetOverviewCounts(now);
         var query = repository.Records();
         search = search?.Trim();
         if (!string.IsNullOrEmpty(search)) query = query.Where(r => r.Equipment.EquipmentCode.Contains(search) || r.Equipment.EquipmentName.Contains(search));
         if (!string.IsNullOrEmpty(status)) query = query.Where(r => r.Status == status);
         var model = new MaintenancePageViewModel { Search = search, Status = status, TotalCount = query.Count(), RecordsAvailable = true };
+        model.ScheduledCount = counts.Scheduled;
+        model.InProgressCount = counts.InProgress;
+        model.PastEstimateCount = counts.PastEstimate;
         model.Page = Math.Clamp(page, 1, model.TotalPages);
         model.Records = query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.MaintenanceId).Skip((model.Page - 1) * 20).Take(20).ToList();
         return model;
