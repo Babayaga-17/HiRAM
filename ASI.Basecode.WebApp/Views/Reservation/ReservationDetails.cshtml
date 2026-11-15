@@ -116,12 +116,12 @@
 
 @if (TempData["ReservationSuccess"] is string success)
 {
-    <p class="category-notice" role="status">@success</p>
+    <p class="category-notice category-notice-success reservation-feedback" role="status">@success</p>
 }
 
 @if (TempData["ReservationError"] is string error)
 {
-    <p class="category-notice category-notice-error"
+    <p class="category-notice category-notice-error reservation-feedback"
        role="alert">@error</p>
 }
 
