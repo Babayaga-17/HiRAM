@@ -109,6 +109,9 @@ else
         {
             <form method="get" asp-action="Index" class="list-toolbar">
                 <label class="search-field">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-search" />
+                    </svg>
                     <span class="sr-only">Search equipment</span>
 
                     <input type="search" name="search" value="@Model.Search" placeholder="Search code, name, brand, or model"
