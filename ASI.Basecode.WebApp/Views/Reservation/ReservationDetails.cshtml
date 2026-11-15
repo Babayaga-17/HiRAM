@@ -116,7 +116,10 @@
 
 @if (TempData["ReservationSuccess"] is string success)
 {
-    <p class="category-notice category-notice-success reservation-feedback" role="status">@success</p>
+    var feedbackClass = Model.Status == ReservationStatuses.Cancelled
+        ? "reservation-feedback-cancelled"
+        : "category-notice-success";
+    <p class="category-notice reservation-feedback @feedbackClass" role="status">@success</p>
 }
 
 @if (TempData["ReservationError"] is string error)

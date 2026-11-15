@@ -613,14 +613,16 @@
     border-top: 1px solid var(--line);
     justify-content: flex-end;
 }
-.reservation-feedback {
-    border-inline-start-width: 4px;
-}
-
 .reservation-feedback.category-notice-success {
     color: var(--success-ink);
     background: var(--success-soft);
-    border-color: var(--success);
+    border-color: transparent;
+}
+
+.reservation-feedback.reservation-feedback-cancelled {
+    color: var(--pending-ink);
+    background: var(--pending-soft);
+    border-color: transparent;
 }
 
 .reservation-feedback.category-notice-error {
