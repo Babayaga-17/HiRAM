@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ASI.Basecode.Services.ServiceModels.Equipment;
+using System;
 using System.Collections.Generic;
 
 namespace ASI.Basecode.Services.ServiceModels.Reservation;

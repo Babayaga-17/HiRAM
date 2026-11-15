@@ -11,6 +11,23 @@ public class MaintenanceRepository : BaseRepository, IMaintenanceRepository
 {
     public MaintenanceRepository(IUnitOfWork unitOfWork) : base(unitOfWork) { }
     public IQueryable<MaintenanceRecord> Records() => GetDbSet<MaintenanceRecord>().AsNoTracking().Include(r => r.Equipment);
+    public (int Scheduled, int InProgress, int PastEstimate) GetOverviewCounts(DateTime now)
+    {
+        var counts = GetDbSet<MaintenanceRecord>().AsNoTracking()
+            .GroupBy(record => 1)
+            .Select(group => new
+            {
+                Scheduled = group.Count(record => record.Status == MaintenanceStatuses.Scheduled),
+                InProgress = group.Count(record => record.Status == MaintenanceStatuses.InProgress),
+                PastEstimate = group.Count(record =>
+                    (record.Status == MaintenanceStatuses.Scheduled || record.Status == MaintenanceStatuses.InProgress)
+                    && record.EndDateTime == null
+                    && record.ExpectedCompletionDateTime < now)
+            })
+            .SingleOrDefault();
+
+        return counts == null ? (0, 0, 0) : (counts.Scheduled, counts.InProgress, counts.PastEstimate);
+    }
     public MaintenanceRecord Find(int id) => GetDbSet<MaintenanceRecord>().Include(r => r.Equipment).SingleOrDefault(r => r.MaintenanceId == id);
     public Equipment FindEquipment(int id) => GetDbSet<Equipment>().SingleOrDefault(e => e.EquipmentId == id);
     public string[] ReservationConflicts(int equipmentId, DateTime start) => GetDbSet<ReservationItem>()

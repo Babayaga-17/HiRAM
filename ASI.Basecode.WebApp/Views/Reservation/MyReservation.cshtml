@@ -31,10 +31,10 @@
         <div class="mr-toolbar">
             <h2 id="myReservationsHeading">
                 Your reservations
-                @if (Model.IsAvailable)
+                @* @if (Model.IsAvailable)
                 {
                     <span>@Model.FilteredCount.ToString("N0")</span>
-                }
+                } *@
             </h2>
             <form method="get" asp-controller="Reservation" asp-action="MyReservation" class="mr-filters" data-reservation-filters>
                 <div>

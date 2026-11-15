@@ -1,4 +1,5 @@
 ﻿@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Equipment
 @model EquipmentIndexViewModel
 
 @{
@@ -108,6 +109,9 @@ else
         {
             <form method="get" asp-action="Index" class="list-toolbar">
                 <label class="search-field">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-search" />
+                    </svg>
                     <span class="sr-only">Search equipment</span>
 
                     <input type="search" name="search" value="@Model.Search" placeholder="Search code, name, brand, or model"
@@ -144,7 +148,7 @@ else
                 </a>
             </form>
 
-            <div class="table-scroll" role="region" aria-label="Equipment inventory" tabindex="0" id="equipmentTable">
+            <div class="table-scroll" role="region" aria-label="Equipment inventory" tabindex="0">
                 <table class="category-table">
                     <thead>
                         <tr>
@@ -161,14 +165,10 @@ else
                     <tbody id="equipmentRows">
                         @foreach (var item in Model.Items)
                         {
-                            <tr data-id="@item.EquipmentId" data-name="@item.EquipmentName" data-code="@item.EquipmentCode"
-                                data-category="@item.CategoryId" data-category-name="@item.CategoryName" data-brand="@item.Brand"
-                                data-model="@item.Model" data-serial="@item.SerialNumber" data-asset="@item.AssetTag"
-                                data-condition="@item.ConditionStatus" data-status="@item.StatusClass"
-                                data-status-label="@item.StatusLabel" data-location="@item.StorageLocation"
-                                data-acquired="@(item.AcquisitionDate?.ToString("MMM d, yyyy"))"
-                                data-cost="@(item.AcquisitionCost?.ToString("N2"))" data-description="@item.Description"
-                                data-next="@(item.NextReservationStart?.ToString("MMM d, yyyy h:mm tt"))">
+                            var activationAction = item.IsActive ? "Deactivate" : "Activate";
+
+                            <tr data-id="@item.EquipmentId"
+                                data-name="@item.EquipmentName">
 
                                 <td>
                                     <div class="category-name-cell">
@@ -183,91 +183,77 @@ else
                                                     <use href="#i-box" />
                                                 </svg>
                                             }
-                            </span>
-                            <span>
-                                <strong>@item.EquipmentName</strong>
-                                <small>@item.EquipmentCode</small>
-                            </span>
-                        </div>
-                    </td>
+                                        </span>
+                                        <span>
+                                            <strong>@item.EquipmentName</strong>
+                                            <small>@item.EquipmentCode</small>
+                                        </span>
+                                    </div>
+                                </td>
 
-                    <td>@item.CategoryName</td>
+                                <td>@item.CategoryName</td>
 
-                    <td>
-                        @string.Join(" ", new[] { item.Brand, item.Model }
-                                                .Where(value => !string.IsNullOrWhiteSpace(value)))
-                    </td>
+                                <td>
+                                    @string.Join(" ", new[] { item.Brand, item.Model }.Where(value => !string.IsNullOrWhiteSpace(value)))
+                                </td>
 
-                    <td>
-                        <span class="condition-badge condition-@item.ConditionStatus.ToLowerInvariant()">
-                            @item.ConditionStatus
-                        </span>
-                    </td>
+                                <td>
+                                    <span class="condition-badge condition-@item.ConditionStatus.ToLowerInvariant()">
+                                        @item.ConditionStatus
+                                    </span>
+                                </td>
 
-                    <td>
-                        <span class="status-badge status-@item.StatusClass">
-                            <span></span>
-                            @item.StatusLabel
-                        </span>
-                    </td>
+                                <td>
+                                    <span class="status-badge status-@item.StatusClass">
+                                        <span></span>
+                                        @item.StatusLabel
+                                    </span>
+                                </td>
 
-                    <td>@item.StorageLocation</td>
+                                <td>@item.StorageLocation</td>
 
-                    <td class="actions-column">
-                        <div class="row-actions">
-                            
-                            <a class="icon-button" asp-controller="Equipment" asp-action="Details"
-                               asp-route-id="@item.EquipmentId" aria-label="View @item.EquipmentName"
-                               title="View details">
-                                <svg class="icon" aria-hidden="true">
-                                    <use href="#i-eye" />
-                                </svg>
-                            </a>
+                                <td class="actions-column">
+                                    <div class="row-actions">
 
-                            <a class="icon-button edit-equipment" asp-controller="Equipment" asp-action="Edit"
-                               asp-route-id="@item.EquipmentId" aria-label="Edit @item.EquipmentName"
-                               title="Edit equipment">
-                                <svg class="icon">
-                                    <use href="#i-edit" />
-                                </svg>
-                            </a>
+                                        <a class="icon-button" asp-controller="Equipment" asp-action="Details"
+                                           asp-route-id="@item.EquipmentId" aria-label="View @item.EquipmentName"
+                                           title="View details">
+                                            <svg class="icon" aria-hidden="true">
+                                                <use href="#i-eye" />
+                                            </svg>
+                                        </a>
 
-                            @if (item.IsActive)
+                                        <a class="icon-button" asp-controller="Equipment" asp-action="Edit"
+                                           asp-route-id="@item.EquipmentId" aria-label="Edit @item.EquipmentName"
+                                           title="Edit equipment">
+                                            <svg class="icon">
+                                                <use href="#i-edit" />
+                                            </svg>
+                                        </a>
+
+                                        <form class="category-action-form"
+                                              asp-controller="Equipment"
+                                              asp-action="@activationAction"
+                                              asp-route-id="@item.EquipmentId"
+                                              method="post">
+
+                                            <input type="hidden" name="page" value="@Model.Page" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                                            <input type="hidden" name="status" value="@Model.Status" />
+
+                                            <button type="submit" class="status-action"
+                                                    aria-label="@($"{activationAction} {item.EquipmentName}")">
+                                                @activationAction
+                                            </button>
+                                        </form>
+
+                                        @if (!item.IsActive)
                                         {
-                                            <form class="category-action-form" asp-controller="Equipment" asp-action="Deactivate"
-                                                  asp-route-id="@item.EquipmentId" method="post">
-
-                                                @Html.AntiForgeryToken()
-
-                                                <input type="hidden" name="page" value="@Model.Page" />
-                                                <input type="hidden" name="search" value="@Model.Search" />
-                                                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
-                                                <input type="hidden" name="status" value="@Model.Status" />
-
-                                                <button type="submit" class="status-action" aria-label="Deactivate @item.EquipmentName">
-                                                    Deactivate
-                                                </button>
-                                            </form>
-                                        }
-                                        else
-                                        {
-                                            <form class="category-action-form" asp-controller="Equipment" asp-action="Activate"
-                                                  asp-route-id="@item.EquipmentId" method="post">
-
-                                                @Html.AntiForgeryToken()
-
-                                                <input type="hidden" name="page" value="@Model.Page" />
-                                                <input type="hidden" name="search" value="@Model.Search" />
-                                                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
-                                                <input type="hidden" name="status" value="@Model.Status" />
-
-                                                <button type="submit" class="status-action" aria-label="Activate @item.EquipmentName">
-                                                    Activate
-                                                </button>
-                                            </form>
-
-                                            <button type="button" class="status-action status-action-danger delete-equipment"
-                                                    aria-label="Delete @item.EquipmentName" title="Delete equipment">
+                                            <button type="button"
+                                                    class="status-action status-action-danger delete-equipment"
+                                                    aria-label="Delete @item.EquipmentName"
+                                                    title="Delete equipment">
                                                 Delete
                                             </button>
                                         }
@@ -357,8 +343,6 @@ else
             </p>
 
             <form asp-controller="Equipment" asp-action="Delete" method="post">
-
-                @Html.AntiForgeryToken()
 
                 <input type="hidden" name="page" value="@Model.Page" />
                 <input type="hidden" name="search" value="@Model.Search" />
