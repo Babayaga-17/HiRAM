@@ -2,6 +2,7 @@ using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Equipment;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -41,7 +42,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
 
     [HttpGet]
-    [Authorize(Roles = "Custodian,Admin")]
+    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
     public async Task<IActionResult> Index(EquipmentListRequest request)
     {
         try
@@ -60,6 +61,10 @@ public class EquipmentController : ControllerBase<EquipmentController>
                     var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(item.CoverPhotoStoragePath, cancellationToken);
                     item.ImageUrls.Add(coverUrl);
                 }
+                catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+                {
+                    return new EmptyResult();
+                }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
                     _logger.LogWarning(exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
@@ -76,7 +81,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpGet]
-    [Authorize(Roles = "Custodian,Admin")]
+    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
     public IActionResult Schedule(int id, DateTime? from, DateTime? to, int? reservationId)
     {
         if (_equipmentService.GetEquipmentById(id) == null)
@@ -109,7 +114,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpGet]
-    [Authorize(Roles = "Custodian,Admin")]
+    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
     public IActionResult Availability(int id, DateTime? from, DateTime? to, int? reservationId)
     {
         if (_equipmentService.GetEquipmentById(id) == null)
@@ -190,7 +195,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpGet]
-    [Authorize(Roles = "Custodian,Admin")]
+    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
     public IActionResult Create()
     {
         LoadCategories(null);
@@ -199,7 +204,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Custodian,Admin")]
+    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
     public async Task<IActionResult> Create(EquipmentFormViewModel equipment, List<IFormFile> photos)
     {
         var uploads = PreparePhotoUploads(photos, EquipmentPhotoPolicy.MaxPhotosPerEquipment);
@@ -302,7 +307,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpGet]
-    [Authorize(Roles = "Custodian, Admin")]
+    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
     public async Task<IActionResult> Edit(int id)
     {
         try
@@ -326,7 +331,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Custodian, Admin")]
+    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
     public async Task<IActionResult> Edit(EquipmentFormViewModel equipment, List<IFormFile> photos, List<int> removedPhotoIds)
     {
         var attemptedPaths = new List<string>();
@@ -399,14 +404,14 @@ public class EquipmentController : ControllerBase<EquipmentController>
     }
 
     [HttpPost]
-    [Authorize(Roles = "Custodian, Admin")]
+    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
     public IActionResult Activate(int id, EquipmentListRequest request, bool returnToDetails = false)
     {
         return SetStatus(id, true, request, returnToDetails);
     }
 
     [HttpPost]
-    [Authorize(Roles = "Custodian, Admin")]
+    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
     public IActionResult Deactivate(int id, EquipmentListRequest request, bool returnToDetails = false)
     {
         return SetStatus(id, false, request, returnToDetails);
@@ -414,7 +419,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Custodian, Admin")]
+    [Authorize(Roles = $"{RoleNames.Custodian}, {RoleNames.Admin}")]
     public async Task<IActionResult> Delete(int id, EquipmentListRequest request)
     {
         try

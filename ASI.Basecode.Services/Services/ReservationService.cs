@@ -6,6 +6,7 @@ using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Equipment;
 using ASI.Basecode.Services.ServiceModels.Reservation;
 using System;
 using System.Collections.Generic;

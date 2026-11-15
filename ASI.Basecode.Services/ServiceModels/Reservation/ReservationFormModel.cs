@@ -1,3 +1,4 @@
+using ASI.Basecode.Services.ServiceModels.Equipment;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

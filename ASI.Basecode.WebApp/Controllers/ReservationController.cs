@@ -2,6 +2,7 @@
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Equipment;
 using ASI.Basecode.Services.ServiceModels.Reservation;
 using ASI.Basecode.Services.Services;
 using ASI.Basecode.WebApp.Mvc;
@@ -437,6 +438,7 @@ public class ReservationController : ControllerBase<ReservationController>
     #region CUSTODIAN, ADMIN
 
     [HttpGet]
+    [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
     public async Task<IActionResult> Index()
     {
         return await Pending(null);
@@ -444,6 +446,7 @@ public class ReservationController : ControllerBase<ReservationController>
 
     // The status tabs: Pending (default), Approved, Borrowed, Rejected, All.
     [HttpGet]
+    [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
     public async Task<IActionResult> Pending(string status = null)
     {
         try

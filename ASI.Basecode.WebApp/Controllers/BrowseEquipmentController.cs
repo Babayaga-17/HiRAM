@@ -1,6 +1,7 @@
 ﻿using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Equipment;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -84,6 +85,10 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
                     var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(item.CoverPhotoStoragePath, cancellationToken);
 
                     item.ImageUrls.Add(coverUrl);
+                }
+                catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+                {
+                    return new EmptyResult();
                 }
                 catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
                 {
