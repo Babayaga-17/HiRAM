@@ -839,3 +839,8 @@ button.rep-format {
 .rep-export [hidden] {
     display: none !important;
 }
+@media (min-width: 900px) {
+    .rep-table-area {
+        min-height: calc(44px + var(--rep-rows, 8) * 44px);
+    }
+}

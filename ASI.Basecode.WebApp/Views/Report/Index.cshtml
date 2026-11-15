@@ -142,7 +142,7 @@
                     <input type="checkbox" name="LateOnly" value="true" checked="@filter.LateOnly" /> Late returns only
                 </label>
                 <div class="rep-filter-actions">
-                    <button type="submit" class="button button-primary">Generate report</button>
+                    <button type="submit" class="button button-primary">Apply</button>
                     <a class="button button-secondary" href="@Url.Action("Index", "Report")">Clear</a>
                 </div>
             </div>
@@ -153,13 +153,14 @@
             <div class="empty-categories">
                 <span class="empty-icon"><svg class="icon"><use href="#i-search" /></svg></span>
                 <h3>No borrowing records found</h3>
-                <p>Try a different search or clear one of the filters.</p>
+                <p>Search and filter, then apply o update the report.</p>
+
             </div>
         }
         else
         {
-            <div class="table-scroll" role="region" aria-label="Borrowing history report" tabindex="0">
-                <table class="category-table">
+            <div class="table-scroll rep-table-area" style="--rep-rows: @Model.PageSize" role="region" aria-label="Borrowing history report" tabindex="0">
+            <table class="category-table">
                     <thead>
                         <tr>
                             <th scope="col">Reservation</th>
