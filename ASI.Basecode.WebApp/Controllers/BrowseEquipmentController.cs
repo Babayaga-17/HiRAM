@@ -293,7 +293,7 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
             }
         }
         catch (Exception exception)
-        //when (!cancellationToken.IsCancellationRequested)
+            when (!cancellationToken.IsCancellationRequested)
         {
             _logger.LogWarning(
                 exception, "Unable to load equipment cover photos.");

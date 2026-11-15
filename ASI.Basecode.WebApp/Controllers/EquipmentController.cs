@@ -57,6 +57,11 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
             return View(model);
         }
+        catch (OperationCanceledException) 
+            when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            return new EmptyResult();
+        }
         catch (Exception exception)
             when (!HttpContext.RequestAborted.IsCancellationRequested)
         {
@@ -447,7 +452,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
             }
         }
         catch (Exception exception)
-            //when (!cancellationToken.IsCancellationRequested)
+            when (!cancellationToken.IsCancellationRequested)
         {
             _logger.LogWarning(
                 exception, "Unable to load equipment cover photos.");
