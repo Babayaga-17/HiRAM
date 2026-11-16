@@ -187,6 +187,7 @@ namespace ASI.Basecode.Services.Services
                 Account = new Account
                 {
                     RoleId = role.RoleId,
+                    RoleName = role.RoleName,
                     Email = model.Email,
                     PasswordHash = PasswordManager.EncryptPassword(model.Password),
                     AccountStatus = model.AccountStatus,
@@ -278,7 +279,7 @@ namespace ASI.Basecode.Services.Services
             Track(changes, "Contact number", account.User.ContactNumber, model.ContactNumber);
             Track(changes, "Email", account.Email, model.Email);
             Track(changes, "Role", account.Role.RoleName, role.RoleName);
-            Track(changes, "Status", account.AccountStatus, model.AccountStatus);
+            Track(changes, "Status", account.AccountStatus, model.AccountStatus);   
 
             if (isBorrower)
             {
@@ -308,6 +309,7 @@ namespace ASI.Basecode.Services.Services
 
             account.Email = model.Email;
             account.RoleId = role.RoleId;
+            account.RoleName = role.RoleName;
             account.AccountStatus = model.AccountStatus;
             account.UpdatedBy = updatedBy;
             account.UpdatedAt = now;

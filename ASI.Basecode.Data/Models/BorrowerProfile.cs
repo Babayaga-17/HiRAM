@@ -15,6 +15,8 @@ public partial class BorrowerProfile
 
     public string EligibilityStatus { get; set; }
 
+    public string BorrowerType { get; set; }
+
     public string SuspensionReason { get; set; }
 
     public int? SuspendedByUserId { get; set; }
@@ -30,8 +32,6 @@ public partial class BorrowerProfile
     public string UpdatedBy { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
-
-    public string BorrowerType { get; set; }
 
     public virtual Department Department { get; set; }
 

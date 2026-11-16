@@ -19,9 +19,9 @@ namespace ASI.Basecode.Data.Repositories
 
         public Account GetAccountByEmail(string email)
         {
-            return GetDbSet<Account>().Include(account => account.User)
-                                      .Include(account => account.Role)
-                                      .FirstOrDefault(account => account.Email == email);
+            return GetDbSet<Account>()
+                .Include(account => account.User)
+                .FirstOrDefault(account => account.Email == email);
         }
 
         public async Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc)

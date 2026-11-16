@@ -93,10 +93,12 @@ namespace ASI.Basecode.WebApp.Authentication
                     "The account's related user was not loaded.");
             }
 
-            if (account.Role == null)
+            if (account.RoleName != RoleNames.Borrower
+                && account.RoleName != RoleNames.Custodian
+                && account.RoleName != RoleNames.Admin)
             {
                 throw new InvalidOperationException(
-                    "The account's related role was not loaded.");
+                    "The account has an invalid role.");
             }
 
             var fullName = string.Join(" ", new[] { account.User.FirstName, account.User.MiddleName, account.User.LastName, account.User.Suffix }.Where(part => !string.IsNullOrWhiteSpace(part)));
@@ -119,7 +121,7 @@ namespace ASI.Basecode.WebApp.Authentication
             };
 
             if (account.AccountStatus == AccountStatuses.Active)
-                claims.Add(new Claim(ClaimTypes.Role, account.Role.RoleName, ClaimValueTypes.String, Const.Issuer));
+                claims.Add(new Claim(ClaimTypes.Role, account.RoleName, ClaimValueTypes.String, Const.Issuer));
             return new ClaimsIdentity(claims, Const.AuthenticationScheme);
         }
 

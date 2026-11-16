@@ -188,7 +188,7 @@ namespace ASI.Basecode.Services.Services
             Validator.ValidateObject(model, new ValidationContext(model), true);
 
             if (users.UserCodeExists(model.UserCode))
-                throw new ValidationException("That student or employee ID is already registered.");
+                throw new ValidationException("That student or employee ID is already registered.");    
 
             if (accounts.EmailExists(model.Email))
                 throw new ValidationException("That email is already registered.");
@@ -210,6 +210,7 @@ namespace ASI.Basecode.Services.Services
                 Account = new Account
                 {
                     RoleId = role.RoleId,
+                    RoleName = role.RoleName,
                     Email = model.Email,
                     PasswordHash = PasswordManager.EncryptPassword(model.Password),
                     AccountStatus = AccountStatuses.PendingApproval,

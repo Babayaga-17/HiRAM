@@ -31,6 +31,8 @@ public partial class Account
 
     public DateTime? UpdatedAt { get; set; }
 
+    public string RoleName { get; set; }
+
     public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 
     public virtual Role Role { get; set; }
