@@ -16,6 +16,7 @@ namespace ASI.Basecode.Data.Interfaces
         Account GetAccountByUserId(int userId);
         bool EmailExists(string email, int? excludeUserId = null);
         int CountActiveAccountsByRole(string roleName, int? excludeUserId = null);
+        Dictionary<string, (int Total, int Active)> GetAccountCountsByRole();
         void UpdateAccount(Account account);
         bool UpdateRegistration(int userId, Action<Account> applyChanges);
         Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc);

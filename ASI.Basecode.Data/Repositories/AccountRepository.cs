@@ -68,6 +68,25 @@ namespace ASI.Basecode.Data.Repositories
             return query.Count();
         }
 
+        public Dictionary<string, (int Total, int Active)> GetAccountCountsByRole()
+        {
+            var counts = GetDbSet<Account>()
+                .AsNoTracking()
+                .GroupBy(account => account.RoleName)
+                .Select(group => new
+                {
+                    RoleName = group.Key,
+                    Total = group.Count(),
+                    Active = group.Count(account =>
+                        account.AccountStatus == AccountStatuses.Active)
+                })
+                .ToList();
+
+            return counts.ToDictionary(
+                item => item.RoleName,
+                item => (item.Total, item.Active));
+        }
+
         public void UpdateAccount(Account account)
         {
             // Accounts loaded with GetAccountByUserId are tracked, so only the changed columns

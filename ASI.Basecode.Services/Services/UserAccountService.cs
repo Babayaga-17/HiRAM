@@ -77,18 +77,19 @@ namespace ASI.Basecode.Services.Services
 
         public List<RoleListItem> GetRoles()
         {
-            return _roleRepository.GetRoles()
-                .OrderBy(role => role.RoleId)
-                .Select(role => new RoleListItem
+            var counts = _accountRepository.GetAccountCountsByRole();
+
+            return RoleNames.All.Select(roleName =>
+            {
+                counts.TryGetValue(roleName, out var count);
+
+                return new RoleListItem
                 {
-                    RoleId = role.RoleId,
-                    RoleName = role.RoleName,
-                    Description = role.Description ?? string.Empty,
-                    IsActive = role.IsActive,
-                    TotalAccountCount = role.Accounts.Count,
-                    ActiveAccountCount = role.Accounts.Count(account => account.AccountStatus == AccountStatuses.Active)
-                })
-                .ToList();
+                    RoleName = roleName,
+                    TotalAccountCount = count.Total,
+                    ActiveAccountCount = count.Active
+                };
+            }).ToList();
         }
 
         /// <summary>Active departments for the Borrower department dropdown.</summary>
@@ -142,7 +143,6 @@ namespace ASI.Basecode.Services.Services
                 Suffix = account.User.Suffix ?? string.Empty,
                 ContactNumber = account.User.ContactNumber ?? string.Empty,
                 Email = account.Email,
-                RoleId = account.RoleId,
                 RoleName = account.RoleName,
                 AccountStatus = account.AccountStatus,
                 FailedLoginAttempts = account.FailedLoginAttempts,

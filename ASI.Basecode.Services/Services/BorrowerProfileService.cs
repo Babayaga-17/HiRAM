@@ -194,7 +194,7 @@ namespace ASI.Basecode.Services.Services
                 throw new ValidationException("That email is already registered.");
 
             if (!GetDepartments().Any(d => d.DepartmentId == model.DepartmentId)) throw new ValidationException("Select an active department.");
-            var role = roles.GetRoles().SingleOrDefault(r => r.RoleName == "Borrower" && r.IsActive);
+            var role = roles.GetRoles().SingleOrDefault(r => r.RoleName == RoleNames.Borrower);
             if (role == null) throw new ValidationException("Borrower registration is currently unavailable. Contact your administrator.");
             var now = DateTime.Now;
             var user = new User

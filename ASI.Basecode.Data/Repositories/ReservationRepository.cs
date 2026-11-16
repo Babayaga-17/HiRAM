@@ -99,7 +99,8 @@ namespace ASI.Basecode.Data.Repositories
         public BorrowerProfile GetBorrowerProfile(int borrowerUserId)
         {
             return GetDbSet<BorrowerProfile>().AsNoTracking()
-                .Include(item => item.User).ThenInclude(user => user.Account).ThenInclude(account => account.Role)
+                .Include(item => item.User)
+                    .ThenInclude(user => user.Account)
                 .SingleOrDefault(item => item.UserId == borrowerUserId);
         }
 
