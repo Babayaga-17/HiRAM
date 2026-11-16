@@ -80,9 +80,11 @@ else
                 <p>Browse, search, and manage inventory items.</p>
             </div>
 
-            <span class="count-pill">
-                @Model.TotalEquipment @(Model.TotalEquipment == 1 ? "item" : "items")
-            </span>
+            @*
+        <span class="count-pill">
+        @Model.TotalEquipment @(Model.TotalEquipment == 1 ? "item" : "items")
+        </span>
+        *@
         </div>
 
         @if (Model.TotalEquipment == 0)
@@ -115,7 +117,18 @@ else
                     <span class="sr-only">Search equipment</span>
 
                     <input type="search" name="search" value="@Model.Search" placeholder="Search code, name, brand, or model"
-                           autocomplete="off" />
+                        autocomplete="off" />
+                </label>
+
+                <label class="filter-field filter-field-compact">
+                    <span>Show</span>
+
+                    <select name="pageSize" aria-label="Items per page" onchange="this.form.submit()">
+                        @foreach (var size in new[] { 5, 10, 20 })
+                        {
+                            <option value="@size" selected="@(Model.PageSize == size)">@size</option>
+                        }
+                    </select>
                 </label>
 
                 <label class="filter-field">
@@ -294,8 +307,9 @@ else
                     <nav class="pager" aria-label="Equipment pagination">
                         @if (Model.Page > 1)
                         {
-                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search"
-                               asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page - 1)"
+                                asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search"
+                                asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
                                 Previous
                             </a>
                         }
@@ -310,16 +324,18 @@ else
                             }
                             else
                             {
-                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-search="@Model.Search"
-                                   asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-pageSize="@Model.PageSize"
+                                    asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId"
+                                    asp-route-status="@Model.Status">
                                     @p
                                 </a>
                             }
                         }
                         @if (Model.Page < Model.TotalPages)
                         {
-                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search"
-                               asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page + 1)"
+                                asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search"
+                                asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
                                 Next
                             </a>
                         }
@@ -332,7 +348,7 @@ else
     @if (Model.Items.Count > 0)
     {
         <dialog class="app-dialog" id="deleteEquipmentDialog" aria-labelledby="deleteEquipmentTitle"
-                aria-describedby="deleteEquipmentMessage">
+            aria-describedby="deleteEquipmentMessage">
 
             <h2 id="deleteEquipmentTitle">Delete equipment</h2>
 
@@ -345,6 +361,7 @@ else
             <form asp-controller="Equipment" asp-action="Delete" method="post">
 
                 <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <input type="hidden" name="search" value="@Model.Search" />
                 <input type="hidden" name="categoryId" value="@Model.CategoryId" />
                 <input type="hidden" name="status" value="@Model.Status" />

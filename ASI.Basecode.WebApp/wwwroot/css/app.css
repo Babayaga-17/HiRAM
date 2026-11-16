@@ -1,4 +1,6 @@
-* { box-sizing: border-box; }
+* {
+    box-sizing: border-box;
+}
 
 body {
     margin: 0;
@@ -115,9 +117,9 @@ h1, h2, h3, p {
     box-shadow: none
 }
 
-    .button-secondary:hover {
-        background: var(--raised)
-    }
+.button-secondary:hover {
+    background: var(--raised)
+}
 
 .heading-action {
     height: 42px
@@ -138,7 +140,9 @@ h1, h2, h3, p {
     border-inline-start: 1px solid var(--line);
 }
 
-.stat-card:first-child { border-inline-start: 0; }
+    .stat-card:first-child {
+        border-inline-start: 0;
+    }
 
 .stat-copy {
     display: flex;
@@ -263,6 +267,11 @@ h1, h2, h3, p {
         color: var(--muted);
         background: var(--surface);
         font-size: 13px
+    }
+
+    .filter-field.filter-field-compact select {
+        min-width: 0;
+        width: 68px;
     }
 
 .table-scroll {
@@ -438,10 +447,10 @@ h1, h2, h3, p {
         color: var(--link)
     }
 
-.status-action:disabled {
-    opacity: .55;
-    cursor: not-allowed
-}
+    .status-action:disabled {
+        opacity: .55;
+        cursor: not-allowed
+    }
 
 .category-action-form {
     display: inline-flex;
@@ -453,10 +462,10 @@ h1, h2, h3, p {
     background: var(--danger-soft);
 }
 
-.status-action-danger:not(:disabled):hover {
-    color: var(--danger-ink);
-    background: var(--danger-soft);
-}
+    .status-action-danger:not(:disabled):hover {
+        color: var(--danger-ink);
+        background: var(--danger-soft);
+    }
 
 .button-danger {
     color: var(--on-primary);
@@ -464,10 +473,10 @@ h1, h2, h3, p {
     border-color: var(--danger);
 }
 
-.button-danger:hover {
-    color: var(--on-primary);
-    background: var(--danger);
-}
+    .button-danger:hover {
+        color: var(--on-primary);
+        background: var(--danger);
+    }
 
 .category-notice {
     margin-bottom: 18px;
@@ -514,26 +523,26 @@ h1, h2, h3, p {
     text-align: center
 }
 
-.empty-categories .empty-icon {
-    width: 52px;
-    height: 52px;
-    margin-bottom: 16px
-}
-
-.empty-categories h3 {
-    margin: 0 0 7px;
-    font-size: 16px
-}
-
-.empty-categories p {
-    margin: 0 0 20px;
-    color: var(--muted);
-    font-size: 12px
-}
-
-    .empty-results[hidden] {
-        display: none
+    .empty-categories .empty-icon {
+        width: 52px;
+        height: 52px;
+        margin-bottom: 16px
     }
+
+    .empty-categories h3 {
+        margin: 0 0 7px;
+        font-size: 16px
+    }
+
+    .empty-categories p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 12px
+    }
+
+.empty-results[hidden] {
+    display: none
+}
 
 .empty-icon {
     width: 43px;
@@ -575,7 +584,6 @@ h1, h2, h3, p {
 
     .app-dialog::backdrop {
         background: var(--scrim);
-
     }
 
 .dialog-top {
@@ -989,8 +997,14 @@ h1, h2, h3, p {
         grid-template-columns: 1fr
     }
 
-    .stat-card { padding: 12px 16px; border-inline-start: 0; }
-    .stat-card + .stat-card { border-top: 1px solid var(--line); }
+    .stat-card {
+        padding: 12px 16px;
+        border-inline-start: 0;
+    }
+
+        .stat-card + .stat-card {
+            border-top: 1px solid var(--line);
+        }
 
     .stat-copy strong {
         font-size: 21px
@@ -1102,7 +1116,10 @@ h1, h2, h3, p {
 }
 
 .status-badge.status-pending,
-.status-badge.status-reserved { color: var(--pending-ink); background: var(--pending-soft); }
+.status-badge.status-reserved {
+    color: var(--pending-ink);
+    background: var(--pending-soft);
+}
 
 .pending-muted {
     margin-top: 3px;
@@ -1114,12 +1131,21 @@ h1, h2, h3, p {
     align-self: center;
 }
 
-.status-badge.status-borrowed { color: var(--borrowed-ink); background: var(--borrowed-soft); }
+.status-badge.status-borrowed {
+    color: var(--borrowed-ink);
+    background: var(--borrowed-soft);
+}
 
-.status-badge.status-undermaintenance { color: var(--neutral-ink); background: var(--neutral-soft); }
+.status-badge.status-undermaintenance {
+    color: var(--neutral-ink);
+    background: var(--neutral-soft);
+}
 
 .status-badge.status-unavailable,
-.status-badge.status-inactive { color: var(--neutral-ink); background: var(--neutral-soft); }
+.status-badge.status-inactive {
+    color: var(--neutral-ink);
+    background: var(--neutral-soft);
+}
 
 .status-badge[class*="status-"] > span {
     display: inline-block;

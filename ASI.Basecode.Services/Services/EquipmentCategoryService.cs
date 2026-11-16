@@ -156,7 +156,7 @@ namespace ASI.Basecode.Services.Services
 
         public EquipmentCategoryIndexViewModel GetEquipmentCategoryPage(EquipmentCategoryListRequest request)
         {
-            const int pageSize = 5;
+            var pageSize = request.PageSize == 10 || request.PageSize == 20 ? request.PageSize : 5;
 
             var search = (request.Search ?? string.Empty).Trim();
             var page = request.Page;

@@ -206,6 +206,7 @@ public class EquipmentCategoryController : ControllerBase<EquipmentCategoryContr
         return RedirectToAction(nameof(Index), new
         {
             page = request.Page,
+            pageSize = request.PageSize,
             search = request.Search,
             status = request.Status
         });
