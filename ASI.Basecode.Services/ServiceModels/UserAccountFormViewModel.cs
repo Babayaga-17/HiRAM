@@ -57,7 +57,7 @@ public class UserAccountFormViewModel : IValidatableObject
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Role is required.")]
-    public byte? RoleId { get; set; }
+    public string RoleName { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Status is required.")]
     public string AccountStatus { get; set; } = AccountStatuses.Active;
@@ -101,7 +101,7 @@ public class UserAccountFormViewModel : IValidatableObject
         Suffix = account.Suffix;
         ContactNumber = account.ContactNumber;
         Email = account.Email;
-        RoleId = account.RoleId;
+        RoleName = account.RoleName;
         AccountStatus = account.AccountStatus;
         Version = account.Version;
     }

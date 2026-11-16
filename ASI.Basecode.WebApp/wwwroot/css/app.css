@@ -488,7 +488,7 @@ h1, h2, h3, p {
 
 .category-notice-success {
     color: var(--success-ink);
-    background: var(--raised);
+    background: var(--success-soft);
     border-color: var(--line);
 }
 

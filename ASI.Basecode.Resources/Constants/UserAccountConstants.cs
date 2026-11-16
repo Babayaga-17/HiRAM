@@ -1,7 +1,6 @@
 namespace ASI.Basecode.Resources.Constants
 {
     /// <summary>
-    /// Role names exactly as stored in dbo.Roles.role_name (see database/002_revised_database_data.sql).
     /// These values are also the Role claim used by [Authorize] policies.
     /// </summary>
     public static class RoleNames
@@ -9,6 +8,8 @@ namespace ASI.Basecode.Resources.Constants
         public const string Admin = "Admin";
         public const string Custodian = "Custodian";
         public const string Borrower = "Borrower";
+
+        public static readonly string[] All = { Borrower, Custodian, Admin };
     }
 
     /// <summary>

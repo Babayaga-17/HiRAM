@@ -1,4 +1,4 @@
-namespace ASI.Basecode.Services.ServiceModels
+namespace ASI.Basecode.Services.ServiceModels.Equipment
 {
     public class EquipmentListRequest
     {

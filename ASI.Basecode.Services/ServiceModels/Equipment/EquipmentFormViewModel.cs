@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ASI.Basecode.Services.ServiceModels.Equipment;
 
 namespace ASI.Basecode.Services.ServiceModels;
 

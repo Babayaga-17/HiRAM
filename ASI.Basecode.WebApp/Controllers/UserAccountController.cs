@@ -628,12 +628,6 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
             // Active roles, plus the user's current role even if it was deactivated later.
 
-            ViewData["Roles"] = _userAccountService.GetRoles()
-
-                .Where(role => role.IsActive || role.RoleId == model.RoleId)
-
-                .ToList();
-
             ViewData["Departments"] = _userAccountService.GetActiveDepartments();
 
         }
@@ -642,13 +636,11 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
         {
 
-            _logger.LogError(exception, "Unable to load roles or departments.");
-
-            ViewData["Roles"] = new List<RoleListItem>();
+            _logger.LogError(exception, "Unable to load departments.");
 
             ViewData["Departments"] = new List<DepartmentOption>();
 
-            ModelState.AddModelError(string.Empty, "Unable to load roles. Please try again.");
+            ModelState.AddModelError(string.Empty, "Unable to load departments. Please try again.");
 
         }
 

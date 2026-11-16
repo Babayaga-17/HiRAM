@@ -38,7 +38,6 @@ namespace ASI.Basecode.Data.Repositories
             return GetDbSet<User>()
                 .AsNoTracking()
                 .Include(user => user.Account)
-                    .ThenInclude(account => account.Role)
                 .Include(user => user.BorrowerProfileUser)
                     .ThenInclude(profile => profile.Department)
                 .FirstOrDefault(user => user.UserId == userId);
