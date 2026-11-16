@@ -258,13 +258,13 @@ namespace ASI.Basecode.Services.Services
             if (model.UserId == currentUserId)
             {
                 if (roleChanged)
-                    throw new UserAccountValidationException(nameof(UserAccountFormViewModel.RoleId), ErrorMessages.CannotChangeOwnRole);
+                    throw new UserAccountValidationException(nameof(UserAccountFormViewModel.RoleName), ErrorMessages.CannotChangeOwnRole);
                 if (statusChanged && model.AccountStatus != AccountStatuses.Active)
                     throw new UserAccountValidationException(nameof(UserAccountFormViewModel.AccountStatus), ErrorMessages.CannotDeactivateOwnAccount);
             }
 
             if (!isBorrower && profile != null && _borrowerProfileRepository.HasReservations(model.UserId))
-                throw new UserAccountValidationException(nameof(UserAccountFormViewModel.RoleId),
+                throw new UserAccountValidationException(nameof(UserAccountFormViewModel.RoleName),
                     "This borrower has reservations, so the Borrower details cannot be removed. Resolve or cancel the reservations first.");
 
             if (IsActiveAdmin(account) && (roleChanged || model.AccountStatus != AccountStatuses.Active))
