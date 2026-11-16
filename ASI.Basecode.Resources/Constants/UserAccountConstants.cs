@@ -1,7 +1,6 @@
 namespace ASI.Basecode.Resources.Constants
 {
     /// <summary>
-    /// Role names exactly as stored in dbo.Roles.role_name (see database/002_revised_database_data.sql).
     /// These values are also the Role claim used by [Authorize] policies.
     /// </summary>
     public static class RoleNames
