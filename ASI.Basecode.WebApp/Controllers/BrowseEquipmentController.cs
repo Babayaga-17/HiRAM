@@ -41,7 +41,7 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         _equipmentCategoryService = equipmentCategoryService;
         _reservationService = reservationService;
         _equipmentPhotoService = equipmentPhotoService;
-    }   
+    }
 
     [HttpGet]
     public async Task<IActionResult> Index(int? reservationId)

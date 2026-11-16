@@ -563,7 +563,7 @@ namespace ASI.Basecode.Services.Services
 
         public EquipmentIndexViewModel GetEquipmentPage(EquipmentListRequest request)
         {
-            const int pageSize = 5;
+            var pageSize = request.PageSize == 10 || request.PageSize == 20 ? request.PageSize : 5;
 
             var search = (request.Search ?? string.Empty).Trim();
             var page = request.Page;

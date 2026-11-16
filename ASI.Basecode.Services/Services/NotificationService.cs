@@ -101,8 +101,18 @@ public class NotificationService : INotificationService
         page = Math.Clamp(page, 1, pages);
         var unread = await _notifications.CountAsync(userId, null, false, token);
         var rows = await _notifications.GetPageAsync(userId, search, read, (page - 1) * size, size, token);
-        return new NotificationListViewModel { IsAvailable = true, Search = search, Status = status, Page = page,
-            TotalPages = pages, TotalCount = count, PageSize = size, UnreadCount = unread, Items = rows.Select(Item).ToList() };
+        return new NotificationListViewModel
+        {
+            IsAvailable = true,
+            Search = search,
+            Status = status,
+            Page = page,
+            TotalPages = pages,
+            TotalCount = count,
+            PageSize = size,
+            UnreadCount = unread,
+            Items = rows.Select(Item).ToList()
+        };
     }
 
     public async Task<NotificationMenuViewModel> GetMenuAsync(int userId, CancellationToken token)
@@ -112,12 +122,12 @@ public class NotificationService : INotificationService
             var unread = await _notifications.CountAsync(userId, null, false, token);
             var rows = await _notifications.GetPageAsync(userId, null, null, 0, 5, token);
             return new NotificationMenuViewModel { IsAvailable = true, UnreadCount = unread, Items = rows.Select(Item).ToList() };
-        } 
+        }
         catch (Exception exception)
         {
             return null;
         }
-        
+
     }
 
     public async Task<NotificationDetailsViewModel> GetDetailsAsync(int userId, long id, CancellationToken token)
@@ -125,9 +135,16 @@ public class NotificationService : INotificationService
         var n = await _notifications.GetAsync(id, userId, token);
         return n == null ? null : new NotificationDetailsViewModel
         {
-            IsAvailable = true, Id = n.NotificationId, Title = n.Title, Body = n.Body, Category = Category(n.EventType),
-            CreatedAt = Local(n.CreatedAt), ReadAt = n.ReadAt.HasValue ? Local(n.ReadAt.Value) : null,
-            EventType = n.EventType, RelatedUserId = n.RelatedUserId, ReservationId = n.ReservationId
+            IsAvailable = true,
+            Id = n.NotificationId,
+            Title = n.Title,
+            Body = n.Body,
+            Category = Category(n.EventType),
+            CreatedAt = Local(n.CreatedAt),
+            ReadAt = n.ReadAt.HasValue ? Local(n.ReadAt.Value) : null,
+            EventType = n.EventType,
+            RelatedUserId = n.RelatedUserId,
+            ReservationId = n.ReservationId
         };
     }
     public Task<bool> OpenAsync(int userId, long id, CancellationToken token) => _notifications.MarkReadAsync(id, userId, DateTime.UtcNow, token);
@@ -135,7 +152,11 @@ public class NotificationService : INotificationService
     private static DateTime Local(DateTime utc) => new DateTimeOffset(DateTime.SpecifyKind(utc, DateTimeKind.Utc)).ToOffset(TimeSpan.FromHours(8)).DateTime;
     private static NotificationItemViewModel Item(Notification n) => new()
     {
-        Id = n.NotificationId, Title = n.Title, Preview = n.Body.Length > 110 ? n.Body.Substring(0, 109) + "…" : n.Body,
-        Category = Category(n.EventType), IsRead = n.ReadAt.HasValue, CreatedAt = Local(n.CreatedAt)
+        Id = n.NotificationId,
+        Title = n.Title,
+        Preview = n.Body.Length > 110 ? n.Body.Substring(0, 109) + "…" : n.Body,
+        Category = Category(n.EventType),
+        IsRead = n.ReadAt.HasValue,
+        CreatedAt = Local(n.CreatedAt)
     };
 }

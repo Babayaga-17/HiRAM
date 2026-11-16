@@ -502,6 +502,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
         return RedirectToAction(nameof(Index), new
         {
             page = request.Page,
+            pageSize = request.PageSize,
             search = request.Search,
             categoryId = request.CategoryId,
             status = request.Status
