@@ -9,8 +9,6 @@ public partial class Account
 
     public int UserId { get; set; }
 
-    public byte RoleId { get; set; }
-
     public string Email { get; set; }
 
     public string PasswordHash { get; set; }
@@ -34,8 +32,6 @@ public partial class Account
     public string RoleName { get; set; }
 
     public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
-
-    public virtual Role Role { get; set; }
 
     public virtual User User { get; set; }
 }

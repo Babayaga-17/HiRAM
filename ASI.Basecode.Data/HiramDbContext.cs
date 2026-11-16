@@ -40,8 +40,6 @@ public partial class HiramDbContext : DbContext
 
     public virtual DbSet<ReservationItem> ReservationItems { get; set; }
 
-    public virtual DbSet<Role> Roles { get; set; }
-
     public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -52,8 +50,6 @@ public partial class HiramDbContext : DbContext
     {
         modelBuilder.Entity<Account>(entity =>
         {
-            entity.HasIndex(e => e.RoleId, "IX_Accounts_role_id");
-
             entity.HasIndex(e => e.Email, "UQ_Accounts_email").IsUnique();
 
             entity.HasIndex(e => e.UserId, "UQ_Accounts_user_id").IsUnique();
@@ -87,8 +83,8 @@ public partial class HiramDbContext : DbContext
                 .HasMaxLength(255)
                 .IsUnicode(false)
                 .HasColumnName("password_hash");
-            entity.Property(e => e.RoleId).HasColumnName("role_id");
             entity.Property(e => e.RoleName)
+                .IsRequired()
                 .HasMaxLength(30)
                 .IsUnicode(false)
                 .HasColumnName("role_name");
@@ -98,11 +94,6 @@ public partial class HiramDbContext : DbContext
                 .IsUnicode(false)
                 .HasColumnName("updated_by");
             entity.Property(e => e.UserId).HasColumnName("user_id");
-
-            entity.HasOne(d => d.Role).WithMany(p => p.Accounts)
-                .HasForeignKey(d => d.RoleId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Accounts_Roles");
 
             entity.HasOne(d => d.User).WithOne(p => p.Account)
                 .HasForeignKey<Account>(d => d.UserId)
@@ -693,41 +684,6 @@ public partial class HiramDbContext : DbContext
             entity.HasOne(d => d.Reservation).WithMany(p => p.ReservationItems)
                 .HasForeignKey(d => d.ReservationId)
                 .HasConstraintName("FK_ReservationItems_Reservations");
-        });
-
-        modelBuilder.Entity<Role>(entity =>
-        {
-            entity.HasIndex(e => e.RoleName, "UQ_Roles_role_name").IsUnique();
-
-            entity.Property(e => e.RoleId)
-                .ValueGeneratedOnAdd()
-                .HasColumnName("role_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(sysdatetime())")
-                .HasColumnName("created_at");
-            entity.Property(e => e.CreatedBy)
-                .IsRequired()
-                .HasMaxLength(100)
-                .IsUnicode(false)
-                .HasDefaultValueSql("(suser_sname())")
-                .HasColumnName("created_by");
-            entity.Property(e => e.Description)
-                .HasMaxLength(255)
-                .IsUnicode(false)
-                .HasColumnName("description");
-            entity.Property(e => e.IsActive)
-                .HasDefaultValue(true)
-                .HasColumnName("is_active");
-            entity.Property(e => e.RoleName)
-                .IsRequired()
-                .HasMaxLength(30)
-                .IsUnicode(false)
-                .HasColumnName("role_name");
-            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
-            entity.Property(e => e.UpdatedBy)
-                .HasMaxLength(100)
-                .IsUnicode(false)
-                .HasColumnName("updated_by");
         });
 
         modelBuilder.Entity<User>(entity =>
