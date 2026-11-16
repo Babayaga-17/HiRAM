@@ -9,6 +9,8 @@ namespace ASI.Basecode.Resources.Constants
         public const string Admin = "Admin";
         public const string Custodian = "Custodian";
         public const string Borrower = "Borrower";
+
+        public static readonly string[] All = { Borrower, Custodian, Admin };
     }
 
     /// <summary>

@@ -19,9 +19,12 @@ public class NotificationRepository : BaseRepository, INotificationRepository
     public List<(int UserId, string Email)> GetRecipients(string role, int? userId, bool activeOnly)
     {
         var query = GetDbSet<Account>().AsNoTracking();
-        if (userId.HasValue) query = query.Where(a => a.UserId == userId.Value);
-        if (role != null) query = query.Where(a => a.Role.RoleName == role);
-        if (activeOnly) query = query.Where(a => a.AccountStatus == AccountStatuses.Active && a.Role.IsActive);
+        if (userId.HasValue) 
+            query = query.Where(a => a.UserId == userId.Value);
+        if (role != null) 
+            query = query.Where(a => a.RoleName == role);
+        if (activeOnly) 
+            query = query.Where(a => a.AccountStatus == AccountStatuses.Active && a.Role.IsActive);
         return query.Select(a => new { a.UserId, a.Email }).ToList().Select(a => (a.UserId, a.Email)).ToList();
     }
 

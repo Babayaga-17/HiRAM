@@ -43,7 +43,6 @@ namespace ASI.Basecode.Data.Repositories
         {
             return GetDbSet<Account>().AsTracking()
                                       .Include(account => account.User)
-                                      .Include(account => account.Role)
                                       .FirstOrDefault(account => account.UserId == userId);
         }
 
@@ -59,14 +58,12 @@ namespace ASI.Basecode.Data.Repositories
             return query.Any();
         }
 
-        public int CountActiveAccountsByRole(byte roleId, int? excludeUserId = null)
+        public int CountActiveAccountsByRole(string roleName, int? excludeUserId = null)
         {
-            var query = GetDbSet<Account>().Where(account => account.RoleId == roleId && account.AccountStatus == AccountStatuses.Active);
-
+            var query = GetDbSet<Account>().Where(account => account.RoleName == roleName && account.AccountStatus == AccountStatuses.Active);
+                
             if (excludeUserId.HasValue)
-            {
                 query = query.Where(account => account.UserId != excludeUserId.Value);
-            }
 
             return query.Count();
         }
@@ -90,9 +87,9 @@ namespace ASI.Basecode.Data.Repositories
             var account = GetDbSet<Account>()
                 .FromSqlInterpolated($"SELECT * FROM dbo.Accounts WITH (UPDLOCK, HOLDLOCK) WHERE user_id = {userId}")
                 .AsTracking()
-                .Include(a => a.Role)
                 .Include(a => a.User).ThenInclude(u => u.BorrowerProfileUser)
                 .SingleOrDefault();
+
             if (account == null) return false;
 
             applyChanges(account);
