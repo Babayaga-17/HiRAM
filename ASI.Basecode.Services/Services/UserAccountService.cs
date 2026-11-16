@@ -35,7 +35,6 @@ namespace ASI.Basecode.Services.Services
         private const string SuspendedEligibility = "Suspended";
         private readonly IUserRepository _userRepository;
         private readonly IAccountRepository _accountRepository;
-        private readonly IRoleRepository _roleRepository;
         private readonly IBorrowerProfileRepository _borrowerProfileRepository;
         //private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUnitOfWork _unitOfWork;
@@ -44,7 +43,6 @@ namespace ASI.Basecode.Services.Services
         public UserAccountService(
             IUserRepository userRepository,
             IAccountRepository accountRepository,
-            IRoleRepository roleRepository,
             IBorrowerProfileRepository borrowerProfileRepository,
             //IAuditLogRepository auditLogRepository,
             IUnitOfWork unitOfWork,
@@ -52,7 +50,6 @@ namespace ASI.Basecode.Services.Services
         {
             _userRepository = userRepository;
             _accountRepository = accountRepository;
-            _roleRepository = roleRepository;
             _borrowerProfileRepository = borrowerProfileRepository;
             //_auditLogRepository = auditLogRepository;
             _unitOfWork = unitOfWork;
@@ -186,8 +183,7 @@ namespace ASI.Basecode.Services.Services
                 CreatedAt = now,
                 Account = new Account
                 {
-                    RoleId = role.RoleId,
-                    RoleName = role.RoleName,
+                    RoleName = role,
                     Email = model.Email,
                     PasswordHash = PasswordManager.EncryptPassword(model.Password),
                     AccountStatus = model.AccountStatus,
@@ -215,7 +211,7 @@ namespace ASI.Basecode.Services.Services
             {
                 _userRepository.AddUser(user); // inserts Users + Accounts together
                 AddAudit(currentUserId, createdBy, ipAddress, UserAccountAuditActions.Created, user.UserId,
-                    $"Created {user.UserCode} ({user.Account.Email}) with role {role.RoleName} and status {user.Account.AccountStatus}.");
+                    $"Created {user.UserCode} ({user.Account.Email}) with role {role} and status {user.Account.AccountStatus}.");
             });
 
             return user.UserId;
@@ -252,7 +248,7 @@ namespace ASI.Basecode.Services.Services
             if (errors.Count > 0)
                 throw new UserAccountValidationException(errors);
 
-            var roleChanged = role.RoleName != account.RoleName;
+            var roleChanged = role != account.RoleName;
             var statusChanged = model.AccountStatus != account.AccountStatus;
 
             if (model.UserId == currentUserId)
@@ -278,7 +274,7 @@ namespace ASI.Basecode.Services.Services
             Track(changes, "Suffix", account.User.Suffix, model.Suffix);
             Track(changes, "Contact number", account.User.ContactNumber, model.ContactNumber);
             Track(changes, "Email", account.Email, model.Email);
-            Track(changes, "Role", account.RoleName, role.RoleName);
+            Track(changes, "Role", account.RoleName, role);
             Track(changes, "Status", account.AccountStatus, model.AccountStatus);   
 
             if (isBorrower)
@@ -308,8 +304,7 @@ namespace ASI.Basecode.Services.Services
             account.User.UpdatedAt = now;
 
             account.Email = model.Email;
-            account.RoleId = role.RoleId;
-            account.RoleName = role.RoleName;
+            account.RoleName = role;
             account.AccountStatus = model.AccountStatus;
             account.UpdatedBy = updatedBy;
             account.UpdatedAt = now;
@@ -501,9 +496,9 @@ namespace ASI.Basecode.Services.Services
                 || profile.SuspendedAt.HasValue;
         }
 
-        private static bool IsBorrowerRole(Role role)
+        private static bool IsBorrowerRole(string roleName)
         {
-            return role != null && string.Equals(role.RoleName, RoleNames.Borrower, StringComparison.OrdinalIgnoreCase);
+            return roleName == RoleNames.Borrower;
         }
 
         private static string Text(object value)
@@ -529,9 +524,9 @@ namespace ASI.Basecode.Services.Services
         }
 
         /// <summary>
-        /// Resolves a fixed role through the legacy table during migration.
+        /// Validates the fixed account role names.
         /// </summary>
-        private Role GetAssignableRole(string roleName, Dictionary<string, string> errors)
+        private static string GetAssignableRole(string roleName, Dictionary<string, string> errors)
         {
             if (!RoleNames.All.Contains(roleName))
             {
@@ -540,15 +535,7 @@ namespace ASI.Basecode.Services.Services
                 return null;
             }
 
-            // Temporary lookup for the legacy role_id column.
-            var role = _roleRepository.GetRoles().SingleOrDefault(role => role.RoleName == roleName);
-
-            if (role == null)
-            {
-                errors[nameof(UserAccountFormViewModel.RoleName)] = "The selected role is unavailable.";
-            }
-
-            return role;
+            return roleName;
         }
 
         private static void EnsureNotChanged(Account account, string version)

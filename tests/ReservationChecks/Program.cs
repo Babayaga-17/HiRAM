@@ -20,7 +20,7 @@ try
     var user = new User { UserCode = "TEST", FirstName = "Test", LastName = "Borrower", CreatedBy = "test" };
     user.Account = new Account { Email = "reservation-test@example.invalid", PasswordHash = "unused",
         AccountStatus = AccountStatuses.Active, CreatedBy = "test",
-        Role = new Role { RoleName = "Borrower", IsActive = true, CreatedBy = "test" } };
+        RoleName = RoleNames.Borrower };
     user.BorrowerProfileUser = new BorrowerProfile { EligibilityStatus = EligibilityStatuses.Eligible, CreatedBy = "test",
         Department = new Department { DepartmentCode = "TEST", DepartmentName = "Test", IsActive = true, CreatedBy = "test" } };
     db.Users.Add(user);

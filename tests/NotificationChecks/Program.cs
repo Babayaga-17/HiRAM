@@ -21,19 +21,16 @@ try
 {
     if (db.Database.GetDbConnection().Database != database) throw new Exception("Unexpected database");
     db.Database.EnsureCreated();
-    var borrowerRole = new Role { RoleName = "Borrower", IsActive = true, CreatedBy = "test" };
-    var adminRole = new Role { RoleName = "Admin", IsActive = true, CreatedBy = "test" };
-    var custodianRole = new Role { RoleName = "Custodian", IsActive = true, CreatedBy = "test" };
-    User Person(string code, Role role, string status = "Active") => new() { UserCode = code, FirstName = code, LastName = "Test", CreatedBy = "test",
-        Account = new Account { Role = role, Email = code + "@example.invalid", PasswordHash = "unused", AccountStatus = status, CreatedBy = "test" } };
-    var admin = Person("ADMIN", adminRole); var custodian = Person("STAFF", custodianRole); var disabledAdmin = Person("OFFLINE", adminRole, "Disabled");
+    User Person(string code, string roleName, string status = "Active") => new() { UserCode = code, FirstName = code, LastName = "Test", CreatedBy = "test",
+        Account = new Account { RoleName = roleName, Email = code + "@example.invalid", PasswordHash = "unused", AccountStatus = status, CreatedBy = "test" } };
+    var admin = Person("ADMIN", RoleNames.Admin); var custodian = Person("STAFF", RoleNames.Custodian); var disabledAdmin = Person("OFFLINE", RoleNames.Admin, "Disabled");
     var department = new Department { DepartmentCode = "TEST", DepartmentName = "Test department", IsActive = true, CreatedBy = "test" };
-    db.AddRange(admin, custodian, disabledAdmin, department, borrowerRole); db.SaveChanges();
+    db.AddRange(admin, custodian, disabledAdmin, department); db.SaveChanges();
     var unit = new UnitOfWork(db); var repository = new NotificationRepository(unit); var notifications = new NotificationService(repository);
-    var users = new UserRepository(unit); var accounts = new AccountRepository(unit); var roles = new RoleRepository(unit);
+    var users = new UserRepository(unit); var accounts = new AccountRepository(unit);
     var mail = new TestEmail();
     PasswordManager.secretKey = "notification-test-only";
-    var registration = new BorrowerProfileService(new BorrowerProfileRepository(unit), users, accounts, roles, new TestPhoto(), mail,
+    var registration = new BorrowerProfileService(new BorrowerProfileRepository(unit), users, accounts, new TestPhoto(), mail,
         NullLogger<BorrowerProfileService>.Instance, notifications);
     BorrowerRegistrationViewModel Form(string code) => new() { UserCode = code, BorrowerType = "Faculty", FirstName = "Mara", LastName = "Reyes",
         DepartmentId = department.DepartmentId, Email = code + "@example.invalid", Password = "TestPass123", ConfirmPassword = "TestPass123" };
@@ -42,7 +39,7 @@ try
     Check(db.Notifications.Count(n => n.EventType == NotificationEvents.RegistrationSubmitted) == 1, "New registration notifies only active admins");
     Check(db.Notifications.Any(n => n.RecipientUserId == admin.UserId && n.RelatedUserId == borrower.UserId), "New user's generated ID is linked atomically");
     Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Registration creates no notification email; direct receipt remains separate");
-    var management = new UserAccountService(users, accounts, roles, new BorrowerProfileRepository(unit), unit, notifications);
+    var management = new UserAccountService(users, accounts, new BorrowerProfileRepository(unit), unit, notifications);
     Check(await management.ApproveRegistrationAsync(borrower.UserId, "0", "admin"), "Pending registration approved");
     Check(db.Notifications.Count(n => n.EventType == NotificationEvents.RegistrationApproved && n.RecipientUserId == borrower.UserId) == 1, "Approval creates borrower notification");
     Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Approval creates no queued or direct email");

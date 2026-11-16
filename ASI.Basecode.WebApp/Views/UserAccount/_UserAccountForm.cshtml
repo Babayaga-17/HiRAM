@@ -5,7 +5,6 @@
     var roles = RoleNames.All;
     var departments = ViewData["Departments"] as List<DepartmentOption> ?? new List<DepartmentOption>();
     var isSelf = ViewData["IsSelf"] as bool? == true;
-    // var borrowerRoleId = roles.FirstOrDefault(role => role.RoleName == RoleNames.Borrower)?.RoleId;
     var showBorrower = Model.RoleName == RoleNames.Borrower;
 }
 <form class="category-form" id="userAccountForm" asp-controller="UserAccount" asp-action="@(Model.IsEdit ? "Edit" : "Create")" method="post" novalidate>

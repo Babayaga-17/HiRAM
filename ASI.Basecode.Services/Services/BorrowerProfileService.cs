@@ -25,20 +25,22 @@ namespace ASI.Basecode.Services.Services
         private readonly INotificationService _notifications;
         private readonly IUserRepository users;
         private readonly IAccountRepository accounts;
-        private readonly IRoleRepository roles;
         private readonly IProfilePhotoService photos;
         private readonly IEmailManager email;
         private readonly ILogger<BorrowerProfileService> logger;
 
-        public BorrowerProfileService(IBorrowerProfileRepository repository, IUserRepository users,
-            IAccountRepository accounts, IRoleRepository roles, IProfilePhotoService photos,
-            IEmailManager email, ILogger<BorrowerProfileService> logger, INotificationService notifications)
+        public BorrowerProfileService(IBorrowerProfileRepository repository, 
+            IUserRepository users,
+            IAccountRepository accounts, 
+            IProfilePhotoService photos,
+            IEmailManager email, 
+            ILogger<BorrowerProfileService> logger, 
+            INotificationService notifications)
         {
             _repository = repository;
             _notifications = notifications;
             this.users = users;
             this.accounts = accounts;
-            this.roles = roles;
             this.photos = photos;
             this.email = email;
             this.logger = logger;
@@ -194,8 +196,6 @@ namespace ASI.Basecode.Services.Services
                 throw new ValidationException("That email is already registered.");
 
             if (!GetDepartments().Any(d => d.DepartmentId == model.DepartmentId)) throw new ValidationException("Select an active department.");
-            var role = roles.GetRoles().SingleOrDefault(r => r.RoleName == RoleNames.Borrower);
-            if (role == null) throw new ValidationException("Borrower registration is currently unavailable. Contact your administrator.");
             var now = DateTime.Now;
             var user = new User
             {
@@ -209,8 +209,7 @@ namespace ASI.Basecode.Services.Services
                 CreatedAt = now,
                 Account = new Account
                 {
-                    RoleId = role.RoleId,
-                    RoleName = role.RoleName,
+                    RoleName = RoleNames.Borrower,
                     Email = model.Email,
                     PasswordHash = PasswordManager.EncryptPassword(model.Password),
                     AccountStatus = AccountStatuses.PendingApproval,
