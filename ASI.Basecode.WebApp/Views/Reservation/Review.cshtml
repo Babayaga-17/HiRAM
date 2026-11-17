@@ -15,7 +15,7 @@
         ReservationStatuses.Returned => "rs-returned",
         _ => "rs-neutral"
     };
-    var conditions = new[] { EquipmentConditions.Good, EquipmentConditions.Fair, EquipmentConditions.Damaged };
+    var conditions = EquipmentConditions.Values;
     var backStatus = Model.Status is ReservationStatuses.Pending or ReservationStatuses.Approved or ReservationStatuses.Borrowed or ReservationStatuses.Returned or ReservationStatuses.Rejected ? Model.Status : ReservationFilters.All;
 }
 

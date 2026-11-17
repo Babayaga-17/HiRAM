@@ -1,6 +1,8 @@
-﻿using ASI.Basecode.Resources.Constants;
+﻿using ASI.Basecode.Data.Models;
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Equipment;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
@@ -13,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ASI.Basecode.WebApp.Controllers;
@@ -41,7 +44,7 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         _equipmentCategoryService = equipmentCategoryService;
         _reservationService = reservationService;
         _equipmentPhotoService = equipmentPhotoService;
-    }   
+    }
 
     [HttpGet]
     public async Task<IActionResult> Index(int? reservationId)
@@ -65,30 +68,21 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
                 .Select(item => item.EquipmentId)
                 .ToList();
 
-            var selected = GetSelectedIds(reservationId).Where(selectableIds.Contains).ToList();
+            var selected = GetSelectedIds(reservationId)
+                .Where(selectableIds.Contains)
+                .Take(ReservationPolicy.MaxEquipmentPerReservation)
+                .ToList();
             SaveSelectedIds(selected, reservationId);
             ViewBag.SelectedIds = selected;
 
-            var cancellationToken = HttpContext.RequestAborted;
-
-            foreach (var item in equipments)
-            {
-                if (string.IsNullOrWhiteSpace(item.CoverPhotoStoragePath))
-                    continue;
-
-                try
-                {
-                    var coverUrl = await _equipmentPhotoService.CreateReadUrlAsync(item.CoverPhotoStoragePath, cancellationToken);
-
-                    item.ImageUrls.Add(coverUrl);
-                }
-                catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
-                {
-                    _logger.LogWarning(exception, "Unable to load the cover for equipment {EquipmentId}.", item.EquipmentId);
-                }
-            }
+            await LoadCoverPhotosAsync(equipments, HttpContext.RequestAborted);
 
             return View(equipments);
+        }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            // The browser cancelled this request; no page response is needed.
+            return new EmptyResult();
         }
         catch (Exception exception) when (!HttpContext.RequestAborted.IsCancellationRequested)
         {
@@ -108,24 +102,20 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         if (equipment == null)
             return NotFound();
 
-        var cancellationToken = HttpContext.RequestAborted;
-        foreach (var photo in _equipmentService.GetEquipmentPhotos(id))
+        try
         {
-            try
-            {
-                equipment.ImageUrls.Add(await _equipmentPhotoService.CreateReadUrlAsync(
-                    photo.StoragePath, cancellationToken));
-            }
-            catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
-            {
-                _logger.LogWarning(
-                    exception, "Unable to load photo {PhotoId} for equipment {EquipmentId}.", photo.PhotoId, id);
-            }
-        }
+            await LoadDetailPhotosAsync(equipment, HttpContext.RequestAborted);
 
-        ViewData["EditingReservationId"] = reservationId;
-        ViewBag.IsSelected = GetSelectedIds(reservationId).Contains(id);
-        return View("~/Views/Equipment/Details.cshtml", equipment);
+            ViewData["EditingReservationId"] = reservationId;
+            ViewBag.IsSelected = GetSelectedIds(reservationId).Contains(id);
+
+            return View("~/Views/Equipment/Details.cshtml", equipment);
+        }
+        catch (OperationCanceledException)
+            when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            return new EmptyResult();
+        }
     }
 
     [HttpGet]
@@ -220,6 +210,9 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
 
             var selected = GetSelectedIds(reservationId);
 
+            if (!selected.Contains(id) && selected.Count >= ReservationPolicy.MaxEquipmentPerReservation)
+                return BadRequest(new { message = $"You can select up to {ReservationPolicy.MaxEquipmentPerReservation} equipment items per reservation." });
+
             if (!selected.Contains(id))
             {
                 selected.Add(id);
@@ -259,6 +252,90 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
         SaveSelectedIds(new List<int>(), reservationId);
 
         return Json(new { ids = new List<int>() });
+    }
+
+    #region Helpers
+
+    private async Task LoadCoverPhotosAsync(IEnumerable<EquipmentListItem> items, CancellationToken cancellationToken)
+    {
+        var equipment = items.ToList();
+
+        var paths = equipment
+            .Select(item => item.CoverPhotoStoragePath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (paths.Count == 0)
+            return;
+
+        try
+        {
+            var urls = await _equipmentPhotoService.CreateReadUrlsAsync(paths, cancellationToken);
+
+            foreach (var item in equipment)
+            {
+                var path = item.CoverPhotoStoragePath;
+
+                if (!string.IsNullOrWhiteSpace(path) && urls.TryGetValue(path, out var url))
+                {
+                    item.ImageUrls.Add(url);
+                }
+            }
+
+            var missingCount = paths.Count - urls.Count;
+
+            if (missingCount > 0)
+            {
+                _logger.LogWarning(
+                    "Unable to load {Count} equipment cover photos.",
+                    missingCount);
+            }
+        }
+        catch (Exception exception)
+            when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                exception, "Unable to load equipment cover photos.");
+        }
+    }
+
+    private async Task LoadDetailPhotosAsync(EquipmentListItem equipment, CancellationToken cancellationToken)
+    {
+        var photos = _equipmentService.GetEquipmentPhotos(equipment.EquipmentId);
+
+        var paths = photos
+            .Select(photo => photo.StoragePath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (paths.Count == 0)
+            return;
+
+        try
+        {
+            var urls = await _equipmentPhotoService.CreateReadUrlsAsync(paths, cancellationToken);
+
+            foreach (var photo in photos)
+            {
+                if (!string.IsNullOrWhiteSpace(photo.StoragePath) && urls.TryGetValue(photo.StoragePath, out var url))
+                {
+                    equipment.ImageUrls.Add(url);
+                }
+            }
+
+            var missingCount = paths.Count - urls.Count;
+
+            if (missingCount > 0)
+            {
+                _logger.LogWarning("Unable to load {Count} photos for equipment {EquipmentId}.", missingCount, equipment.EquipmentId);
+            }
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(exception, "Unable to load photos for equipment {EquipmentId}.", equipment.EquipmentId);
+        }
     }
 
     private void LoadCategories()
@@ -317,4 +394,6 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
 
         return reservation?.Status == ReservationStatuses.Pending;
     }
+
+    #endregion
 }

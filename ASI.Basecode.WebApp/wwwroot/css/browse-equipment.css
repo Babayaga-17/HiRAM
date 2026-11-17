@@ -325,6 +325,24 @@
 }
 
 @media (max-width: 620px) {
-    .browse-toolbar-card .list-toolbar { align-items: stretch; }
-    .browse-toolbar-card .view-toggle { align-self: flex-start; }
+    .browse-toolbar-card .list-toolbar {
+        align-items: stretch;
+    }
+
+    .browse-toolbar-card .view-toggle {
+        align-self: flex-start;
+    }
+}
+
+.selection-tray-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.selection-limit-note {
+    margin: 10px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #c58a3a;
 }

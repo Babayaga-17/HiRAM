@@ -2,6 +2,7 @@ using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -47,7 +48,11 @@ public abstract class SupabasePhotoStorage
             expiresIn = 3600
         });
 
-        using var response = await _httpClient.SendAsync(request, cancellationToken); // exception
+        // Send the request and handle potential timeout exceptions.
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        // Check if the response indicates success and throw an exception if not.
 
         EnsureSuccess(response, "create a photo URL");
 
@@ -69,6 +74,65 @@ public abstract class SupabasePhotoStorage
         }
 
         return new Uri(_storageUrl, signedUrl.TrimStart('/')).AbsoluteUri;
+    }
+
+    public async Task<Dictionary<string, string>> CreateReadUrlsAsync(IEnumerable<string> storagePaths, CancellationToken cancellationToken = default)
+    {
+        var paths = storagePaths
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        var urls = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        if (paths.Count == 0)
+            return urls;
+
+        // Validate the paths. JSON needs the original, unencoded paths.
+        foreach (var path in paths)
+            EncodePath(path);
+
+        using var request = CreateRequest(HttpMethod.Post, $"object/sign/{Uri.EscapeDataString(_bucket)}");
+
+        request.Content = JsonContent.Create(new
+        {
+            expiresIn = 3600,
+            paths
+        });
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+        EnsureSuccess(response, "create photo URLs");
+
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        using var document = JsonDocument.Parse(json);
+
+        if (document.RootElement.ValueKind != JsonValueKind.Array)
+            throw new InvalidOperationException("Supabase returned an invalid photo URL response.");
+
+        foreach (var entry in document.RootElement.EnumerateArray())
+        {
+            if (!entry.TryGetProperty("path", out var pathValue)
+                || !entry.TryGetProperty("signedURL", out var urlValue))
+                continue;
+
+            var path = pathValue.GetString();
+            var signedUrl = urlValue.GetString();
+
+            // Missing or failed photos are left out for placeholder display.
+            if (string.IsNullOrWhiteSpace(path)
+                || string.IsNullOrWhiteSpace(signedUrl)
+                || !paths.Contains(path, StringComparer.Ordinal))
+                continue;
+
+            urls[path] = Uri.TryCreate(
+                signedUrl, UriKind.Absolute, out var absoluteUrl)
+                    ? absoluteUrl.AbsoluteUri
+                    : new Uri(_storageUrl, signedUrl.TrimStart('/')).AbsoluteUri;
+        }
+
+        return urls;
     }
 
     public async Task DeleteAsync(string storagePath, CancellationToken cancellationToken = default)

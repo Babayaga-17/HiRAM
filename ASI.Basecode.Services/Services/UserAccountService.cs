@@ -35,7 +35,6 @@ namespace ASI.Basecode.Services.Services
         private const string SuspendedEligibility = "Suspended";
         private readonly IUserRepository _userRepository;
         private readonly IAccountRepository _accountRepository;
-        private readonly IRoleRepository _roleRepository;
         private readonly IBorrowerProfileRepository _borrowerProfileRepository;
         //private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUnitOfWork _unitOfWork;
@@ -44,7 +43,6 @@ namespace ASI.Basecode.Services.Services
         public UserAccountService(
             IUserRepository userRepository,
             IAccountRepository accountRepository,
-            IRoleRepository roleRepository,
             IBorrowerProfileRepository borrowerProfileRepository,
             //IAuditLogRepository auditLogRepository,
             IUnitOfWork unitOfWork,
@@ -52,7 +50,6 @@ namespace ASI.Basecode.Services.Services
         {
             _userRepository = userRepository;
             _accountRepository = accountRepository;
-            _roleRepository = roleRepository;
             _borrowerProfileRepository = borrowerProfileRepository;
             //_auditLogRepository = auditLogRepository;
             _unitOfWork = unitOfWork;
@@ -77,18 +74,19 @@ namespace ASI.Basecode.Services.Services
 
         public List<RoleListItem> GetRoles()
         {
-            return _roleRepository.GetRoles()
-                .OrderBy(role => role.RoleId)
-                .Select(role => new RoleListItem
+            var counts = _accountRepository.GetAccountCountsByRole();
+
+            return RoleNames.All.Select(roleName =>
+            {
+                counts.TryGetValue(roleName, out var count);
+
+                return new RoleListItem
                 {
-                    RoleId = role.RoleId,
-                    RoleName = role.RoleName,
-                    Description = role.Description ?? string.Empty,
-                    IsActive = role.IsActive,
-                    TotalAccountCount = role.Accounts.Count,
-                    ActiveAccountCount = role.Accounts.Count(account => account.AccountStatus == AccountStatuses.Active)
-                })
-                .ToList();
+                    RoleName = roleName,
+                    TotalAccountCount = count.Total,
+                    ActiveAccountCount = count.Active
+                };
+            }).ToList();
         }
 
         /// <summary>Active departments for the Borrower department dropdown.</summary>
@@ -142,8 +140,7 @@ namespace ASI.Basecode.Services.Services
                 Suffix = account.User.Suffix ?? string.Empty,
                 ContactNumber = account.User.ContactNumber ?? string.Empty,
                 Email = account.Email,
-                RoleId = account.RoleId,
-                RoleName = account.Role.RoleName,
+                RoleName = account.RoleName,
                 AccountStatus = account.AccountStatus,
                 FailedLoginAttempts = account.FailedLoginAttempts,
                 LockoutEndAt = account.LockoutEndAt,
@@ -166,7 +163,7 @@ namespace ASI.Basecode.Services.Services
             var errors = GetDuplicateErrors(model.UserCode, model.Email);
             if (string.IsNullOrEmpty(model.Password))
                 errors[nameof(UserAccountFormViewModel.Password)] = "Password is required.";
-            var role = GetAssignableRole(model.RoleId, null, errors);
+            var role = GetAssignableRole(model.RoleName, errors);
             var isBorrower = IsBorrowerRole(role);
             if (isBorrower)
                 ValidateBorrowerProfile(model, errors);
@@ -186,7 +183,7 @@ namespace ASI.Basecode.Services.Services
                 CreatedAt = now,
                 Account = new Account
                 {
-                    RoleId = role.RoleId,
+                    RoleName = role,
                     Email = model.Email,
                     PasswordHash = PasswordManager.EncryptPassword(model.Password),
                     AccountStatus = model.AccountStatus,
@@ -214,7 +211,7 @@ namespace ASI.Basecode.Services.Services
             {
                 _userRepository.AddUser(user); // inserts Users + Accounts together
                 AddAudit(currentUserId, createdBy, ipAddress, UserAccountAuditActions.Created, user.UserId,
-                    $"Created {user.UserCode} ({user.Account.Email}) with role {role.RoleName} and status {user.Account.AccountStatus}.");
+                    $"Created {user.UserCode} ({user.Account.Email}) with role {role} and status {user.Account.AccountStatus}.");
             });
 
             return user.UserId;
@@ -231,11 +228,11 @@ namespace ASI.Basecode.Services.Services
             EnsureNotChanged(account, model.Version);
 
             if ((account.AccountStatus == AccountStatuses.PendingApproval || model.AccountStatus == AccountStatuses.PendingApproval)
-                && (model.AccountStatus != account.AccountStatus || model.RoleId != account.RoleId))
+                && (model.AccountStatus != account.AccountStatus || model.RoleName != account.RoleName))
                 throw new UserAccountValidationException(string.Empty, "Use registration approval to activate a pending borrower. Its role cannot be changed while pending.");
 
             var errors = GetDuplicateErrors(model.UserCode, model.Email, model.UserId);
-            var role = GetAssignableRole(model.RoleId, account.RoleId, errors);
+            var role = GetAssignableRole(model.RoleName, errors);
             var profile = _borrowerProfileRepository.GetForUpdate(model.UserId);
             var isBorrower = IsBorrowerRole(role);
 
@@ -251,19 +248,19 @@ namespace ASI.Basecode.Services.Services
             if (errors.Count > 0)
                 throw new UserAccountValidationException(errors);
 
-            var roleChanged = role.RoleId != account.RoleId;
+            var roleChanged = role != account.RoleName;
             var statusChanged = model.AccountStatus != account.AccountStatus;
 
             if (model.UserId == currentUserId)
             {
                 if (roleChanged)
-                    throw new UserAccountValidationException(nameof(UserAccountFormViewModel.RoleId), ErrorMessages.CannotChangeOwnRole);
+                    throw new UserAccountValidationException(nameof(UserAccountFormViewModel.RoleName), ErrorMessages.CannotChangeOwnRole);
                 if (statusChanged && model.AccountStatus != AccountStatuses.Active)
                     throw new UserAccountValidationException(nameof(UserAccountFormViewModel.AccountStatus), ErrorMessages.CannotDeactivateOwnAccount);
             }
 
             if (!isBorrower && profile != null && _borrowerProfileRepository.HasReservations(model.UserId))
-                throw new UserAccountValidationException(nameof(UserAccountFormViewModel.RoleId),
+                throw new UserAccountValidationException(nameof(UserAccountFormViewModel.RoleName),
                     "This borrower has reservations, so the Borrower details cannot be removed. Resolve or cancel the reservations first.");
 
             if (IsActiveAdmin(account) && (roleChanged || model.AccountStatus != AccountStatuses.Active))
@@ -277,8 +274,8 @@ namespace ASI.Basecode.Services.Services
             Track(changes, "Suffix", account.User.Suffix, model.Suffix);
             Track(changes, "Contact number", account.User.ContactNumber, model.ContactNumber);
             Track(changes, "Email", account.Email, model.Email);
-            Track(changes, "Role", account.Role.RoleName, role.RoleName);
-            Track(changes, "Status", account.AccountStatus, model.AccountStatus);
+            Track(changes, "Role", account.RoleName, role);
+            Track(changes, "Status", account.AccountStatus, model.AccountStatus);   
 
             if (isBorrower)
             {
@@ -307,7 +304,7 @@ namespace ASI.Basecode.Services.Services
             account.User.UpdatedAt = now;
 
             account.Email = model.Email;
-            account.RoleId = role.RoleId;
+            account.RoleName = role;
             account.AccountStatus = model.AccountStatus;
             account.UpdatedBy = updatedBy;
             account.UpdatedAt = now;
@@ -368,9 +365,11 @@ namespace ASI.Basecode.Services.Services
                 if (IsActiveAdmin(account))
                     EnsureAnotherActiveAdmin(account);
             }
-            else if (!account.Role.IsActive)
+            else if (account.RoleName != RoleNames.Borrower 
+                && account.RoleName != RoleNames.Custodian 
+                && account.RoleName != RoleNames.Admin)
             {
-                throw new UserAccountValidationException(string.Empty, ErrorMessages.RoleInactive);
+                throw new UserAccountValidationException(string.Empty, "The account has an invalid role.");
             }
 
             var previousStatus = account.AccountStatus;
@@ -397,16 +396,15 @@ namespace ASI.Basecode.Services.Services
         /// <summary>
         /// Approves the pending account and borrower eligibility in a repository-owned transaction.
         /// </summary>
-        public Task<(bool Found, bool EmailQueued)> ApproveRegistrationAsync(int userId, string version, string updatedBy)
-        {
-            var queued = false;
+        public Task<bool> ApproveRegistrationAsync(int userId, string version, string updatedBy)
+        {   
             var found = _accountRepository.UpdateRegistration(userId, account =>
             {
                 EnsureNotChanged(account, version);
                 if (account.AccountStatus != AccountStatuses.PendingApproval)
                     throw new UserAccountValidationException(string.Empty, "Only pending registrations can be approved. Refresh the account details.");
-                if (account.Role?.RoleName != RoleNames.Borrower || !account.Role.IsActive)
-                    throw new UserAccountValidationException(string.Empty, "Registration approval requires an active Borrower role.");
+                if (account.RoleName != RoleNames.Borrower)
+                    throw new UserAccountValidationException(string.Empty, "Registration approval requires a Borrower account.");
                 var profile = account.User?.BorrowerProfileUser;
                 if (profile == null || profile.EligibilityStatus != EligibilityStatuses.Ineligible
                     || profile.SuspendedAt.HasValue || profile.SuspendedUntil.HasValue
@@ -422,9 +420,9 @@ namespace ASI.Basecode.Services.Services
                 profile.EligibilityStatus = EligibilityStatuses.Eligible;
                 profile.UpdatedBy = updatedBy;
                 profile.UpdatedAt = now;
-                queued = _notifications.RegistrationApproved(account);
+                _notifications.RegistrationApproved(account);
             });
-            return Task.FromResult((found, found && queued));
+            return Task.FromResult(found);
         }
 
         /// <summary>Issues a temporary password and clears failed attempts and lockout.</summary>
@@ -498,9 +496,9 @@ namespace ASI.Basecode.Services.Services
                 || profile.SuspendedAt.HasValue;
         }
 
-        private static bool IsBorrowerRole(Role role)
+        private static bool IsBorrowerRole(string roleName)
         {
-            return role != null && string.Equals(role.RoleName, RoleNames.Borrower, StringComparison.OrdinalIgnoreCase);
+            return roleName == RoleNames.Borrower;
         }
 
         private static string Text(object value)
@@ -526,18 +524,18 @@ namespace ASI.Basecode.Services.Services
         }
 
         /// <summary>
-        /// Returns the role to assign. An inactive role may be kept by a user who already has it, but not newly assigned.
+        /// Validates the fixed account role names.
         /// </summary>
-        private Role GetAssignableRole(byte? roleId, byte? currentRoleId, Dictionary<string, string> errors)
+        private static string GetAssignableRole(string roleName, Dictionary<string, string> errors)
         {
-            var role = roleId.HasValue ? _roleRepository.GetRoleById(roleId.Value) : null;
+            if (!RoleNames.All.Contains(roleName))
+            {
+                errors[nameof(UserAccountFormViewModel.RoleName)] = "Select a valid role.";
 
-            if (role == null)
-                errors[nameof(UserAccountFormViewModel.RoleId)] = ErrorMessages.RoleNotFound;
-            else if (!role.IsActive && role.RoleId != currentRoleId)
-                errors[nameof(UserAccountFormViewModel.RoleId)] = ErrorMessages.RoleInactive;
+                return null;
+            }
 
-            return role;
+            return roleName;
         }
 
         private static void EnsureNotChanged(Account account, string version)
@@ -550,13 +548,18 @@ namespace ASI.Basecode.Services.Services
         private static bool IsActiveAdmin(Account account)
         {
             return account.AccountStatus == AccountStatuses.Active
-                && string.Equals(account.Role?.RoleName, RoleNames.Admin, StringComparison.OrdinalIgnoreCase);
+                && string.Equals(
+                    account.RoleName,
+                    RoleNames.Admin,
+                    StringComparison.OrdinalIgnoreCase);
         }
 
         private void EnsureAnotherActiveAdmin(Account account)
         {
-            if (_accountRepository.CountActiveAccountsByRole(account.RoleId, account.UserId) == 0)
+            if (_accountRepository.CountActiveAccountsByRole(RoleNames.Admin, account.UserId) == 0)
+            {
                 throw new UserAccountValidationException(string.Empty, ErrorMessages.LastActiveAdmin);
+            }
         }
 
         private void AddAudit(int currentUserId, string createdBy, string ipAddress, string action, int targetUserId, string details)
@@ -656,8 +659,7 @@ namespace ASI.Basecode.Services.Services
             return _accountRepository.CountAccountsByStatusAsync();
         }
 
-        public async Task<List<UserAccountListItem>>
-            GetPendingRegistrationPreviewAsync()
+        public async Task<List<UserAccountListItem>> GetPendingRegistrationPreviewAsync()
         {
             var accounts = await _accountRepository.GetPendingRegistrationPreviewAsync();
 

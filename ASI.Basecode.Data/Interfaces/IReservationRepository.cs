@@ -33,6 +33,8 @@ namespace ASI.Basecode.Data.Interfaces
         Reservation GetReservationById(int reservationId);                // read-only, with details
         Reservation GetReservationForUpdate(int reservationId);           // tracked, to approve / reject / release
         Task<Dictionary<string, int>> CountByStatus();
+
+        bool ReservationNumberExists(string reservationNumber);
         bool UserExists(int userId);
         void SaveChanges();
         (bool Ok, string Message) Review(int id, Func<Reservation, (bool Ok, string Message)> applyChanges);

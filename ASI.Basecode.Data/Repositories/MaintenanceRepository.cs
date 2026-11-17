@@ -11,6 +11,23 @@ public class MaintenanceRepository : BaseRepository, IMaintenanceRepository
 {
     public MaintenanceRepository(IUnitOfWork unitOfWork) : base(unitOfWork) { }
     public IQueryable<MaintenanceRecord> Records() => GetDbSet<MaintenanceRecord>().AsNoTracking().Include(r => r.Equipment);
+    public (int Scheduled, int InProgress, int PastEstimate) GetOverviewCounts(DateTime now)
+    {
+        var counts = GetDbSet<MaintenanceRecord>().AsNoTracking()
+            .GroupBy(record => 1)
+            .Select(group => new
+            {
+                Scheduled = group.Count(record => record.Status == MaintenanceStatuses.Scheduled),
+                InProgress = group.Count(record => record.Status == MaintenanceStatuses.InProgress),
+                PastEstimate = group.Count(record =>
+                    (record.Status == MaintenanceStatuses.Scheduled || record.Status == MaintenanceStatuses.InProgress)
+                    && record.EndDateTime == null
+                    && record.ExpectedCompletionDateTime < now)
+            })
+            .SingleOrDefault();
+
+        return counts == null ? (0, 0, 0) : (counts.Scheduled, counts.InProgress, counts.PastEstimate);
+    }
     public MaintenanceRecord Find(int id) => GetDbSet<MaintenanceRecord>().Include(r => r.Equipment).SingleOrDefault(r => r.MaintenanceId == id);
     public Equipment FindEquipment(int id) => GetDbSet<Equipment>().SingleOrDefault(e => e.EquipmentId == id);
     public string[] ReservationConflicts(int equipmentId, DateTime start) => GetDbSet<ReservationItem>()
@@ -19,7 +36,14 @@ public class MaintenanceRepository : BaseRepository, IMaintenanceRepository
         .OrderBy(i => i.StartDateTime).ToList()
         .Select(i => $"{i.ReservationNumber} ({i.StartDateTime:g}, {i.Status})").ToArray();    public bool HasReservationConflict(int equipmentId, DateTime start) => GetDbSet<ReservationItem>().Any(i => i.EquipmentId == equipmentId && !i.IsReturned && ReservationStatuses.Blocking.Contains(i.Reservation.Status) && i.Reservation.ExpectedReturnDateTime > start);
     public bool HasMaintenanceConflict(int equipmentId, int? excludeId = null) => GetDbSet<MaintenanceRecord>().Any(r => r.EquipmentId == equipmentId && (!excludeId.HasValue || r.MaintenanceId != excludeId.Value) && (r.Status == MaintenanceStatuses.Scheduled || r.Status == MaintenanceStatuses.InProgress));
-    public string[] AdminEmails() => GetDbSet<Account>().Where(a => a.Role.RoleName == "Admin" && a.AccountStatus == "Active").Select(a => a.Email).Distinct().ToArray();
+    public string[] AdminEmails() => GetDbSet<Account>()
+        .Where(account =>
+            account.RoleName == RoleNames.Admin
+            && account.AccountStatus == AccountStatuses.Active)
+        .Select(account => account.Email)
+        .Distinct()
+        .ToArray();
+
     public string ReporterEmail(int? userId) => GetDbSet<Account>().Where(a => a.UserId == userId).Select(a => a.Email).FirstOrDefault();
     public void Add(MaintenanceRecord record) => GetDbSet<MaintenanceRecord>().Add(record);
     public void Save() => UnitOfWork.SaveChanges();

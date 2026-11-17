@@ -12,9 +12,9 @@
         <p>Organize equipment into clear groups so it is easier to manage and find.</p>
     </div>
     <a class="button button-primary heading-action" asp-controller="EquipmentCategory" asp-action="Create"><svg
-        class="icon">
-        <use href="#i-plus" />
-    </svg>Add category</a>
+            class="icon">
+            <use href="#i-plus" />
+        </svg>Add category</a>
 </div>
 
 @if (TempData["CategorySuccess"] is string successMessage)
@@ -63,18 +63,20 @@ else
                 <p>Browse, search, and manage equipment groups.</p>
             </div>
 
-            @if (Model.TotalCategories > 1)
-            {
-                <span class="count-pill">@Model.TotalCategories categories</span>
-            }
-            else if (Model.TotalCategories == 1)
-            {
-                <span class="count-pill">@Model.TotalCategories category</span>
-            }
-            else
-            {
-                <span class="count-pill">No categories</span>
-            }
+            @*
+        @if (Model.TotalCategories > 1)
+        {
+        <span class="count-pill">@Model.TotalCategories categories</span>
+        }
+        else if (Model.TotalCategories == 1)
+        {
+        <span class="count-pill">@Model.TotalCategories category</span>
+        }
+        else
+        {
+        <span class="count-pill">No categories</span>
+        }
+        *@
         </div>
 
         @if (Model.TotalCategories == 0)
@@ -98,7 +100,18 @@ else
                     <span class="sr-only">Search categories</span>
 
                     <input type="search" name="search" value="@Model.Search" placeholder="Search by name, code, or description"
-                           autocomplete="off" />
+                        autocomplete="off" />
+                </label>
+
+                <label class="filter-field filter-field-compact">
+                    <span>Show</span>
+
+                    <select name="pageSize" aria-label="Categories per page" onchange="this.form.submit()">
+                        @foreach (var size in new[] { 5, 10, 20 })
+                        {
+                            <option value="@size" selected="@(Model.PageSize == size)">@size</option>
+                        }
+                    </select>
                 </label>
 
                 <label class="filter-field">
@@ -138,26 +151,26 @@ else
                                 data-status="@(category.IsActive ? "active" : "inactive")">
                                 <td>
                                     <div class="category-name-cell"><span class="category-tile"><svg class="icon">
-                                        <use href="#i-layers" />
-                                    </svg></span><span><strong>@category.CategoryName</strong><small>@category.Description</small></span>
-                                </div>
-                            </td>
-                            <td><span class="code-text">@category.CategoryCode</span></td>
-                            <td><span class="equipment-count">@category.EquipmentCount items</span></td>
-                            <td><span
-                                class="status-badge @(category.IsActive ? "status-active" : "status-inactive")"><span></span>@(category.IsActive
-                                ? "Active" : "Inactive")</span></td>
+                                                <use href="#i-layers" />
+                                            </svg></span><span><strong>@category.CategoryName</strong><small>@category.Description</small></span>
+                                    </div>
+                                </td>
+                                <td><span class="code-text">@category.CategoryCode</span></td>
+                                <td><span class="equipment-count">@category.EquipmentCount items</span></td>
+                                <td><span
+                                        class="status-badge @(category.IsActive ? "status-active" : "status-inactive")"><span></span>@(category.IsActive
+                            ? "Active" : "Inactive")</span></td>
                                 <td class="actions-column">
                                     <div class="row-actions">
                                         <button type="button" class="icon-button view-category"
-                                                aria-label="View @category.CategoryName" title="View details">
+                                            aria-label="View @category.CategoryName" title="View details">
                                             <svg class="icon">
                                                 <use href="#i-eye" />
                                             </svg>
                                         </button>
                                         <a class="icon-button edit-category" asp-controller="EquipmentCategory" asp-action="Edit"
-                                           asp-route-id="@category.CategoryId" aria-label="Edit @category.CategoryName"
-                                           title="Edit category">
+                                            asp-route-id="@category.CategoryId" aria-label="Edit @category.CategoryName"
+                                            title="Edit category">
                                             <svg class="icon">
                                                 <use href="#i-edit" />
                                             </svg>
@@ -165,32 +178,34 @@ else
                                         @if (category.IsActive)
                                         {
                                             <form class="category-action-form" asp-controller="EquipmentCategory"
-                                                  asp-action="Deactivate" asp-route-id="@category.CategoryId" method="post">
+                                                asp-action="Deactivate" asp-route-id="@category.CategoryId" method="post">
 
                                                 <input type="hidden" name="page" value="@Model.Page" />
+                                                <input type="hidden" name="pageSize" value="@Model.PageSize" />
                                                 <input type="hidden" name="search" value="@Model.Search" />
                                                 <input type="hidden" name="status" value="@Model.Status" />
 
                                                 <button type="submit" class="status-action"
-                                                        aria-label="Deactivate @category.CategoryName">Deactivate</button>
+                                                    aria-label="Deactivate @category.CategoryName">Deactivate</button>
                                             </form>
                                         }
                                         else
                                         {
                                             <form class="category-action-form" asp-controller="EquipmentCategory" asp-action="Activate"
-                                                  asp-route-id="@category.CategoryId" method="post">
+                                                asp-route-id="@category.CategoryId" method="post">
 
                                                 <input type="hidden" name="page" value="@Model.Page" />
+                                                <input type="hidden" name="pageSize" value="@Model.PageSize" />
                                                 <input type="hidden" name="search" value="@Model.Search" />
                                                 <input type="hidden" name="status" value="@Model.Status" />
 
                                                 <button type="submit" class="status-action"
-                                                        aria-label="Activate @category.CategoryName">Activate</button>
+                                                    aria-label="Activate @category.CategoryName">Activate</button>
                                             </form>
                                             <button type="button" class="status-action status-action-danger delete-category"
-                                                    disabled="@(category.EquipmentCount > 0)"
-                                                    title="@(category.EquipmentCount > 0 ? "Reassign assigned equipment before deleting this category." : "Delete category")"
-                                                    aria-label="Delete @category.CategoryName">
+                                                disabled="@(category.EquipmentCount > 0)"
+                                                title="@(category.EquipmentCount > 0 ? "Reassign assigned equipment before deleting this category." : "Delete category")"
+                                                aria-label="Delete @category.CategoryName">
                                                 Delete
                                             </button>
                                         }
@@ -229,8 +244,8 @@ else
                     <nav class="pager" aria-label="Category pagination">
                         @if (Model.Page > 1)
                         {
-                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search"
-                               asp-route-status="@Model.Status">
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page - 1)"
+                                asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status">
                                 Previous
                             </a>
                         }
@@ -245,8 +260,8 @@ else
                             }
                             else
                             {
-                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-search="@Model.Search"
-                                   asp-route-status="@Model.Status">
+                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-pageSize="@Model.PageSize"
+                                    asp-route-search="@Model.Search" asp-route-status="@Model.Status">
                                     @p
                                 </a>
                             }
@@ -254,8 +269,8 @@ else
 
                         @if (Model.Page < Model.TotalPages)
                         {
-                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search"
-                               asp-route-status="@Model.Status">
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page + 1)"
+                                asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status">
                                 Next
                             </a>
                         }
@@ -308,13 +323,14 @@ else
         </dialog>
 
         <dialog class="app-dialog" id="deleteCategoryDialog" aria-labelledby="deleteCategoryTitle"
-                aria-describedby="deleteCategoryMessage">
+            aria-describedby="deleteCategoryMessage">
             <h2 id="deleteCategoryTitle">Delete category</h2>
             <p id="deleteCategoryMessage">Permanently delete <strong id="deleteCategoryName"></strong>? This cannot be undone.
             </p>
             <form asp-controller="EquipmentCategory" asp-action="Delete" method="post">
 
                 <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <input type="hidden" name="search" value="@Model.Search" />
                 <input type="hidden" name="status" value="@Model.Status" />
 

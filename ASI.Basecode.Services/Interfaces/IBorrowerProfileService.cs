@@ -17,7 +17,6 @@ namespace ASI.Basecode.Services.Interfaces
         BorrowerHistoryViewModel GetHistory(int userId);
         (bool ok, string message) Save(BorrowerFormModel m, string actor);
         (bool ok, string message) SetStatus(int userId, bool suspend, string reason, DateTime? until, string actor);
-        (bool ok, string message) Delete(int userId);
         Task<bool> RegisterAsync(BorrowerRegistrationViewModel model, Stream photo, string fileName, CancellationToken cancellationToken = default);
 
     }

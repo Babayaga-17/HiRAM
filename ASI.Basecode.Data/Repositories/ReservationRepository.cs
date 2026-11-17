@@ -99,7 +99,8 @@ namespace ASI.Basecode.Data.Repositories
         public BorrowerProfile GetBorrowerProfile(int borrowerUserId)
         {
             return GetDbSet<BorrowerProfile>().AsNoTracking()
-                .Include(item => item.User).ThenInclude(user => user.Account).ThenInclude(account => account.Role)
+                .Include(item => item.User)
+                    .ThenInclude(user => user.Account)
                 .SingleOrDefault(item => item.UserId == borrowerUserId);
         }
 
@@ -164,27 +165,6 @@ namespace ASI.Basecode.Data.Repositories
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         public IQueryable<Reservation> GetPendingReservations()
         {
             return PendingQuery()
@@ -218,15 +198,15 @@ namespace ASI.Basecode.Data.Repositories
 
             switch (status)
             {
-                case ReservationStatuses.Pending: 
+                case ReservationStatuses.Pending:
                     query = query.OrderBy(reservation => reservation.RequestedAt);
                     break;
 
-                case ReservationStatuses.Approved: 
+                case ReservationStatuses.Approved:
                     query = query.OrderBy(reservation => reservation.StartDateTime);
                     break;
 
-                case ReservationStatuses.Borrowed: 
+                case ReservationStatuses.Borrowed:
                     query = query.OrderBy(reservation => reservation.ExpectedReturnDateTime);
                     break;
 
@@ -309,6 +289,14 @@ namespace ASI.Basecode.Data.Repositories
                 .Include(reservation => reservation.ReservationItems)
                     .ThenInclude(item => item.Equipment)
                 .Include(reservation => reservation.ApprovedByUser);
+        }
+
+        public bool ReservationNumberExists(string reservationNumber)
+        {
+            return GetDbSet<Reservation>()
+                .AsNoTracking()
+                .Any(reservation =>
+                    reservation.ReservationNumber == reservationNumber);
         }
     }
 }

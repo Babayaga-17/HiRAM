@@ -13,7 +13,6 @@ using System;
 
 namespace ASI.Basecode.WebApp.Controllers
 {
-    [Authorize]
     [Authorize(Roles = RoleNames.Admin)]
     public class BorrowerProfileController : ControllerBase<BorrowerProfileController>
     {
@@ -66,14 +65,6 @@ namespace ASI.Basecode.WebApp.Controllers
             }
 
             var (ok, message) = _borrowerProfileService.SetStatus(id, suspend, reason, until, User.Identity?.Name ?? "system");
-            TempData[ok ? "Success" : "Error"] = message;
-            return RedirectToAction(nameof(Index), new { search, status, page });
-        }
-
-        [HttpPost, ValidateAntiForgeryToken]
-        public IActionResult Delete(int id, string search, string status, int page = 1)
-        {
-            var (ok, message) = _borrowerProfileService.Delete(id);
             TempData[ok ? "Success" : "Error"] = message;
             return RedirectToAction(nameof(Index), new { search, status, page });
         }

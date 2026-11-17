@@ -112,10 +112,6 @@
                                                 onclick="bpEdit(this)">
                                             Edit
                                         </button>
-                                        <button type="button" class="bp-icon-btn del" data-id="@b.UserId" data-name="@b.FullName"
-                                                onclick="bpDelete(this.dataset.id, this.dataset.name)">
-                                            Delete
-                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -188,7 +184,7 @@
                     </select>
                 </div>
                 <div><label class="bp-label">Program</label><input class="bp-input" name="Program" id="f_program" maxlength="150" /></div>
-                <div><label class="bp-label">Year level</label><input class="bp-input" type="number" min="1" max="10" name="YearLevel" id="f_year" /></div>
+                <div><label class="bp-label">Year level</label><input class="bp-input" type="number" min="1" max="6" name="YearLevel" id="f_year" /></div>
                 <div class="full">
                     <label class="bp-label">Eligibility status *</label>
                     <select class="bp-select" name="EligibilityStatus" id="f_status" onchange="bpToggle()"><option>Eligible</option><option>Suspended</option></select>
@@ -203,23 +199,6 @@
             <div class="bp-foot">
                 <button type="button" class="bp-btn ghost" onclick="bpClose()">Cancel</button>
                 <button type="submit" class="bp-btn">Save Changes</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div class="bp-modal" id="bpDelModal">
-    <div class="bp-dialog bp-delete-dialog">
-        <h3>Delete borrower?</h3>
-        <p class="bp-sub" id="bpDelText"></p>
-        <form method="post" asp-action="Delete" class="bp-delete-form">
-            <input type="hidden" name="id" id="d_id" />
-            <input type="hidden" name="search" value="@Model.Search" />
-            <input type="hidden" name="status" value="@Model.Status" />
-            <input type="hidden" name="page" value="@Model.Page" />
-            <div class="bp-foot">
-                <button type="button" class="bp-btn ghost" onclick="document.getElementById('bpDelModal').classList.remove('open')">Cancel</button>
-                <button type="submit" class="bp-btn danger">Delete</button>
             </div>
         </form>
     </div>
@@ -280,10 +259,5 @@
         }
     }
     function bpHistClose() { $('bpHistModal').classList.remove('open'); }
-    function bpDelete(id, name) {
-        $('d_id').value = id;
-        $('bpDelText').textContent = 'This removes ' + name + ' from the borrower list only. Their user record stays in the system.';
-        $('bpDelModal').classList.add('open');
-    }
     document.querySelectorAll('.bp-modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
 </script>

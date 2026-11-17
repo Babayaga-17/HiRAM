@@ -1,4 +1,5 @@
 ﻿@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Equipment
 @model EquipmentIndexViewModel
 
 @{
@@ -79,9 +80,11 @@ else
                 <p>Browse, search, and manage inventory items.</p>
             </div>
 
-            <span class="count-pill">
-                @Model.TotalEquipment @(Model.TotalEquipment == 1 ? "item" : "items")
-            </span>
+            @*
+        <span class="count-pill">
+        @Model.TotalEquipment @(Model.TotalEquipment == 1 ? "item" : "items")
+        </span>
+        *@
         </div>
 
         @if (Model.TotalEquipment == 0)
@@ -108,10 +111,24 @@ else
         {
             <form method="get" asp-action="Index" class="list-toolbar">
                 <label class="search-field">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-search" />
+                    </svg>
                     <span class="sr-only">Search equipment</span>
 
                     <input type="search" name="search" value="@Model.Search" placeholder="Search code, name, brand, or model"
-                           autocomplete="off" />
+                        autocomplete="off" />
+                </label>
+
+                <label class="filter-field filter-field-compact">
+                    <span>Show</span>
+
+                    <select name="pageSize" aria-label="Items per page" onchange="this.form.submit()">
+                        @foreach (var size in new[] { 5, 10, 20 })
+                        {
+                            <option value="@size" selected="@(Model.PageSize == size)">@size</option>
+                        }
+                    </select>
                 </label>
 
                 <label class="filter-field">
@@ -144,7 +161,7 @@ else
                 </a>
             </form>
 
-            <div class="table-scroll" role="region" aria-label="Equipment inventory" tabindex="0" id="equipmentTable">
+            <div class="table-scroll" role="region" aria-label="Equipment inventory" tabindex="0">
                 <table class="category-table">
                     <thead>
                         <tr>
@@ -161,14 +178,10 @@ else
                     <tbody id="equipmentRows">
                         @foreach (var item in Model.Items)
                         {
-                            <tr data-id="@item.EquipmentId" data-name="@item.EquipmentName" data-code="@item.EquipmentCode"
-                                data-category="@item.CategoryId" data-category-name="@item.CategoryName" data-brand="@item.Brand"
-                                data-model="@item.Model" data-serial="@item.SerialNumber" data-asset="@item.AssetTag"
-                                data-condition="@item.ConditionStatus" data-status="@item.StatusClass"
-                                data-status-label="@item.StatusLabel" data-location="@item.StorageLocation"
-                                data-acquired="@(item.AcquisitionDate?.ToString("MMM d, yyyy"))"
-                                data-cost="@(item.AcquisitionCost?.ToString("N2"))" data-description="@item.Description"
-                                data-next="@(item.NextReservationStart?.ToString("MMM d, yyyy h:mm tt"))">
+                            var activationAction = item.IsActive ? "Deactivate" : "Activate";
+
+                            <tr data-id="@item.EquipmentId"
+                                data-name="@item.EquipmentName">
 
                                 <td>
                                     <div class="category-name-cell">
@@ -183,91 +196,77 @@ else
                                                     <use href="#i-box" />
                                                 </svg>
                                             }
-                            </span>
-                            <span>
-                                <strong>@item.EquipmentName</strong>
-                                <small>@item.EquipmentCode</small>
-                            </span>
-                        </div>
-                    </td>
+                                        </span>
+                                        <span>
+                                            <strong>@item.EquipmentName</strong>
+                                            <small>@item.EquipmentCode</small>
+                                        </span>
+                                    </div>
+                                </td>
 
-                    <td>@item.CategoryName</td>
+                                <td>@item.CategoryName</td>
 
-                    <td>
-                        @string.Join(" ", new[] { item.Brand, item.Model }
-                                                .Where(value => !string.IsNullOrWhiteSpace(value)))
-                    </td>
+                                <td>
+                                    @string.Join(" ", new[] { item.Brand, item.Model }.Where(value => !string.IsNullOrWhiteSpace(value)))
+                                </td>
 
-                    <td>
-                        <span class="condition-badge condition-@item.ConditionStatus.ToLowerInvariant()">
-                            @item.ConditionStatus
-                        </span>
-                    </td>
+                                <td>
+                                    <span class="condition-badge condition-@item.ConditionStatus.ToLowerInvariant()">
+                                        @item.ConditionStatus
+                                    </span>
+                                </td>
 
-                    <td>
-                        <span class="status-badge status-@item.StatusClass">
-                            <span></span>
-                            @item.StatusLabel
-                        </span>
-                    </td>
+                                <td>
+                                    <span class="status-badge status-@item.StatusClass">
+                                        <span></span>
+                                        @item.StatusLabel
+                                    </span>
+                                </td>
 
-                    <td>@item.StorageLocation</td>
+                                <td>@item.StorageLocation</td>
 
-                    <td class="actions-column">
-                        <div class="row-actions">
-                            
-                            <a class="icon-button" asp-controller="Equipment" asp-action="Details"
-                               asp-route-id="@item.EquipmentId" aria-label="View @item.EquipmentName"
-                               title="View details">
-                                <svg class="icon" aria-hidden="true">
-                                    <use href="#i-eye" />
-                                </svg>
-                            </a>
+                                <td class="actions-column">
+                                    <div class="row-actions">
 
-                            <a class="icon-button edit-equipment" asp-controller="Equipment" asp-action="Edit"
-                               asp-route-id="@item.EquipmentId" aria-label="Edit @item.EquipmentName"
-                               title="Edit equipment">
-                                <svg class="icon">
-                                    <use href="#i-edit" />
-                                </svg>
-                            </a>
+                                        <a class="icon-button" asp-controller="Equipment" asp-action="Details"
+                                           asp-route-id="@item.EquipmentId" aria-label="View @item.EquipmentName"
+                                           title="View details">
+                                            <svg class="icon" aria-hidden="true">
+                                                <use href="#i-eye" />
+                                            </svg>
+                                        </a>
 
-                            @if (item.IsActive)
+                                        <a class="icon-button" asp-controller="Equipment" asp-action="Edit"
+                                           asp-route-id="@item.EquipmentId" aria-label="Edit @item.EquipmentName"
+                                           title="Edit equipment">
+                                            <svg class="icon">
+                                                <use href="#i-edit" />
+                                            </svg>
+                                        </a>
+
+                                        <form class="category-action-form"
+                                              asp-controller="Equipment"
+                                              asp-action="@activationAction"
+                                              asp-route-id="@item.EquipmentId"
+                                              method="post">
+
+                                            <input type="hidden" name="page" value="@Model.Page" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                                            <input type="hidden" name="status" value="@Model.Status" />
+
+                                            <button type="submit" class="status-action"
+                                                    aria-label="@($"{activationAction} {item.EquipmentName}")">
+                                                @activationAction
+                                            </button>
+                                        </form>
+
+                                        @if (!item.IsActive)
                                         {
-                                            <form class="category-action-form" asp-controller="Equipment" asp-action="Deactivate"
-                                                  asp-route-id="@item.EquipmentId" method="post">
-
-                                                @Html.AntiForgeryToken()
-
-                                                <input type="hidden" name="page" value="@Model.Page" />
-                                                <input type="hidden" name="search" value="@Model.Search" />
-                                                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
-                                                <input type="hidden" name="status" value="@Model.Status" />
-
-                                                <button type="submit" class="status-action" aria-label="Deactivate @item.EquipmentName">
-                                                    Deactivate
-                                                </button>
-                                            </form>
-                                        }
-                                        else
-                                        {
-                                            <form class="category-action-form" asp-controller="Equipment" asp-action="Activate"
-                                                  asp-route-id="@item.EquipmentId" method="post">
-
-                                                @Html.AntiForgeryToken()
-
-                                                <input type="hidden" name="page" value="@Model.Page" />
-                                                <input type="hidden" name="search" value="@Model.Search" />
-                                                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
-                                                <input type="hidden" name="status" value="@Model.Status" />
-
-                                                <button type="submit" class="status-action" aria-label="Activate @item.EquipmentName">
-                                                    Activate
-                                                </button>
-                                            </form>
-
-                                            <button type="button" class="status-action status-action-danger delete-equipment"
-                                                    aria-label="Delete @item.EquipmentName" title="Delete equipment">
+                                            <button type="button"
+                                                    class="status-action status-action-danger delete-equipment"
+                                                    aria-label="Delete @item.EquipmentName"
+                                                    title="Delete equipment">
                                                 Delete
                                             </button>
                                         }
@@ -308,8 +307,9 @@ else
                     <nav class="pager" aria-label="Equipment pagination">
                         @if (Model.Page > 1)
                         {
-                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search"
-                               asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page - 1)"
+                                asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search"
+                                asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
                                 Previous
                             </a>
                         }
@@ -324,16 +324,18 @@ else
                             }
                             else
                             {
-                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-search="@Model.Search"
-                                   asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-pageSize="@Model.PageSize"
+                                    asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId"
+                                    asp-route-status="@Model.Status">
                                     @p
                                 </a>
                             }
                         }
                         @if (Model.Page < Model.TotalPages)
                         {
-                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search"
-                               asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page + 1)"
+                                asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search"
+                                asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
                                 Next
                             </a>
                         }
@@ -346,7 +348,7 @@ else
     @if (Model.Items.Count > 0)
     {
         <dialog class="app-dialog" id="deleteEquipmentDialog" aria-labelledby="deleteEquipmentTitle"
-                aria-describedby="deleteEquipmentMessage">
+            aria-describedby="deleteEquipmentMessage">
 
             <h2 id="deleteEquipmentTitle">Delete equipment</h2>
 
@@ -358,9 +360,8 @@ else
 
             <form asp-controller="Equipment" asp-action="Delete" method="post">
 
-                @Html.AntiForgeryToken()
-
                 <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
                 <input type="hidden" name="search" value="@Model.Search" />
                 <input type="hidden" name="categoryId" value="@Model.CategoryId" />
                 <input type="hidden" name="status" value="@Model.Status" />

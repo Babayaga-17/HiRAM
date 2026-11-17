@@ -25,20 +25,22 @@ namespace ASI.Basecode.Services.Services
         private readonly INotificationService _notifications;
         private readonly IUserRepository users;
         private readonly IAccountRepository accounts;
-        private readonly IRoleRepository roles;
         private readonly IProfilePhotoService photos;
         private readonly IEmailManager email;
         private readonly ILogger<BorrowerProfileService> logger;
 
-        public BorrowerProfileService(IBorrowerProfileRepository repository, IUserRepository users,
-            IAccountRepository accounts, IRoleRepository roles, IProfilePhotoService photos,
-            IEmailManager email, ILogger<BorrowerProfileService> logger, INotificationService notifications)
+        public BorrowerProfileService(IBorrowerProfileRepository repository, 
+            IUserRepository users,
+            IAccountRepository accounts, 
+            IProfilePhotoService photos,
+            IEmailManager email, 
+            ILogger<BorrowerProfileService> logger, 
+            INotificationService notifications)
         {
             _repository = repository;
             _notifications = notifications;
             this.users = users;
             this.accounts = accounts;
-            this.roles = roles;
             this.photos = photos;
             this.email = email;
             this.logger = logger;
@@ -182,30 +184,18 @@ namespace ASI.Basecode.Services.Services
             return (true, suspend ? "Borrower suspended." : "Borrower activated.");
         }
 
-        public (bool ok, string message) Delete(int userId)
-        {
-            var e = _repository.GetForUpdate(userId);
-            if (e == null) return (false, "Borrower not found.");
-            if (_repository.HasReservations(userId))
-                return (false, "This borrower has reservations and can't be deleted. Suspend them instead.");
-            _repository.Delete(e);   // removes the borrower profile only; the User row is kept
-            return (true, "Borrower profile removed. The user record was kept.");
-        }
-
         public async Task<bool> RegisterAsync(BorrowerRegistrationViewModel model, Stream photo, string fileName, CancellationToken cancellationToken = default)
         {
             model.UserCode = model.UserCode?.Trim(); model.Email = model.Email?.Trim();
             Validator.ValidateObject(model, new ValidationContext(model), true);
 
-            if (users.UserCodeExists(model.UserCode)) 
-                throw new ValidationException("That student or employee ID is already registered.");
+            if (users.UserCodeExists(model.UserCode))
+                throw new ValidationException("That student or employee ID is already registered.");    
 
-            if (accounts.EmailExists(model.Email)) 
+            if (accounts.EmailExists(model.Email))
                 throw new ValidationException("That email is already registered.");
 
             if (!GetDepartments().Any(d => d.DepartmentId == model.DepartmentId)) throw new ValidationException("Select an active department.");
-            var role = roles.GetRoles().SingleOrDefault(r => r.RoleName == "Borrower" && r.IsActive);
-            if (role == null) throw new ValidationException("Borrower registration is currently unavailable. Contact your administrator.");
             var now = DateTime.Now;
             var user = new User
             {
@@ -219,7 +209,7 @@ namespace ASI.Basecode.Services.Services
                 CreatedAt = now,
                 Account = new Account
                 {
-                    RoleId = role.RoleId,
+                    RoleName = RoleNames.Borrower,
                     Email = model.Email,
                     PasswordHash = PasswordManager.EncryptPassword(model.Password),
                     AccountStatus = AccountStatuses.PendingApproval,

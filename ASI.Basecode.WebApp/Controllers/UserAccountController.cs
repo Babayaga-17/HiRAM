@@ -404,9 +404,9 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
         {
 
-            var result = await _userAccountService.ApproveRegistrationAsync(id, version, UserId);
+            var found = await _userAccountService.ApproveRegistrationAsync(id, version, UserId);
 
-            if (!result.Found)
+            if (!found)
 
             {
 
@@ -416,11 +416,9 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
             }
 
-            TempData["UserAccountSuccess"] = "Registration approved. The account is active and the borrower is eligible.";
+            TempData["UserAccountSuccess"] =
 
-            if (!result.EmailQueued)
-
-                TempData["UserAccountWarning"] = "Registration approved, but no email could be queued. Please inform the user separately.";
+                "Registration approved. The account is active and the borrower is eligible.";
 
         }
 
@@ -630,12 +628,6 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
             // Active roles, plus the user's current role even if it was deactivated later.
 
-            ViewData["Roles"] = _userAccountService.GetRoles()
-
-                .Where(role => role.IsActive || role.RoleId == model.RoleId)
-
-                .ToList();
-
             ViewData["Departments"] = _userAccountService.GetActiveDepartments();
 
         }
@@ -644,13 +636,11 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
         {
 
-            _logger.LogError(exception, "Unable to load roles or departments.");
-
-            ViewData["Roles"] = new List<RoleListItem>();
+            _logger.LogError(exception, "Unable to load departments.");
 
             ViewData["Departments"] = new List<DepartmentOption>();
 
-            ModelState.AddModelError(string.Empty, "Unable to load roles. Please try again.");
+            ModelState.AddModelError(string.Empty, "Unable to load departments. Please try again.");
 
         }
 
