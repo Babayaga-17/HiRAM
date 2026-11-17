@@ -72,6 +72,11 @@ public class ReservationController : ControllerBase<ReservationController>
     [Authorize(Roles = RoleNames.Borrower)]
     public IActionResult Create()
     {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
+        {
+            return Challenge();
+        }
+
         var draft = HttpContext.Session.GetString("ReservationDraft:Create");
 
         var defaultPickup = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(8))
@@ -88,7 +93,40 @@ public class ReservationController : ControllerBase<ReservationController>
 
         model.EquipmentIds = ParseSelection(HttpContext.Session.GetString(SelectionKey));
 
-        LoadEquipment(model);
+        // A draft may contain a previous preview.
+        // Always rebuild it from current availability.
+        model.AvailabilityPreview = null;
+
+        try
+        {
+            LoadEquipment(model);
+
+            if (model.EquipmentIds.Count > 0 &&
+                model.Pickup.HasValue &&
+                model.ExpectedReturn.HasValue &&
+                model.ExpectedReturn.Value > model.Pickup.Value)
+            {
+                model.AvailabilityPreview =
+                    _reservationService.GetAvailabilityPreview(
+                        model, borrowerUserId);
+            }
+        }
+        catch (ArgumentException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(
+                exception,
+                "Unable to load the initial reservation preview for borrower {UserId}.",
+                borrowerUserId);
+
+            ModelState.AddModelError(
+                string.Empty,
+                "Unable to load availability. You can try Check availability again.");
+        }
+
         return View(model);
     }
 
@@ -273,6 +311,85 @@ public class ReservationController : ControllerBase<ReservationController>
         }
 
         return RedirectToAction("Index", "BrowseEquipment", new { reservationId = id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = RoleNames.Borrower)]
+    public IActionResult CheckAvailability(int? id, [Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose,RowVersion")] ReservationEditFormModel model, string returnUrl = null)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
+        {
+            return Challenge();
+        }
+
+        ViewData["ReservationReturnUrl"] = Url.IsLocalUrl(returnUrl) ? returnUrl : null;
+
+        if (id.HasValue)
+            ViewData["ReservationId"] = id.Value;
+
+        // Purpose is needed for submission, not an availability check.
+        ModelState.Remove(nameof(model.Purpose));
+
+        if (!id.HasValue)
+            ModelState.Remove(nameof(model.RowVersion));
+
+        // Create must receive a base model so the shared view
+        // does not mistake it for an Edit form.
+        ReservationFormModel form = id.HasValue
+            ? model
+            : new ReservationFormModel
+            {
+                EquipmentIds = model.EquipmentIds,
+                Pickup = model.Pickup,
+                ExpectedReturn = model.ExpectedReturn,
+                Purpose = model.Purpose
+            };
+
+        try
+        {
+            if (id.HasValue)
+            {
+                var reservation = _reservationService.GetReservationDetails(id.Value, borrowerUserId);
+
+                if (reservation == null)
+                    return NotFound();
+
+                if (reservation.Status != ReservationStatuses.Pending)
+                {
+                    TempData["ReservationError"] = "Only pending reservations can be edited.";
+
+                    return RedirectToAction(nameof(ReservationDetails),
+                        new
+                        {
+                            id = id.Value,
+                            returnUrl =
+                            ViewData["ReservationReturnUrl"]
+                        });
+                }
+            }
+
+            if (id.HasValue)
+                PrepareEditView(id.Value, model);
+            else
+                LoadEquipment(form);
+
+            if (ModelState.IsValid)
+            {
+                form.AvailabilityPreview = _reservationService.GetAvailabilityPreview(form, borrowerUserId, id);
+            }
+        }
+        catch (ArgumentException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to check reservation availability for borrower {UserId}.", borrowerUserId);
+            ModelState.AddModelError(string.Empty, "Unable to check availability. Please try again.");
+        }
+
+        return View(id.HasValue ? "Edit" : "Create", form);
     }
 
     [HttpGet]

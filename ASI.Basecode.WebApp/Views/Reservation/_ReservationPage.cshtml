@@ -1,3 +1,5 @@
+@using System.Globalization
+@using System.Linq
 @using ASI.Basecode.Services.ServiceModels
 @using ASI.Basecode.Services.ServiceModels.Reservation
 @model ReservationFormModel
@@ -33,8 +35,8 @@
     }
 
     <form id="reservationForm"
-        asp-controller="@formController"
-        asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@reservationId" method="post">
+          asp-controller="@formController"
+          asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@reservationId" method="post">
 
         @if (isEdit)
         {
@@ -108,60 +110,142 @@
                 </div>
                 <p id="scheduleHint" class="rc-hint">Philippine time (UTC+8). Return must be after pickup.</p>
                 <p id="returnFeedback" class="rc-feedback" role="status" data-duration></p>
-                <section class="rc-availability" aria-labelledby="createAvailabilityHeading" data-availability>
-                    <div class="rc-section-heading">
-                        <div>
-                            <h2 id="createAvailabilityHeading">Selected equipment availability</h2>
-                            <p class="rc-hint" data-range-label>Choose your schedule, then check existing bookings.</p>
+
+                <div class="rc-preview-actions">
+                    <p class="rc-hint">
+                        Choose your dates, then check availability.
+                        Check again after changing your schedule.
+                    </p>
+
+                    <button class="button button-secondary"
+                            type="submit"
+                            formaction="@Url.Action("CheckAvailability", "Reservation", new { id = reservationId })"
+                            formnovalidate>
+                        Check availability
+                    </button>
+                </div>
+
+                <section class="rc-availability"
+                         aria-labelledby="createAvailabilityHeading">
+                    <h2 id="createAvailabilityHeading">
+                        Selected equipment availability
+                    </h2>
+
+                    @if (Model.AvailabilityPreview == null)
+                    {
+                        <p class="rc-hint">
+                            Choose your dates and click Check availability
+                            to view existing bookings.
+                        </p>
+                    }
+                    else
+                    {
+                        var preview = Model.AvailabilityPreview;
+                        var rangeStart = preview.Pickup.Date;
+                        var rangeEnd = preview.ExpectedReturn.Date.AddDays(1);
+                        var totalMinutes = (rangeEnd - rangeStart).TotalMinutes;
+
+                        string Position(DateTime value) => ((value - rangeStart).TotalMinutes / totalMinutes * 100).ToString("0.###", CultureInfo.InvariantCulture);
+
+                        string Width(DateTime start, DateTime end) => ((end - start).TotalMinutes / totalMinutes * 100).ToString("0.###", CultureInfo.InvariantCulture);
+
+                        <p class="rc-hint">
+                            Last checked schedule:
+                            @preview.Pickup.ToString("MMM d, yyyy h:mm tt")
+                            to
+                            @preview.ExpectedReturn.ToString("MMM d, yyyy h:mm tt")
+                            (Philippine time).
+                            Check again after changing dates.
+                        </p>
+
+                        <div class="rc-legend">
+                            <span>
+                                <i class="rc-key-booking" aria-hidden="true"></i>
+                                Existing booking / maintenance
+                            </span>
+                            <span>
+                                <i class="rc-key-selection" aria-hidden="true"></i>
+                                Your selected time
+                            </span>
+                            <span>
+                                <i class="rc-key-conflict" aria-hidden="true"></i>
+                                Overlapping period
+                            </span>
                         </div>
-                        <div class="rc-view-controls" hidden data-view-controls>
-                            <button class="button button-secondary" type="button" data-view-toggle>Day detail</button>
-                            <label hidden data-day-control>
-                                Day
-                                <input type="date" data-timeline-day aria-label="Day to view in detail" />
-                            </label>
-                        </div>
-                    </div>
-                    <div class="rc-legend" hidden data-timeline-legend>
-                        <span>
-                            <i class="rc-key-booking" aria-hidden="true"></i>Existing booking
-                        </span>
-                        <span>
-                            <i class="rc-key-selection" aria-hidden="true"></i>Your selected time
-                        </span>
-                        <span>
-                            <i class="rc-key-conflict" aria-hidden="true"></i>Overlap
-                        </span>
-                    </div>
-                    <div data-timeline-rows>
-                        @foreach (var item in Model.Equipment)
+
+                        @foreach (var item in preview.Items)
                         {
-                            <div class="rc-equipment-row" data-equipment-row
-                                 data-schedule-url="@Url.Action("Schedule", "BrowseEquipment", new { id = item.EquipmentId, reservationId })"
-                                 data-availability-url="@Url.Action("Availability", "BrowseEquipment", new { id = item.EquipmentId, reservationId })"
-                                 data-equipment-name="@item.EquipmentName">
+                            var equipment = Model.Equipment.FirstOrDefault(
+                            equipment => equipment.EquipmentId == item.EquipmentId);
+
+                            <div class="rc-equipment-row">
                                 <div class="rc-row-title">
-                                    <strong>@item.EquipmentName</strong>
-                                    <small>@item.EquipmentCode</small>
+                                    <strong>
+                                        @(equipment?.EquipmentName ?? "Unavailable equipment")
+                                    </strong>
+                                    <small>@equipment?.EquipmentCode</small>
                                 </div>
+
                                 <div class="rc-row-schedule">
-                                    <div class="rc-axis" data-axis></div>
-                                    <div class="rc-track" hidden data-track aria-hidden="true"></div>
-                                    <p class="rc-row-state" data-row-state>Choose pickup and return dates to preview bookings.</p>
-                                    <ul class="rc-booking-list" data-booking-list></ul>
+                                    <div class="rc-axis">
+                                        <span>@rangeStart.ToString("MMM d, h:mm tt")</span>
+                                        <span>@rangeEnd.ToString("MMM d, h:mm tt")</span>
+                                    </div>
+
+                                    <div class="rc-track" aria-hidden="true">
+                                        <div class="rc-selection"
+                                             style="left: @(Position(preview.Pickup))%; width: @(Width(preview.Pickup, preview.ExpectedReturn))%;">
+                                        </div>
+
+                                        @foreach (var period in item.Periods)
+                                        {
+                                            var start = period.Start < rangeStart
+                                            ? rangeStart : period.Start;
+                                            var end = period.End > rangeEnd
+                                            ? rangeEnd : period.End;
+
+                                            var overlaps =
+                                            period.Start < preview.ExpectedReturn &&
+                                            period.End > preview.Pickup;
+
+                                            if (end > start)
+                                            {
+                                                <div class="rc-period @(overlaps ? "is-overlap" : "")"
+                                                     style="left: @(Position(start))%; width: @(Width(start, end))%;">
+                                                </div>
+                                            }
+                                        }
+                                    </div>
+
+                                    <p class="rc-row-state @(!item.IsAvailable ? "is-error" : "")">
+                                        @(item.IsAvailable ? "Available for the checked schedule." : item.Reason)
+                                    </p>
+
+                                    <ul class="rc-booking-list">
+                                        @foreach (var period in item.Periods)
+                                        {
+                                            var overlaps =
+                                            period.Start < preview.ExpectedReturn &&
+                                            period.End > preview.Pickup;
+
+                                            <li class="@(overlaps ? "is-overlap" : "")">
+                                                @period.Type:
+                                                @period.Start.ToString("MMM d, yyyy h:mm tt")
+                                                to
+                                                @period.End.ToString("MMM d, yyyy h:mm tt")
+                                                @(overlaps ? " - Overlaps your schedule" : "")
+                                            </li>
+                                        }
+                                    </ul>
                                 </div>
                             </div>
                         }
-                    </div>
-                    <p class="rc-preview-status" role="status" data-preview-status></p>
-                    <button class="rc-check reservation-link-button" type="button" hidden data-check-availability>Check availability</button>
-                    <noscript>
-                        <p class="rc-hint">
-                            Open the
-                            <a asp-controller="AvailabilityCalendar" asp-action="Index" target="_blank" rel="noopener">availability calendar</a>
-                            to review bookings. Your selected equipment and dates will still be checked when you submit.
+
+                        <p class="rc-preview-status">
+                            This preview does not reserve equipment.
+                            Availability is checked again when you submit.
                         </p>
-                    </noscript>
+                    }
                 </section>
                 <div class="form-group rc-purpose">
                     <label asp-for="Purpose">
@@ -177,7 +261,9 @@
                     {
                         <button class="button button-secondary" type="submit"
                                 formaction="@Url.Action("DiscardEdit", "Reservation", new { id = reservationId })"
-                                formnovalidate>Discard changes</button>
+                                formnovalidate>
+                            Discard changes
+                        </button>
                     }
                     <button class="button button-primary" type="submit" data-submit-request>@(isEdit ? "Save changes" : "Submit request")</button>
                 </div>

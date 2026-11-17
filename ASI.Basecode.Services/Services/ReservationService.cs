@@ -72,6 +72,61 @@ namespace ASI.Basecode.Services.Services
             return reservations.Select(ToListItem).ToList();
         }
 
+        public ReservationAvailabilityPreview GetAvailabilityPreview(ReservationFormModel form, int borrowerUserId, int? reservationId = null)
+        {
+            if (borrowerUserId <= 0)
+                throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
+
+            if (!form.Pickup.HasValue || !form.ExpectedReturn.HasValue)
+                throw new ArgumentException("Choose pickup and return dates.");
+
+            var pickup = form.Pickup.Value;
+            var expectedReturn = form.ExpectedReturn.Value;
+
+            if (expectedReturn <= pickup)
+                throw new ArgumentException("Return must be after pickup.");
+
+            if (form.EquipmentIds == null || form.EquipmentIds.Count == 0)
+                throw new ArgumentException("Select equipment before checking availability.");
+
+            if (reservationId.HasValue)
+            {
+                var reservation = _reservationRepository.GetReservationDetails(reservationId.Value, borrowerUserId);
+
+                if (reservation == null)
+                    throw new KeyNotFoundException("The reservation was not found.");
+
+                if (reservation.Status != ReservationStatuses.Pending)
+                    throw new InvalidOperationException("Only pending reservations can be edited.");
+            }
+
+            var preview = new ReservationAvailabilityPreview
+            {
+                Pickup = pickup,
+                ExpectedReturn = expectedReturn
+            };
+
+            var rangeStart = pickup.Date;
+            var rangeEnd = expectedReturn.Date.AddDays(1);
+
+            foreach (var equipmentId in form.EquipmentIds.Distinct())
+            {
+                var availability = _equipmentService.GetAvailability(equipmentId, pickup, expectedReturn, reservationId);
+
+                var periods = _equipmentService.GetSchedule(equipmentId, rangeStart, rangeEnd, reservationId);
+
+                preview.Items.Add(new ReservationEquipmentPreview
+                {
+                    EquipmentId = equipmentId,
+                    IsAvailable = availability.IsAvailable,
+                    Reason = availability.Reason,
+                    Periods = periods
+                });
+            }
+
+            return preview;
+        }
+
         public (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId)
         {
             var ids = form.EquipmentIds.Distinct().OrderBy(id => id).ToList();

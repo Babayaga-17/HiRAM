@@ -20,6 +20,8 @@ public class ReservationFormModel : IValidatableObject
     [StringLength(500, ErrorMessage = "Keep the purpose within 500 characters.")]
     public string Purpose { get; set; }
 
+    public ReservationAvailabilityPreview AvailabilityPreview { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,  
