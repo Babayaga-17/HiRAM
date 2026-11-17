@@ -99,7 +99,10 @@
         else if (Model.IsActive)
         {
             <p>Deactivated users can no longer sign in until the account is activated again.</p>
-            <button type="button" class="button button-danger" data-open-dialog="deactivateDialog">Deactivate account</button>
+            <form asp-controller="UserAccount" asp-action="Deactivate" asp-route-id="@Model.UserId" method="post">
+                <input type="hidden" name="version" value="@Model.Version" />
+                <button type="submit" class="button button-danger">Deactivate account</button>
+            </form>
         }
         else
         {
@@ -112,36 +115,8 @@
 
         <div class="form-divider"></div>
         <p>Reset access gives the user a new temporary password and clears failed sign-in attempts and any lockout.</p>
-        <button type="button" class="button button-secondary" data-open-dialog="resetDialog"><svg class="icon"><use href="#i-lock" /></svg>Reset access</button>
+        <form asp-controller="UserAccount" asp-action="ResetAccess" asp-route-id="@Model.UserId" method="post">
+            <button type="submit" class="button button-secondary"><svg class="icon"><use href="#i-lock" /></svg>Reset access</button>
+        </form>
     </aside>
 </div>
-
-@if (!isSelf && Model.IsActive)
-{
-    <dialog class="app-dialog" id="deactivateDialog" aria-labelledby="deactivateTitle">
-        <h2 id="deactivateTitle">Deactivate account</h2>
-        <p><strong>@Model.FullName</strong> will no longer be able to sign in to HiRAM until the account is activated again.</p>
-        <form asp-controller="UserAccount" asp-action="Deactivate" asp-route-id="@Model.UserId" method="post">
-            <input type="hidden" name="version" value="@Model.Version" />
-            <div class="dialog-actions">
-                <button type="button" class="button button-secondary dialog-close">Cancel</button>
-                <button type="submit" class="button button-danger">Deactivate</button>
-            </div>
-        </form>
-    </dialog>
-}
-
-<dialog class="app-dialog" id="resetDialog" aria-labelledby="resetTitle">
-    <h2 id="resetTitle">Reset account access</h2>
-    <p>A new temporary password will be generated for <strong>@Model.FullName</strong>. Their current password stops working immediately.</p>
-    <form asp-controller="UserAccount" asp-action="ResetAccess" asp-route-id="@Model.UserId" method="post">
-        <div class="dialog-actions">
-            <button type="button" class="button button-secondary dialog-close">Cancel</button>
-            <button type="submit" class="button button-primary">Reset access</button>
-        </div>
-    </form>
-</dialog>
-
-@section Scripts {
-    <script src="~/js/user-account.js" asp-append-version="true"></script>
-}

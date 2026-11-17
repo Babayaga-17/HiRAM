@@ -40,10 +40,10 @@
     flex-wrap: wrap;
 }
 
-.calendar-nav-button {
+.calendar-nav-button, a.calendar-nav-button {
     width: 36px;
     height: 36px;
-    display: grid;
+    display: inline-grid;
     place-items: center;
     border: 1px solid var(--line);
     border-radius: 10px;
@@ -52,11 +52,14 @@
     font-size: 18px;
     line-height: 1;
     cursor: pointer;
+    text-decoration: none;
 }
 
-.calendar-today-button {
+.calendar-today-button, a.calendar-today-button {
     height: 36px;
     padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
     border: 1px solid var(--line);
     border-radius: 10px;
     background: var(--surface);
@@ -65,6 +68,7 @@
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
+    text-decoration: none;
 }
 
 .calendar-title {
@@ -85,10 +89,13 @@
     background: var(--background);
 }
 
-    .calendar-views button {
+    .calendar-views button, .calendar-views a {
         min-width: 68px;
         height: 32px;
         padding: 0 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         border: 0;
         border-radius: 9px;
         background: transparent;
@@ -98,9 +105,10 @@
         font-weight: 700;
         white-space: nowrap;
         cursor: pointer;
+        text-decoration: none;
     }
 
-        .calendar-views button.is-active {
+        .calendar-views button.is-active, .calendar-views a.is-active {
             background: var(--surface);
             color: var(--link);
         }
@@ -115,7 +123,7 @@
     border-bottom: 1px solid var(--line);
 }
 
-    .calendar-legend button {
+    .calendar-legend button, .calendar-legend a {
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -127,13 +135,14 @@
         font: inherit;
         font-size: 12px;
         cursor: pointer;
+        text-decoration: none;
     }
 
-        .calendar-legend button:hover {
+        .calendar-legend button:hover, .calendar-legend a:hover {
             border-color: var(--line);
         }
 
-        .calendar-legend button.is-off {
+        .calendar-legend button.is-off, .calendar-legend a.is-off {
             color: var(--muted);
             text-decoration: line-through;
         }
@@ -219,7 +228,7 @@
         box-shadow: inset 0 0 0 2px var(--primary-soft);
     }
 
-.calendar-day-number {
+.calendar-day-number, a.calendar-day-number {
     width: 28px;
     height: 28px;
     display: inline-grid;
@@ -231,16 +240,17 @@
     font: inherit;
     font-size: 12px;
     cursor: pointer;
+    text-decoration: none;
 }
 
-.calendar-day-number.is-today {
+.calendar-day-number.is-today, a.calendar-day-number.is-today {
     background: var(--primary);
     color: var(--on-primary);
     font-weight: 700;
 }
 
 /* Entries */
-.calendar-chip {
+.calendar-chip, a.calendar-chip {
     display: block;
     width: 100%;
     padding: 5px 8px;
@@ -255,6 +265,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-decoration: none;
 }
 
     .calendar-chip strong {
@@ -310,7 +321,7 @@
     border-bottom: 1px solid var(--line);
 }
 
-.calendar-week-head {
+.calendar-week-head, a.calendar-week-head {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -323,18 +334,19 @@
     font: inherit;
     font-size: 12px;
     cursor: pointer;
+    text-decoration: none;
 }
 
-    .calendar-week-head strong {
+    .calendar-week-head strong, a.calendar-week-head strong {
         color: var(--ink);
     }
 
-.calendar-week-day.is-today .calendar-week-head {
+.calendar-week-day.is-today .calendar-week-head, .calendar-week-day.is-today a.calendar-week-head {
     background: var(--primary);
     color: var(--on-primary);
 }
 
-    .calendar-week-day.is-today .calendar-week-head strong {
+    .calendar-week-day.is-today .calendar-week-head strong, .calendar-week-day.is-today a.calendar-week-head strong {
         color: var(--on-primary);
     }
 
@@ -351,7 +363,7 @@
     gap: 10px;
 }
 
-.calendar-day-row {
+.calendar-day-row, a.calendar-day-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -366,6 +378,7 @@
     font-size: 13px;
     color: var(--ink);
     cursor: pointer;
+    text-decoration: none;
 }
 
     .calendar-day-row strong {

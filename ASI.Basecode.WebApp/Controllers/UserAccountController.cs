@@ -85,37 +85,48 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
 
     // 5.12 View user accounts
-
     [HttpGet]
-
-    public IActionResult Index()
-
+    public IActionResult Index(string search = null, string role = null, string status = null)
     {
-
         try
-
         {
+            var roles = _userAccountService.GetRoles();
+            ViewData["Roles"] = roles;
+            ViewBag.Search = search;
+            ViewBag.Role = role;
+            ViewBag.Status = status;
 
-            ViewData["Roles"] = _userAccountService.GetRoles();
+            var users = _userAccountService.GetUserAccounts();
+            ViewBag.TotalCount = users.Count;
 
-            return View(_userAccountService.GetUserAccounts());
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                users = users.Where(u =>
+                    (!string.IsNullOrEmpty(u.FullName) && u.FullName.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(u.UserCode) && u.UserCode.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(u.Email) && u.Email.Contains(term, StringComparison.OrdinalIgnoreCase))).ToList();
+            }
 
+            if (!string.IsNullOrWhiteSpace(role) && !role.Equals("all", StringComparison.OrdinalIgnoreCase))
+            {
+                users = users.Where(u => string.Equals(u.RoleName, role, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
+            {
+                users = users.Where(u => string.Equals(u.AccountStatus, status, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+
+            return View(users);
         }
-
         catch (Exception exception)
-
         {
-
             _logger.LogError(exception, "Unable to load user accounts.");
-
             TempData["UserAccountLoadError"] = "Unable to load user accounts. Please try again.";
-
             ViewData["Roles"] = new List<RoleListItem>();
-
             return View(new List<UserAccountListItem>());
-
         }
-
     }
 
 
