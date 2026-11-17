@@ -21,6 +21,137 @@
 
 @section Styles {
     <link rel="stylesheet" href="~/css/approval-release.css" asp-append-version="true" />
+    <style>
+        /* ---------- Layout: Reservation (wide) on the left, Borrower (narrow) on the right ---------- */
+        .rd-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+            gap: 16px;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+
+            .rd-grid > .rd-reservation {
+                grid-column: 1;
+            }
+
+            .rd-grid > .rd-borrower {
+                grid-column: 2;
+            }
+
+        @@media (max-width: 900px) {
+            .rd-grid {
+                grid-template-columns: 1fr;
+            }
+
+                .rd-grid > .rd-reservation,
+                .rd-grid > .rd-borrower {
+                    grid-column: 1;
+                }
+        }
+
+        /* ---------- Status pill: bold, glowing, readable in both themes ---------- */
+        .rd-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid transparent;
+        }
+
+            .rd-status::before {
+                content: "";
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: currentColor;
+                box-shadow: 0 0 0 4px rgba(255,255,255,0.12);
+            }
+
+            .rd-status.status-pending {
+                color: #fbbf24;
+                background: rgba(251,191,36,0.16);
+                border-color: rgba(251,191,36,0.55);
+            }
+
+            .rd-status.rs-approved {
+                color: #34d399;
+                background: rgba(52,211,153,0.16);
+                border-color: rgba(52,211,153,0.55);
+            }
+
+            .rd-status.rs-borrowed {
+                color: #60a5fa;
+                background: rgba(96,165,250,0.16);
+                border-color: rgba(96,165,250,0.55);
+            }
+
+            .rd-status.rs-returned {
+                color: #94a3b8;
+                background: rgba(148,163,184,0.16);
+                border-color: rgba(148,163,184,0.45);
+            }
+
+            .rd-status.rs-rejected {
+                color: #f87171;
+                background: rgba(248,113,113,0.16);
+                border-color: rgba(248,113,113,0.55);
+            }
+
+            .rd-status.rs-neutral {
+                color: #cbd5e1;
+                background: rgba(203,213,225,0.12);
+                border-color: rgba(203,213,225,0.4);
+            }
+
+        /* ---------- Alerts: colored bar with an icon-like accent ---------- */
+        .rd-alert {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            border-left: 4px solid currentColor;
+        }
+
+            .rd-alert.success {
+                color: #34d399;
+                background: rgba(52,211,153,0.14);
+            }
+
+            .rd-alert.error {
+                color: #f87171;
+                background: rgba(248,113,113,0.14);
+            }
+
+        /* ---------- Warning for ineligible borrowers ---------- */
+        .rd-warning {
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: #fbbf24;
+            background: rgba(251,191,36,0.14);
+            border: 1px solid rgba(251,191,36,0.45);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        /* ---------- Reservation card header accent ---------- */
+        .rd-grid .rd-reservation {
+            border-top: 3px solid #6366f1;
+        }
+
+        .rd-grid .rd-borrower {
+            border-top: 3px solid #14b8a6;
+        }
+    </style>
 }
 
 <div class="page-heading form-page-heading">
@@ -29,7 +160,7 @@
         <h1>@Model.ReservationNumber</h1>
         <p>Reservation submitted @Model.RequestedAt.ToString("MMM d, yyyy h:mm tt")</p>
     </div>
-    <span class="status-badge @BadgeClass(Model.Status) heading-status"><span></span>@Model.Status</span>
+    <span class="rd-status @BadgeClass(Model.Status)"><span></span>@Model.Status</span>
 </div>
 
 @if (Model.Status == ReservationStatuses.Borrowed)
@@ -44,15 +175,31 @@
 
 @if (TempData["ReservationSuccess"] is string successMessage)
 {
-    <div class="category-notice rs-notice-success" role="status">@successMessage</div>
+    <div class="rd-alert success" role="status">@successMessage</div>
 }
 @if (TempData["ReservationError"] is string errorMessage)
 {
-    <div class="category-notice category-notice-error" role="alert">@errorMessage</div>
+    <div class="rd-alert error" role="alert">@errorMessage</div>
 }
 
-<div class="form-page-grid">
-    <section class="content-card form-card" aria-label="Borrower information">
+<div class="rd-grid">
+    <!-- Reservation: wider, on the left -->
+    <section class="content-card form-card rd-reservation" aria-label="Reservation details">
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
+            <div><h2>Reservation</h2><p>Purpose and requested schedule.</p></div>
+        </div>
+        <dl class="details-list">
+            <div><dt>Purpose</dt><dd>@Model.Purpose</dd></div>
+            <div><dt>Start</dt><dd>@Model.StartDateTime.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            <div><dt>Expected return</dt><dd>@Model.ExpectedReturnDateTime.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            <div><dt>Requested at</dt><dd>@Model.RequestedAt.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            <div><dt>Items</dt><dd>@Model.ItemCount</dd></div>
+        </dl>
+    </section>
+
+    <!-- Borrower: narrower, on the right -->
+    <section class="content-card form-card rd-borrower" aria-label="Borrower information">
         <div class="form-card-header">
             <span class="form-section-icon"><svg class="icon"><use href="#i-user" /></svg></span>
             <div><h2>Borrower</h2><p>Who submitted this request.</p></div>
@@ -65,20 +212,6 @@
             <div><dt>Year level</dt><dd>@(Model.YearLevel.HasValue? Model.YearLevel.Value.ToString() : "—")</dd></div>
             <div><dt>Contact</dt><dd>@(string.IsNullOrWhiteSpace(Model.ContactNumber) ? "—" : Model.ContactNumber)</dd></div>
             <div><dt>Eligibility</dt><dd>@(string.IsNullOrWhiteSpace(Model.EligibilityStatus) ? "—" : Model.EligibilityStatus)</dd></div>
-        </dl>
-    </section>
-
-    <section class="content-card form-card" aria-label="Reservation details">
-        <div class="form-card-header">
-            <span class="form-section-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
-            <div><h2>Reservation</h2><p>Purpose and requested schedule.</p></div>
-        </div>
-        <dl class="details-list">
-            <div><dt>Purpose</dt><dd>@Model.Purpose</dd></div>
-            <div><dt>Start</dt><dd>@Model.StartDateTime.ToString("MMM d, yyyy h:mm tt")</dd></div>
-            <div><dt>Expected return</dt><dd>@Model.ExpectedReturnDateTime.ToString("MMM d, yyyy h:mm tt")</dd></div>
-            <div><dt>Requested at</dt><dd>@Model.RequestedAt.ToString("MMM d, yyyy h:mm tt")</dd></div>
-            <div><dt>Items</dt><dd>@Model.ItemCount</dd></div>
         </dl>
     </section>
 </div>
@@ -154,7 +287,7 @@
 
         @if (Model.EligibilityStatus != EligibilityStatuses.Eligible)
         {
-            <div class="rs-warn">This borrower is <strong>@(string.IsNullOrWhiteSpace(Model.EligibilityStatus) ? "not eligible" : Model.EligibilityStatus)</strong>, so the request can't be approved. You can still reject it.</div>
+            <div class="rd-warning">This borrower is <strong>@(string.IsNullOrWhiteSpace(Model.EligibilityStatus) ? "not eligible" : Model.EligibilityStatus)</strong>, so the request can't be approved. You can still reject it.</div>
         }
 
         <div class="rs-decision-grid">

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ASI.Basecode.Services.ServiceModels
+namespace ASI.Basecode.Services.ServiceModels.Borrower
 {
     public class BorrowerHistoryViewModel
     {
