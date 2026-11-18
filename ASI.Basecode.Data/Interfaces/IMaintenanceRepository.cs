@@ -5,6 +5,7 @@ namespace ASI.Basecode.Data.Interfaces;
 public interface IMaintenanceRepository
 {
     IQueryable<MaintenanceRecord> Records();
+    (int Scheduled, int InProgress, int PastEstimate) GetOverviewCounts(DateTime now);
     MaintenanceRecord Find(int id);
     Equipment FindEquipment(int id);
     string[] ReservationConflicts(int equipmentId, DateTime start);

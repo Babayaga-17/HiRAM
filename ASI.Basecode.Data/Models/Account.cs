@@ -9,8 +9,6 @@ public partial class Account
 
     public int UserId { get; set; }
 
-    public byte RoleId { get; set; }
-
     public string Email { get; set; }
 
     public string PasswordHash { get; set; }
@@ -31,9 +29,9 @@ public partial class Account
 
     public DateTime? UpdatedAt { get; set; }
 
-    public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+    public string RoleName { get; set; }
 
-    public virtual Role Role { get; set; }
+    public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 
     public virtual User User { get; set; }
 }

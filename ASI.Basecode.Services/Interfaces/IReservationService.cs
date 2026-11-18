@@ -16,6 +16,7 @@ namespace ASI.Basecode.Services.Interfaces
         string Cancel(int reservationId, ReservationCancelFormModel form, int borrowerUserId);
         Task<MyReservationPageViewModel> GetBorrowerReservationsAsync(int borrowerUserId, string status, int page, int pageSize);
         Task<List<PendingReservationListItem>> GetPendingReservationPreviewAsync();
+        ReservationAvailabilityPreview GetAvailabilityPreview(ReservationFormModel form, int borrowerUserId, int? reservationId = null);
 
 
 

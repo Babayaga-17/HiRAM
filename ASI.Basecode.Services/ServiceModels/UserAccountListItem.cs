@@ -17,7 +17,6 @@ namespace ASI.Basecode.Services.ServiceModels
         public string Suffix { get; set; } = string.Empty;
         public string ContactNumber { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
-        public byte RoleId { get; set; }
         public string RoleName { get; set; } = string.Empty;
         public string AccountStatus { get; set; } = string.Empty;
         public int FailedLoginAttempts { get; set; }
@@ -45,10 +44,7 @@ namespace ASI.Basecode.Services.ServiceModels
 
     public class RoleListItem
     {
-        public byte RoleId { get; set; }
         public string RoleName { get; set; } = string.Empty;
-        public string Description { get; set; } = string.Empty;
-        public bool IsActive { get; set; }
         public int ActiveAccountCount { get; set; }
         public int TotalAccountCount { get; set; }
     }

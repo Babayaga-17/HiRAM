@@ -90,7 +90,7 @@ namespace ASI.Basecode.Services.Services
                 }.Where(part => !string.IsNullOrWhiteSpace(part))),
                 Email = user.Account?.Email,
                 ContactNumber = user.ContactNumber,
-                RoleName = user.Account?.Role?.RoleName,
+                RoleName = user.Account?.RoleName,
                 AccountStatus = user.Account?.AccountStatus,
                 HasBorrowerProfile = user.BorrowerProfileUser != null,
                 BorrowerType = user.BorrowerProfileUser?.BorrowerType,

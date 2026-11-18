@@ -35,6 +35,20 @@ repo.Item.ConditionStatus = "Good"; email.Fail = true;
 var notified = await service.UpdateAsync(new() { Id = 1, Operation = "complete" }, 1, true);
 Check(!notified && record.Status == "Completed" && record.EndDateTime.HasValue && record.CompletedByUserId == 1, "Email failure preserves completion and actual end");
 Check(service.GetPage(null, null, 99).Page == 1, "Pagination clamps invalid page");
+repo.OverviewCounts = (4, 3, 1);
+repo.Item.EquipmentName = "Test equipment";
+repo.Item.EquipmentCode = "TEST-001";
+var filtered = service.GetPage("no match", "Scheduled", 2);
+Check(filtered.Records.Count == 0 && filtered.TotalCount == 0,
+    "Filtered list can be empty while overview has records");
+Check(filtered.ScheduledCount == 4 && filtered.InProgressCount == 3 && filtered.PastEstimateCount == 1,
+    "Overview counts are independent of table filters and page");
+Check(repo.OverviewTime.Kind == DateTimeKind.Unspecified
+    && Math.Abs((repo.OverviewTime - DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(8)).DateTime).TotalSeconds) < 10,
+    "Overview compares estimates using Philippine wall time");
+repo.FailOverview = true;
+try { service.GetPage(null, null, 1); throw new Exception("Overview failure was hidden"); }
+catch (InvalidOperationException) { Check(true, "Overview errors propagate to controller instead of false zero counts"); }
 Console.WriteLine($"{passed} maintenance checks passed.");
 
 class MemoryRepository : IMaintenanceRepository
@@ -42,6 +56,15 @@ class MemoryRepository : IMaintenanceRepository
     public List<MaintenanceRecord> Data = new();
     public Equipment Item = new() { EquipmentId = 1, IsActive = true, ConditionStatus = "Good" };
     public bool Conflict, Inside;
+    public (int Scheduled, int InProgress, int PastEstimate) OverviewCounts;
+    public DateTime OverviewTime;
+    public bool FailOverview;
+    public (int Scheduled, int InProgress, int PastEstimate) GetOverviewCounts(DateTime now)
+    {
+        if (FailOverview) throw new InvalidOperationException("Simulated overview failure");
+        OverviewTime = now;
+        return OverviewCounts;
+    }
     public IQueryable<MaintenanceRecord> Records() => Data.AsQueryable();
     public MaintenanceRecord Find(int id) => Data.SingleOrDefault(r => r.MaintenanceId == id);
     public Equipment FindEquipment(int id) => id == 1 ? Item : null;

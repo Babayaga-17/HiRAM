@@ -3,18 +3,15 @@
     const button = document.getElementById("sendCodeButton");
     const label = document.getElementById("sendCodeLabel");
     const spinner = button?.querySelector(".send-code-spinner");
-    const status = document.getElementById("sendCodeStatus");
 
-    if (!form || !button || !label || !spinner || !status) return;
+    if (!form || !button || !label || !spinner) return;
 
     let submitting = false;
 
     function resetButton() {
         submitting = false;
         button.disabled = false;
-        label.textContent = "Send code";
         spinner.hidden = true;
-        status.textContent = "";
         form.removeAttribute("aria-busy");
     }
 
@@ -28,9 +25,7 @@
 
         submitting = true;
         button.disabled = true;
-        label.textContent = "Sending code…";
         spinner.hidden = false;
-        status.textContent = "Sending your verification code. Please wait.";
         form.setAttribute("aria-busy", "true");
     });
 

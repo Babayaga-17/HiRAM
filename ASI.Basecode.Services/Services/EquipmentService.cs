@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ASI.Basecode.Services.ServiceModels.Equipment;
 
 namespace ASI.Basecode.Services.Services
 {
@@ -288,8 +289,10 @@ namespace ASI.Basecode.Services.Services
                 return result;
             }
 
-            result.Periods = GetBusyPeriods(equipmentId, start, end, excludeReservationId);
-            result.Slots = GetFreeSlots(result.Periods, start, end);
+            var blockedUntil = end.AddMinutes(ReservationPolicy.InspectionBufferMinutes);
+
+            result.Periods = GetBusyPeriods(equipmentId, start, blockedUntil, excludeReservationId);
+            result.Slots = GetFreeSlots(result.Periods, start, blockedUntil);
 
             if (result.Periods.Any(period => period.Type == AvailabilityPeriodTypes.Maintenance))
                 result.Reason = "This equipment is scheduled for maintenance during this period.";
@@ -351,8 +354,9 @@ namespace ASI.Basecode.Services.Services
             var maintenance = _equipmentRepository.GetEquipments()
                 .Where(equipment => equipment.IsActive)
                 .SelectMany(equipment => equipment.MaintenanceRecords)
-                .Where(record => (record.Status == MaintenanceStatuses.Scheduled || record.Status == MaintenanceStatuses.InProgress)
-                    && record.StartDateTime < end)
+                .Where(record =>
+                    record.Status == MaintenanceStatuses.Scheduled ||
+                    record.Status == MaintenanceStatuses.InProgress)
                 .Select(record => new
                 {
                     record.EquipmentId,
@@ -360,20 +364,23 @@ namespace ASI.Basecode.Services.Services
                     record.Equipment.EquipmentName,
                     record.Equipment.CategoryId,
                     record.Status,
-                    record.StartDateTime,
-                    record.EndDateTime
+                    Start = record.StartDateTime,
+                    End = record.ExpectedCompletionDateTime ?? end
                 })
+                .Where(record =>
+                    record.Start < end &&
+                    record.End > start)
                 .ToList()
-                .Select(row => new EquipmentCalendarEvent
+                .Select(record => new EquipmentCalendarEvent
                 {
-                    EquipmentId = row.EquipmentId,
-                    EquipmentCode = row.EquipmentCode,
-                    EquipmentName = row.EquipmentName,
-                    CategoryId = row.CategoryId,
+                    EquipmentId = record.EquipmentId,
+                    EquipmentCode = record.EquipmentCode,
+                    EquipmentName = record.EquipmentName,
+                    CategoryId = record.CategoryId,
                     Type = AvailabilityPeriodTypes.Maintenance,
-                    Status = row.Status,
-                    Start = row.StartDateTime,
-                    End = end
+                    Status = record.Status,
+                    Start = record.Start,
+                    End = record.End
                 })
                 .ToList();
 
@@ -400,13 +407,14 @@ namespace ASI.Basecode.Services.Services
                     && ReservationStatuses.Blocking.Contains(
                     reservationItem.Reservation.Status)
                     && reservationItem.Reservation.StartDateTime < end
-                    && reservationItem.Reservation.ExpectedReturnDateTime > start
+                    && reservationItem.Reservation.ExpectedReturnDateTime
+                        .AddMinutes(ReservationPolicy.InspectionBufferMinutes) > start
                     && (!excludeReservationId.HasValue
                     || reservationItem.ReservationId != excludeReservationId.Value))
                 .Select(reservationItem => new EquipmentBusyPeriod
                 {
                     Start = reservationItem.Reservation.StartDateTime,
-                    End = reservationItem.Reservation.ExpectedReturnDateTime,
+                    End = reservationItem.Reservation.ExpectedReturnDateTime.AddMinutes(ReservationPolicy.InspectionBufferMinutes),
                     Type = "Reservation",
                     Label = reservationItem.Reservation.Status == ReservationStatuses.Pending || reservationItem.Reservation.Status == ReservationStatuses.Approved
                         ? "Reserved" : "In use"
@@ -559,7 +567,7 @@ namespace ASI.Basecode.Services.Services
 
         public EquipmentIndexViewModel GetEquipmentPage(EquipmentListRequest request)
         {
-            const int pageSize = 5;
+            var pageSize = request.PageSize == 10 || request.PageSize == 20 ? request.PageSize : 5;
 
             var search = (request.Search ?? string.Empty).Trim();
             var page = request.Page;
@@ -611,9 +619,7 @@ namespace ASI.Basecode.Services.Services
 
             var filteredCount = query.Count();
 
-            var totalPages = Math.Max(
-                1,
-                (int)Math.Ceiling((double)filteredCount / pageSize));
+            var totalPages = Math.Max(1, (int)Math.Ceiling((double)filteredCount / pageSize));
 
             page = Math.Clamp(page, 1, totalPages);
 

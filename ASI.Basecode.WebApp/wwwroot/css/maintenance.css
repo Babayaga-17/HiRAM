@@ -71,3 +71,19 @@
 
 .maintenance-filters { grid-template-columns: minmax(0,1fr) 200px auto; align-items: end; }
 @media (max-width: 760px) { .maintenance-filters { grid-template-columns: 1fr; } }
+
+/* Index reuses the Equipment/Categories table, toolbar, summary and pager. */
+.maintenance-page.maintenance-index { display: block; }
+.maintenance-index .page-heading { margin-bottom: 26px; }
+.maintenance-index .stats-grid { margin-bottom: var(--space-section); }
+.maintenance-stats-note { margin: -10px 0 0; color: var(--muted); font-size: 12px; }
+.maintenance-index .stat-copy .maintenance-past-estimate { color: var(--pending-ink); }
+.maintenance-index .search-field input { min-height: 38px; padding: 0; border: 0; border-radius: 0; background: transparent; font-size: 14px; }
+.maintenance-index .filter-field select { width: auto; min-height: 39px; padding: 0 11px; font-size: 13px; }
+.maintenance-history-table { min-width: 820px; }
+.maintenance-history-table td small { display: block; margin-top: 4px; color: var(--muted); }
+.maintenance-history-table .maintenance-description { max-width: 260px; overflow-wrap: anywhere; }
+.maintenance-equipment-link { color: var(--ink); font-weight: 700; }
+.maintenance-equipment-link:hover { color: var(--link); }
+.maintenance-history-table .maintenance-status { font-size: 12px; font-weight: 650; }
+.maintenance-history-table .maintenance-status.cancelled { color: var(--muted); background: var(--raised); }

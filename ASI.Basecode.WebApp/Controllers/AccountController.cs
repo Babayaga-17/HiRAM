@@ -126,7 +126,7 @@ namespace ASI.Basecode.WebApp.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ForgotPassword(string email)
+        public async Task<IActionResult> ForgotPassword(string email) 
         {
             var result = await _passwordResetService.SendResetCodeAsync(email);
 

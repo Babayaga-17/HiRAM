@@ -29,9 +29,11 @@ else
         {
             <div class="stat-card">
                 <span class="stat-copy">
-                    <span>@role.RoleName @(role.IsActive ? "" : "(inactive)")</span>
+                    <span>@role.RoleName</span>
                     <strong>@role.ActiveAccountCount</strong>
-                    <small>active of @role.TotalAccountCount accounts · @role.Description</small>
+                    <small>
+                        active of @role.TotalAccountCount accounts
+                    </small>
                 </span>
             </div>
         }
@@ -69,6 +71,6 @@ else
                 </tbody>
             </table>
         </div>
-        <div class="table-footer"><span>Menus marked "Soon" in the sidebar are not built yet and are not listed.</span></div>
+        @* <div class="table-footer"><span>Menus marked "Soon" in the sidebar are not built yet and are not listed.</span></div> *@
     </section>
 }

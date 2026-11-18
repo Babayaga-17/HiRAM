@@ -1,3 +1,5 @@
+@using System.Globalization
+@using System.Linq
 @using ASI.Basecode.Services.ServiceModels
 @using ASI.Basecode.Services.ServiceModels.Reservation
 @model ReservationFormModel
@@ -10,7 +12,7 @@
     var selectionError = ViewData["SelectionError"] as string;
 }
 
-<div class="reservation-create" data-reservation-create>
+<div class="reservation-create">
     <button class="back-link reservation-link-button rc-back" type="submit" form="reservationForm" formaction="@changeEquipmentUrl" formnovalidate>
         <svg class="icon" aria-hidden="true">
             <use href="#i-chevron" />
@@ -19,7 +21,7 @@
     <div class="page-heading">
         <div>
             <h1>@(isEdit ? "Edit reservation" : "Reserve equipment")</h1>
-            <p>Choose a schedule that works for all your selected equipment.</p>
+            <p>Choose your borrowing schedule.</p>
         </div>
     </div>
     <ol class="rc-steps" aria-label="Reservation steps">
@@ -33,8 +35,8 @@
     }
 
     <form id="reservationForm"
-        asp-controller="@formController"
-        asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@reservationId" method="post">
+          asp-controller="@formController"
+          asp-action="@(isEdit ? "Edit" : "Create")" asp-route-id="@reservationId" method="post">
 
         @if (isEdit)
         {
@@ -77,7 +79,7 @@
                             <use href="#i-arrow" />
                         </svg>
                     </button>
-                    <p class="rc-summary-note">All items share the same schedule. Requests require approval before pickup.</p>
+                    <p class="rc-summary-note">One schedule for all items. Approval required before pickup.</p>
                 </section>
             </aside>
 
@@ -102,84 +104,245 @@
                             Expected return date and time
                             <span class="required" aria-hidden="true">*</span>
                         </label>
-                        <input asp-for="ExpectedReturn" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" required aria-describedby="scheduleHint returnFeedback" />
+                        <input asp-for="ExpectedReturn" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" required aria-describedby="scheduleHint" />
                         <span asp-validation-for="ExpectedReturn" class="field-validation-error"></span>
                     </div>
                 </div>
-                <p id="scheduleHint" class="rc-hint">Philippine time (UTC+8). Return must be after pickup.</p>
-                <p id="returnFeedback" class="rc-feedback" role="status" data-duration></p>
-                <section class="rc-availability" aria-labelledby="createAvailabilityHeading" data-availability>
-                    <div class="rc-section-heading">
-                        <div>
-                            <h2 id="createAvailabilityHeading">Selected equipment availability</h2>
-                            <p class="rc-hint" data-range-label>Choose your schedule, then check existing bookings.</p>
+                @* <p id="scheduleHint" class="rc-hint">Philippine time (UTC+8).</p> *@
+
+                <section class="rc-availability"
+                         aria-labelledby="createAvailabilityHeading">
+                    <div class="rc-availability-heading">
+                        <div class="rc-availability-title">
+                            <h2 id="createAvailabilityHeading">Availability</h2>
+                            @if (Model.AvailabilityPreview != null)
+                            {
+                                <p class="rc-hint">
+                                    Checked schedule:
+                                    @Model.AvailabilityPreview.Pickup.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)
+                                    to
+                                    @Model.AvailabilityPreview.ExpectedReturn.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)
+                                </p>
+                            }
                         </div>
-                        <div class="rc-view-controls" hidden data-view-controls>
-                            <button class="button button-secondary" type="button" data-view-toggle>Day detail</button>
-                            <label hidden data-day-control>
-                                Day
-                                <input type="date" data-timeline-day aria-label="Day to view in detail" />
-                            </label>
+                        <button class="button button-secondary rc-availability-button"
+                            type="submit"
+                            formaction="@Url.Action("CheckAvailability", "Reservation", new { id = reservationId })"
+                            formnovalidate>
+                        <svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg>
+                        Check availability
+                    </button>
+                    </div>
+
+                    @if (Model.AvailabilityPreview == null)
+                    {
+                        <p class="rc-hint">
+                            Click Check availability to preview your schedule.
+                        </p>
+                    }
+                    else
+                    {
+                        var preview = Model.AvailabilityPreview;
+                        var rangeStart = preview.RangeStart;
+                        var rangeEnd = preview.RangeEnd;
+                        var totalMinutes = (rangeEnd - rangeStart).TotalMinutes;
+                        var inspectionEnd = preview.ExpectedReturn.AddMinutes(ReservationPolicy.InspectionBufferMinutes);
+
+                        string Position(DateTime value) => ((value - rangeStart).TotalMinutes / totalMinutes * 100).ToString("0.###", CultureInfo.InvariantCulture);
+
+                        string Width(DateTime start, DateTime end) => ((end - start).TotalMinutes / totalMinutes * 100).ToString("0.###", CultureInfo.InvariantCulture);
+
+
+
+                        <div class="rc-legend">
+                            <span>
+                                <i class="rc-key-closed" aria-hidden="true"></i>
+                                Desk closed
+                            </span>
+                            <span>
+                                <i class="rc-key-booking" aria-hidden="true"></i>
+                                Existing booking / maintenance
+                            </span>
+                            <span>
+                                <i class="rc-key-selection" aria-hidden="true"></i>
+                                Your schedule
+                            </span>
+                            <span>
+                                <i class="rc-key-inspection" aria-hidden="true"></i>
+                                Inspection buffer
+                            </span>
+                            <span>
+                                <i class="rc-key-conflict" aria-hidden="true"></i>
+                                Conflict
+                            </span>
                         </div>
-                    </div>
-                    <div class="rc-legend" hidden data-timeline-legend>
-                        <span>
-                            <i class="rc-key-booking" aria-hidden="true"></i>Existing booking
-                        </span>
-                        <span>
-                            <i class="rc-key-selection" aria-hidden="true"></i>Your selected time
-                        </span>
-                        <span>
-                            <i class="rc-key-conflict" aria-hidden="true"></i>Overlap
-                        </span>
-                    </div>
-                    <div data-timeline-rows>
-                        @foreach (var item in Model.Equipment)
+
+                        <p class="rc-hint">Desk closed: no pickup or return; overnight borrowing is allowed. Booking periods include a @(ReservationPolicy.InspectionBufferMinutes)-minute inspection buffer.</p>
+
+                        @foreach (var item in preview.Items)
                         {
-                            <div class="rc-equipment-row" data-equipment-row
-                                 data-schedule-url="@Url.Action("Schedule", "BrowseEquipment", new { id = item.EquipmentId, reservationId })"
-                                 data-availability-url="@Url.Action("Availability", "BrowseEquipment", new { id = item.EquipmentId, reservationId })"
-                                 data-equipment-name="@item.EquipmentName">
+                            var equipment = Model.Equipment.FirstOrDefault(
+                            equipment => equipment.EquipmentId == item.EquipmentId);
+
+                            <div class="rc-equipment-row">
                                 <div class="rc-row-title">
-                                    <strong>@item.EquipmentName</strong>
-                                    <small>@item.EquipmentCode</small>
+                                    <strong>
+                                        @(equipment?.EquipmentName ?? "Unavailable equipment")
+                                    </strong>
+                                    <small>@equipment?.EquipmentCode</small>
                                 </div>
+
                                 <div class="rc-row-schedule">
-                                    <div class="rc-axis" data-axis></div>
-                                    <div class="rc-track" hidden data-track aria-hidden="true"></div>
-                                    <p class="rc-row-state" data-row-state>Choose pickup and return dates to preview bookings.</p>
-                                    <ul class="rc-booking-list" data-booking-list></ul>
+                                    @if (preview.Pickup.Date == preview.ExpectedReturn.Date)
+                                    {
+                                        <div class="rc-axis rc-time-axis" aria-label="Hours in Philippine time">
+                                            @foreach (var hour in new[] { 7, 8, 12, 17, 18 })
+                                            {
+                                                var marker = rangeStart.Date.AddHours(hour);
+                                                <span class="@(hour == 7 ? "rc-time-start" : hour == 18 ? "rc-time-end" : "")"
+                                                      style="left: @(Position(marker))%;">@marker.ToString("h tt", CultureInfo.InvariantCulture)</span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                    <div class="rc-axis rc-day-axis">
+                                        @for (var day = rangeStart.Date; day < rangeEnd; day = day.AddDays(1))
+                                        {
+                                            <span>@day.ToString("MMM d")</span>
+                                        }
+                                    </div>
+                                    }
+
+                                    <div class="rc-track" aria-hidden="true">
+
+                                        @for (var day = rangeStart.Date; day < rangeEnd; day = day.AddDays(1))
+                                        {
+                                            var opensAt = day.Add(ReservationPolicy.DeskOpeningTime);
+                                            var closesAt = day.Add(ReservationPolicy.DeskClosingTime);
+                                            var closedStart = day < rangeStart ? rangeStart : day;
+                                            var morningEnd = opensAt > rangeEnd ? rangeEnd : opensAt;
+                                            var eveningStart = closesAt < rangeStart ? rangeStart : closesAt;
+                                            var closedEnd = day.AddDays(1) > rangeEnd ? rangeEnd : day.AddDays(1);
+
+                                            if (morningEnd > closedStart)
+                                            {
+                                                <div class="rc-desk-closed"
+                                                     style="left: @(Position(closedStart))%; width: @(Width(closedStart, morningEnd))%;"></div>
+                                            }
+
+                                            if (closedEnd > eveningStart)
+                                            {
+                                                <div class="rc-desk-closed"
+                                                     style="left: @(Position(eveningStart))%; width: @(Width(eveningStart, closedEnd))%;"></div>
+                                            }
+                                        }
+
+                                        @{
+                                            var selectionStart = preview.Pickup < rangeStart
+                                            ? rangeStart
+                                            : preview.Pickup;
+
+                                            var selectionEnd = preview.ExpectedReturn > rangeEnd
+                                            ? rangeEnd
+                                            : preview.ExpectedReturn;
+                                        }
+
+                                        @if (selectionEnd > selectionStart)
+                                        {
+                                            <div class="rc-selection"
+                                                 style="left: @(Position(selectionStart))%; width: @(Width(selectionStart, selectionEnd))%;">
+                                            </div>
+                                        }
+
+                                        @{
+                                            var bufferStart = preview.ExpectedReturn < rangeStart
+                                            ? rangeStart
+                                            : preview.ExpectedReturn;
+
+                                            var bufferEnd = inspectionEnd > rangeEnd
+                                            ? rangeEnd
+                                            : inspectionEnd;
+                                        }
+
+                                        @if (bufferEnd > bufferStart)
+                                        {
+                                            <div class="rc-inspection"
+                                                 style="left: @(Position(bufferStart))%; width: @(Width(bufferStart, bufferEnd))%;">
+                                            </div>
+                                        }
+
+                                        @foreach (var period in item.Periods)
+                                        {
+                                            var start = period.Start < rangeStart
+                                            ? rangeStart : period.Start;
+                                            var end = period.End > rangeEnd
+                                            ? rangeEnd : period.End;
+
+                                            var overlaps =
+                                            period.Start < inspectionEnd &&
+                                            period.End > preview.Pickup;
+
+                                            if (end > start)
+                                            {
+                                                <div class="rc-period @(overlaps ? "is-overlap" : "")"
+                                                     style="left: @(Position(start))%; width: @(Width(start, end))%;">
+                                                </div>
+                                            }
+                                        }
+                                        @for (var boundary = rangeStart.Date.AddDays(1); boundary < rangeEnd; boundary = boundary.AddDays(1))
+                                        {
+                                            <div class="rc-day-divider"
+                                                 style="left: @(Position(boundary))%;"></div>
+                                        }
+                                    </div>
+
+                                    <p class="rc-row-state @(!item.IsAvailable ? "is-error" : "")">
+                                        @(item.IsAvailable ? "Available for this schedule." : item.Reason)
+                                    </p>
+
+                                    <ul class="rc-booking-list">
+                                        @foreach (var period in item.Periods)
+                                        {
+                                            var overlaps =
+                                            period.Start < inspectionEnd &&
+                                            period.End > preview.Pickup;
+
+                                            <li class="@(overlaps ? "is-overlap" : "")">
+                                                @period.Type:
+                                                @period.Start.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)
+                                                to
+                                                @period.End.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)
+                                                @(overlaps ? " - Overlaps your schedule" : "")
+                                            </li>
+                                        }
+                                    </ul>
                                 </div>
                             </div>
                         }
-                    </div>
-                    <p class="rc-preview-status" role="status" data-preview-status></p>
-                    <button class="rc-check reservation-link-button" type="button" hidden data-check-availability>Check availability</button>
-                    <noscript>
-                        <p class="rc-hint">
-                            Open the
-                            <a asp-controller="AvailabilityCalendar" asp-action="Index" target="_blank" rel="noopener">availability calendar</a>
-                            to review bookings. Your selected equipment and dates will still be checked when you submit.
-                        </p>
-                    </noscript>
+
+
+                    }
                 </section>
                 <div class="form-group rc-purpose">
                     <label asp-for="Purpose">
                         Purpose of borrowing
                         <span class="required" aria-hidden="true">*</span>
                     </label>
-                    <textarea asp-for="Purpose" rows="3" maxlength="500" required placeholder="For example, a class presentation or laboratory activity."></textarea>
+                    <textarea asp-for="Purpose" rows="3" maxlength="500" required placeholder="e.g. Class presentation"></textarea>
                     <span asp-validation-for="Purpose" class="field-validation-error"></span>
                 </div>
                 <div class="rc-submit-area">
-                    <p class="rc-hint">Availability is checked again when you submit.</p>
+                    <p class="rc-hint">Preview only. Availability is checked again on submission.</p>
                     @if (isEdit)
                     {
                         <button class="button button-secondary" type="submit"
                                 formaction="@Url.Action("DiscardEdit", "Reservation", new { id = reservationId })"
-                                formnovalidate>Discard changes</button>
+                                formnovalidate>
+                            Discard changes
+                        </button>
                     }
-                    <button class="button button-primary" type="submit" data-submit-request>@(isEdit ? "Save changes" : "Submit request")</button>
+                    <button class="button button-primary" type="submit">@(isEdit ? "Save changes" : "Submit request")</button>
                 </div>
             </section>
 

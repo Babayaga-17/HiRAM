@@ -20,12 +20,11 @@ public class NotificationService : INotificationService
         NotificationEvents.RegistrationSubmitted, "New registration awaiting review",
         $"{user.FirstName} {user.LastName} ({user.UserCode}) registered as a borrower. Review their school details and profile before approving access.", user, null);
 
-    public bool RegistrationApproved(Account account)
+    public void RegistrationApproved(Account account)
     {
         Stage(new[] { (account.UserId, account.Email) }, NotificationEvents.RegistrationApproved, "Your HiRAM registration is approved",
             "Your HiRAM registration has been approved. Your account is active and you are eligible to request equipment. " +
             "You can now sign in with your registered email address and password. Equipment requests remain subject to availability and approval.", account.User, null);
-        return !string.IsNullOrWhiteSpace(account.Email);
     }
 
     public void ReservationChanged(Reservation reservation, string eventType)
@@ -57,22 +56,36 @@ public class NotificationService : INotificationService
             eventType, title, body, null, reservation);
     }
 
-    private void Stage(IEnumerable<(int UserId, string Email)> recipients, string eventType, string title, string body, User user, Reservation reservation)
+    private void Stage(
+        IEnumerable<(int UserId, string Email)> recipients,
+        string eventType,
+        string title,
+        string body,
+        User user,
+        Reservation reservation)
     {
         var now = DateTime.UtcNow;
         var eventKey = Guid.NewGuid();
-        // Keep within the persisted message contract even when old data has unbounded notes.
-        body = body.Length > 2000 ? body.Substring(0, 1999) + "…" : body;
-        var messages = recipients.DistinctBy(r => r.UserId).Select(recipient => new Notification
-        {
-            RecipientUserId = recipient.UserId, EventKey = eventKey, EventType = eventType,
-            RelatedUser = user, Reservation = reservation, Title = title, Body = body, CreatedAt = now,
-            NotificationEmail = string.IsNullOrWhiteSpace(recipient.Email) ? null : new NotificationEmail
+
+        body = body.Length > 2000
+            ? body.Substring(0, 1999) + "…"
+            : body;
+
+        var messages = recipients
+            .DistinctBy(recipient => recipient.UserId)
+            .Select(recipient => new Notification
             {
-                RecipientEmail = recipient.Email, Subject = title, Body = body,
-                DeliveryStatus = EmailDeliveryStatuses.Pending, AttemptCount = 0, NextAttemptAt = now, CreatedAt = now
-            }
-        }).ToList();
+                RecipientUserId = recipient.UserId,
+                EventKey = eventKey,
+                EventType = eventType,
+                RelatedUser = user,
+                Reservation = reservation,
+                Title = title,
+                Body = body,
+                CreatedAt = now
+            })
+            .ToList();
+
         _notifications.Stage(messages);
     }
 
@@ -88,8 +101,18 @@ public class NotificationService : INotificationService
         page = Math.Clamp(page, 1, pages);
         var unread = await _notifications.CountAsync(userId, null, false, token);
         var rows = await _notifications.GetPageAsync(userId, search, read, (page - 1) * size, size, token);
-        return new NotificationListViewModel { IsAvailable = true, Search = search, Status = status, Page = page,
-            TotalPages = pages, TotalCount = count, PageSize = size, UnreadCount = unread, Items = rows.Select(Item).ToList() };
+        return new NotificationListViewModel
+        {
+            IsAvailable = true,
+            Search = search,
+            Status = status,
+            Page = page,
+            TotalPages = pages,
+            TotalCount = count,
+            PageSize = size,
+            UnreadCount = unread,
+            Items = rows.Select(Item).ToList()
+        };
     }
 
     public async Task<NotificationMenuViewModel> GetMenuAsync(int userId, CancellationToken token)
@@ -99,12 +122,12 @@ public class NotificationService : INotificationService
             var unread = await _notifications.CountAsync(userId, null, false, token);
             var rows = await _notifications.GetPageAsync(userId, null, null, 0, 5, token);
             return new NotificationMenuViewModel { IsAvailable = true, UnreadCount = unread, Items = rows.Select(Item).ToList() };
-        } 
+        }
         catch (Exception exception)
         {
             return null;
         }
-        
+
     }
 
     public async Task<NotificationDetailsViewModel> GetDetailsAsync(int userId, long id, CancellationToken token)
@@ -112,9 +135,16 @@ public class NotificationService : INotificationService
         var n = await _notifications.GetAsync(id, userId, token);
         return n == null ? null : new NotificationDetailsViewModel
         {
-            IsAvailable = true, Id = n.NotificationId, Title = n.Title, Body = n.Body, Category = Category(n.EventType),
-            CreatedAt = Local(n.CreatedAt), ReadAt = n.ReadAt.HasValue ? Local(n.ReadAt.Value) : null,
-            EventType = n.EventType, RelatedUserId = n.RelatedUserId, ReservationId = n.ReservationId
+            IsAvailable = true,
+            Id = n.NotificationId,
+            Title = n.Title,
+            Body = n.Body,
+            Category = Category(n.EventType),
+            CreatedAt = Local(n.CreatedAt),
+            ReadAt = n.ReadAt.HasValue ? Local(n.ReadAt.Value) : null,
+            EventType = n.EventType,
+            RelatedUserId = n.RelatedUserId,
+            ReservationId = n.ReservationId
         };
     }
     public Task<bool> OpenAsync(int userId, long id, CancellationToken token) => _notifications.MarkReadAsync(id, userId, DateTime.UtcNow, token);
@@ -122,7 +152,11 @@ public class NotificationService : INotificationService
     private static DateTime Local(DateTime utc) => new DateTimeOffset(DateTime.SpecifyKind(utc, DateTimeKind.Utc)).ToOffset(TimeSpan.FromHours(8)).DateTime;
     private static NotificationItemViewModel Item(Notification n) => new()
     {
-        Id = n.NotificationId, Title = n.Title, Preview = n.Body.Length > 110 ? n.Body.Substring(0, 109) + "…" : n.Body,
-        Category = Category(n.EventType), IsRead = n.ReadAt.HasValue, CreatedAt = Local(n.CreatedAt)
+        Id = n.NotificationId,
+        Title = n.Title,
+        Preview = n.Body.Length > 110 ? n.Body.Substring(0, 109) + "…" : n.Body,
+        Category = Category(n.EventType),
+        IsRead = n.ReadAt.HasValue,
+        CreatedAt = Local(n.CreatedAt)
     };
 }
