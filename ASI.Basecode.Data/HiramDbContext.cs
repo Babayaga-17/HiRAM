@@ -122,10 +122,6 @@ public partial class HiramDbContext : DbContext
                 .IsUnicode(false)
                 .HasDefaultValueSql("(suser_sname())")
                 .HasColumnName("created_by");
-            entity.Property(e => e.DepartmentCode)
-                .HasMaxLength(20)
-                .IsUnicode(false)
-                .HasColumnName("department_code");
             entity.Property(e => e.DepartmentId).HasColumnName("department_id");
             entity.Property(e => e.EligibilityStatus)
                 .IsRequired()
