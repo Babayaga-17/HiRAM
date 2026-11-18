@@ -289,8 +289,10 @@ namespace ASI.Basecode.Services.Services
                 return result;
             }
 
-            result.Periods = GetBusyPeriods(equipmentId, start, end, excludeReservationId);
-            result.Slots = GetFreeSlots(result.Periods, start, end);
+            var blockedUntil = end.AddMinutes(ReservationPolicy.InspectionBufferMinutes);
+
+            result.Periods = GetBusyPeriods(equipmentId, start, blockedUntil, excludeReservationId);
+            result.Slots = GetFreeSlots(result.Periods, start, blockedUntil);
 
             if (result.Periods.Any(period => period.Type == AvailabilityPeriodTypes.Maintenance))
                 result.Reason = "This equipment is scheduled for maintenance during this period.";
@@ -405,13 +407,14 @@ namespace ASI.Basecode.Services.Services
                     && ReservationStatuses.Blocking.Contains(
                     reservationItem.Reservation.Status)
                     && reservationItem.Reservation.StartDateTime < end
-                    && reservationItem.Reservation.ExpectedReturnDateTime > start
+                    && reservationItem.Reservation.ExpectedReturnDateTime
+                        .AddMinutes(ReservationPolicy.InspectionBufferMinutes) > start
                     && (!excludeReservationId.HasValue
                     || reservationItem.ReservationId != excludeReservationId.Value))
                 .Select(reservationItem => new EquipmentBusyPeriod
                 {
                     Start = reservationItem.Reservation.StartDateTime,
-                    End = reservationItem.Reservation.ExpectedReturnDateTime,
+                    End = reservationItem.Reservation.ExpectedReturnDateTime.AddMinutes(ReservationPolicy.InspectionBufferMinutes),
                     Type = "Reservation",
                     Label = reservationItem.Reservation.Status == ReservationStatuses.Pending || reservationItem.Reservation.Status == ReservationStatuses.Approved
                         ? "Reserved" : "In use"
