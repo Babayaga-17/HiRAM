@@ -1,5 +1,6 @@
 // ASI.Basecode.WebApp/Controllers/ReservationController.cs
 using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.ServiceModels.Equipment;
@@ -111,6 +112,10 @@ public class ReservationController : ControllerBase<ReservationController>
                         model, borrowerUserId);
             }
         }
+        catch (ReservationValidationException exception)
+        {
+            AddReservationErrors(exception);
+        }
         catch (ArgumentException exception)
         {
             ModelState.AddModelError(string.Empty, exception.Message);
@@ -155,6 +160,10 @@ public class ReservationController : ControllerBase<ReservationController>
                 return RedirectToAction(nameof(Submitted));
             }
             ModelState.AddModelError(string.Empty, result.Error);
+        }
+        catch (ReservationValidationException exception)
+        {
+            AddReservationErrors(exception);
         }
         catch (Exception)
         {
@@ -264,6 +273,10 @@ public class ReservationController : ControllerBase<ReservationController>
                 }
 
                 ModelState.AddModelError(string.Empty, error);
+            }
+            catch (ReservationValidationException exception)
+            {
+                AddReservationErrors(exception);
             }
             catch (Exception exception)
             {
@@ -394,6 +407,10 @@ public class ReservationController : ControllerBase<ReservationController>
             {
                 form.AvailabilityPreview = _reservationService.GetAvailabilityPreview(form, borrowerUserId, id);
             }
+        }
+        catch (ReservationValidationException exception)
+        {
+            AddReservationErrors(exception);
         }
         catch (ArgumentException exception)
         {
@@ -759,6 +776,21 @@ public class ReservationController : ControllerBase<ReservationController>
         ViewData["ReturnInput"] = request;
 
         return View("Return", reservation);
+    }
+
+    private void AddReservationErrors(ReservationValidationException exception)
+    {
+        foreach (var error in exception.Errors)
+        {
+            var fields = error.MemberNames.Any()
+                ? error.MemberNames
+                : new[] { string.Empty };
+
+            foreach (var field in fields)
+            {
+                ModelState.AddModelError(field, error.ErrorMessage ?? "Invalid reservation input.");
+            }
+        }
     }
 
     private int? CurrentUserId()

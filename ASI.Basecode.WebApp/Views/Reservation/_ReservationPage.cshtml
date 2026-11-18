@@ -177,6 +177,7 @@
                         var rangeStart = preview.RangeStart;
                         var rangeEnd = preview.RangeEnd;
                         var totalMinutes = (rangeEnd - rangeStart).TotalMinutes;
+                        var inspectionEnd = preview.ExpectedReturn.AddMinutes(ReservationPolicy.InspectionBufferMinutes);
 
                         string Position(DateTime value) => ((value - rangeStart).TotalMinutes / totalMinutes * 100).ToString("0.###", CultureInfo.InvariantCulture);
 
@@ -200,6 +201,10 @@
 
                         <div class="rc-legend">
                             <span>
+                                <i class="rc-key-closed" aria-hidden="true"></i>
+                                Desk closed - no pickup or return
+                            </span>
+                            <span>
                                 <i class="rc-key-booking" aria-hidden="true"></i>
                                 Existing booking / maintenance
                             </span>
@@ -208,10 +213,23 @@
                                 Your selected time
                             </span>
                             <span>
+                                <i class="rc-key-inspection" aria-hidden="true"></i>
+                                Your inspection allowance
+                            </span>
+                            <span>
                                 <i class="rc-key-conflict" aria-hidden="true"></i>
                                 Overlapping period
                             </span>
                         </div>
+
+                        <p class="rc-hint">
+                            Equipment may remain borrowed overnight.
+                            Grey areas indicate when pickup and return are unavailable.
+                            Reservation booking periods include a
+                            @(ReservationPolicy.InspectionBufferMinutes)-minute
+                            inspection allowance.
+                            Maintenance periods use their own schedule.
+                        </p>
 
                         @foreach (var item in preview.Items)
                         {
@@ -233,6 +251,22 @@
                                     </div>
 
                                     <div class="rc-track" aria-hidden="true">
+
+                                        @for (var day = rangeStart.Date; day < rangeEnd; day = day.AddDays(1))
+                                        {
+                                            var opensAt = day.Add(ReservationPolicy.DeskOpeningTime);
+                                            var closesAt = day.Add(ReservationPolicy.DeskClosingTime);
+                                            var nextDay = day.AddDays(1);
+
+                                            <div class="rc-desk-closed"
+                                                 style="left: @(Position(day))%; width: @(Width(day, opensAt))%;">
+                                            </div>
+
+                                            <div class="rc-desk-closed"
+                                                 style="left: @(Position(closesAt))%; width: @(Width(closesAt, nextDay))%;">
+                                            </div>
+                                        }
+
                                         @{
                                             var selectionStart = preview.Pickup < rangeStart
                                             ? rangeStart
@@ -250,6 +284,23 @@
                                             </div>
                                         }
 
+                                        @{
+                                            var bufferStart = preview.ExpectedReturn < rangeStart
+                                            ? rangeStart
+                                            : preview.ExpectedReturn;
+
+                                            var bufferEnd = inspectionEnd > rangeEnd
+                                            ? rangeEnd
+                                            : inspectionEnd;
+                                        }
+
+                                        @if (bufferEnd > bufferStart)
+                                        {
+                                            <div class="rc-inspection"
+                                                 style="left: @(Position(bufferStart))%; width: @(Width(bufferStart, bufferEnd))%;">
+                                            </div>
+                                        }
+
                                         @foreach (var period in item.Periods)
                                         {
                                             var start = period.Start < rangeStart
@@ -258,7 +309,7 @@
                                             ? rangeEnd : period.End;
 
                                             var overlaps =
-                                            period.Start < preview.ExpectedReturn &&
+                                            period.Start < inspectionEnd &&
                                             period.End > preview.Pickup;
 
                                             if (end > start)
@@ -278,7 +329,7 @@
                                         @foreach (var period in item.Periods)
                                         {
                                             var overlaps =
-                                            period.Start < preview.ExpectedReturn &&
+                                            period.Start < inspectionEnd &&
                                             period.End > preview.Pickup;
 
                                             <li class="@(overlaps ? "is-overlap" : "")">

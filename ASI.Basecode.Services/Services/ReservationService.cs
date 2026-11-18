@@ -4,6 +4,7 @@ using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.ServiceModels.Equipment;
@@ -77,14 +78,10 @@ namespace ASI.Basecode.Services.Services
             if (borrowerUserId <= 0)
                 throw new ArgumentOutOfRangeException(nameof(borrowerUserId));
 
-            if (!form.Pickup.HasValue || !form.ExpectedReturn.HasValue)
-                throw new ArgumentException("Choose pickup and return dates.");
+            EnsureValidSchedule(form);
 
             var pickup = form.Pickup.Value;
             var expectedReturn = form.ExpectedReturn.Value;
-
-            if (expectedReturn <= pickup)
-                throw new ArgumentException("Return must be after pickup.");
 
             if (form.EquipmentIds == null || form.EquipmentIds.Count == 0)
                 throw new ArgumentException("Select equipment before checking availability.");
@@ -101,11 +98,7 @@ namespace ASI.Basecode.Services.Services
             }
 
             var rangeStart = pickup.Date;
-
-            // A return exactly at midnight doesn't need another full day.
-            var rangeEnd = expectedReturn.TimeOfDay == TimeSpan.Zero
-                ? expectedReturn
-                : expectedReturn.Date.AddDays(1);
+            var rangeEnd = expectedReturn.Date.AddDays(1);
 
             var isDayView = form.PreviewDay.HasValue;
 
@@ -113,7 +106,8 @@ namespace ASI.Basecode.Services.Services
             {
                 var selectedDay = form.PreviewDay.Value.Date;
 
-                if (selectedDay < rangeStart || selectedDay >= rangeEnd)
+                if (selectedDay < pickup.Date ||
+                    selectedDay > expectedReturn.Date)
                 {
                     throw new ArgumentException(
                         "Choose a preview day within the reservation period.");
@@ -121,20 +115,6 @@ namespace ASI.Basecode.Services.Services
 
                 rangeStart = selectedDay;
                 rangeEnd = selectedDay.AddDays(1);
-            }
-            else if (pickup.Date == expectedReturn.Date)
-            {
-                // Focus on the selected hours, with surrounding context.
-                var dayStart = pickup.Date;
-                var dayEnd = dayStart.AddDays(1);
-
-                rangeStart = pickup - dayStart >= TimeSpan.FromHours(1)
-                    ? pickup.AddHours(-1)
-                    : dayStart;
-
-                rangeEnd = dayEnd - expectedReturn >= TimeSpan.FromHours(1)
-                    ? expectedReturn.AddHours(1)
-                    : dayEnd;
             }
 
             var preview = new ReservationAvailabilityPreview
@@ -166,6 +146,8 @@ namespace ASI.Basecode.Services.Services
 
         public (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId)
         {
+            EnsureValidSchedule(form);
+
             var ids = form.EquipmentIds.Distinct().OrderBy(id => id).ToList();
 
             if (ids.Any(id => id <= 0))
@@ -229,7 +211,7 @@ namespace ASI.Basecode.Services.Services
 
         public string Edit(int reservationId, ReservationEditFormModel form, int borrowerUserId)
         {
-            var errors = new List<ValidationResult>();
+            EnsureValidSchedule(form);
 
             var version = ReadRowVersion(form.RowVersion);
             if (version == null)
@@ -757,6 +739,64 @@ namespace ASI.Basecode.Services.Services
             }
 
             return $"{new string(code)}-{requestedAt:yyyy}";
+        }
+
+        private static List<ValidationResult> ValidateSchedule(DateTime? pickup, DateTime? expectedReturn)
+        {
+            var errors = new List<ValidationResult>();
+
+            // If pickup is null, add a validation error for pickup
+            if (!pickup.HasValue)
+                errors.Add(new ValidationResult("Choose a pickup date and time.", new[] { nameof(ReservationFormModel.Pickup) }));
+
+            // If expectedReturn is null, add a validation error for expectedReturns
+            if (!expectedReturn.HasValue)
+                errors.Add(new ValidationResult("Choose an expected return date and time.", new[] { nameof(ReservationFormModel.ExpectedReturn) }));
+
+            // If either pickup or expectedReturn is null, return the errors
+            if (!pickup.HasValue || !expectedReturn.HasValue)
+                return errors;
+
+            var start = pickup.Value;
+            var end = expectedReturn.Value;
+
+            // If pickup is in the past, add a validation error for pickup
+            if (start <= PhilippineTimeNow())
+                errors.Add(new ValidationResult("Pickup must be in the future.", new[] { nameof(ReservationFormModel.Pickup) }));
+
+            // If start is outside the desk opening and closing time, add a validation error for pickup
+            if (start.TimeOfDay < ReservationPolicy.DeskOpeningTime || start.TimeOfDay > ReservationPolicy.DeskClosingTime)
+                errors.Add(new ValidationResult($"Pickup must be between " + $"{ReservationPolicy.DeskOpeningTime:hh\\:mm} and " + $"{ReservationPolicy.DeskClosingTime:hh\\:mm}.", new[] { nameof(ReservationFormModel.Pickup) }));
+
+            // If end is outside the desk opening and latest return time, add a validation error for expectedReturn
+            if (end.TimeOfDay < ReservationPolicy.DeskOpeningTime || end.TimeOfDay > ReservationPolicy.LatestReturnTime)
+                errors.Add(new ValidationResult($"Return must be between " + $"{ReservationPolicy.DeskOpeningTime:hh\\:mm} and " + $"{ReservationPolicy.LatestReturnTime:hh\\:mm}, " + "allowing time for inspection before closing.", new[] { nameof(ReservationFormModel.ExpectedReturn) }));
+
+            // If end is before or equal to start, add a validation error for expectedReturn
+            if (end <= start)
+            {
+                errors.Add(new ValidationResult("Return must be after pickup.", new[] { nameof(ReservationFormModel.ExpectedReturn) }));
+                return errors;
+            }
+
+            // If the duration between start and end is less than the minimum borrowing minutes, add a validation error for expectedReturn
+            if ((end - start).TotalMinutes < ReservationPolicy.MinimumBorrowingMinutes)
+                errors.Add(new ValidationResult($"Borrowing must last at least " + $"{ReservationPolicy.MinimumBorrowingMinutes} minutes.", new[] { nameof(ReservationFormModel.ExpectedReturn) }));
+
+            var calendarDays = (end.Date - start.Date).Days + 1;
+
+            // If the borrowing period exceeds the maximum allowed calendar days, add a validation error for expectedReturn
+            if (calendarDays > ReservationPolicy.MaxCalendarDays)
+                errors.Add(new ValidationResult($"Borrowing may cover at most " + $"{ReservationPolicy.MaxCalendarDays} calendar days, " + "including pickup and return dates.", new[] { nameof(ReservationFormModel.ExpectedReturn) }));
+
+            return errors;
+        }
+        private static void EnsureValidSchedule(ReservationFormModel form)
+        {
+            var errors = ValidateSchedule(form.Pickup, form.ExpectedReturn);
+
+            if (errors.Count > 0)
+                throw new ReservationValidationException(errors);
         }
     }
 }
