@@ -21,7 +21,7 @@
     <div class="page-heading">
         <div>
             <h1>@(isEdit ? "Edit reservation" : "Reserve equipment")</h1>
-            <p>Choose a schedule that works for all your selected equipment.</p>
+            <p>Choose your borrowing schedule.</p>
         </div>
     </div>
     <ol class="rc-steps" aria-label="Reservation steps">
@@ -79,7 +79,7 @@
                             <use href="#i-arrow" />
                         </svg>
                     </button>
-                    <p class="rc-summary-note">All items share the same schedule. Requests require approval before pickup.</p>
+                    <p class="rc-summary-note">One schedule for all items. Approval required before pickup.</p>
                 </section>
             </aside>
 
@@ -104,18 +104,14 @@
                             Expected return date and time
                             <span class="required" aria-hidden="true">*</span>
                         </label>
-                        <input asp-for="ExpectedReturn" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" required aria-describedby="scheduleHint returnFeedback" />
+                        <input asp-for="ExpectedReturn" type="datetime-local" asp-format="{0:yyyy-MM-ddTHH:mm}" required aria-describedby="scheduleHint" />
                         <span asp-validation-for="ExpectedReturn" class="field-validation-error"></span>
                     </div>
                 </div>
-                <p id="scheduleHint" class="rc-hint">Philippine time (UTC+8). Return must be after pickup.</p>
-                <p id="returnFeedback" class="rc-feedback" role="status" data-duration></p>
+                <p id="scheduleHint" class="rc-hint">Philippine time (UTC+8).</p>
 
                 <div class="rc-preview-actions">
-                    <p class="rc-hint">
-                        Choose your dates, then check availability.
-                        Check again after changing your schedule.
-                    </p>
+                    <p class="rc-hint">Changed your dates? Check availability again.</p>
 
                     <button class="button button-secondary"
                             type="submit"
@@ -128,14 +124,13 @@
                 <section class="rc-availability"
                          aria-labelledby="createAvailabilityHeading">
                     <h2 id="createAvailabilityHeading">
-                        Selected equipment availability
+                        Availability
                     </h2>
 
                     @if (Model.AvailabilityPreview == null)
                     {
                         <p class="rc-hint">
-                            Choose your dates and click Check availability
-                            to view existing bookings.
+                            Click Check availability to preview your schedule.
                         </p>
                     }
                     else
@@ -151,25 +146,17 @@
                         string Width(DateTime start, DateTime end) => ((end - start).TotalMinutes / totalMinutes * 100).ToString("0.###", CultureInfo.InvariantCulture);
 
                         <p class="rc-hint">
-                            @(preview.Pickup.Date == preview.ExpectedReturn.Date ? "Day preview" : "Full period preview"):
-                            @rangeStart.ToString("MMM d, yyyy h:mm tt")
-                            to
-                            @rangeEnd.ToString("MMM d, yyyy h:mm tt")
-                        </p>
-
-                        <p class="rc-hint">
-                            Last checked schedule:
+                            Checked schedule:
                             @preview.Pickup.ToString("MMM d, yyyy h:mm tt")
                             to
                             @preview.ExpectedReturn.ToString("MMM d, yyyy h:mm tt")
-                            (Philippine time).
-                            Check again after changing dates.
+
                         </p>
 
                         <div class="rc-legend">
                             <span>
                                 <i class="rc-key-closed" aria-hidden="true"></i>
-                                Desk closed - no pickup or return
+                                Desk closed
                             </span>
                             <span>
                                 <i class="rc-key-booking" aria-hidden="true"></i>
@@ -177,26 +164,19 @@
                             </span>
                             <span>
                                 <i class="rc-key-selection" aria-hidden="true"></i>
-                                Your selected time
+                                Your schedule
                             </span>
                             <span>
                                 <i class="rc-key-inspection" aria-hidden="true"></i>
-                                Your inspection allowance
+                                Inspection buffer
                             </span>
                             <span>
                                 <i class="rc-key-conflict" aria-hidden="true"></i>
-                                Overlapping period
+                                Conflict
                             </span>
                         </div>
 
-                        <p class="rc-hint">
-                            Equipment may remain borrowed overnight.
-                            Grey areas indicate when pickup and return are unavailable.
-                            Reservation booking periods include a
-                            @(ReservationPolicy.InspectionBufferMinutes)-minute
-                            inspection allowance.
-                            Maintenance periods use their own schedule.
-                        </p>
+                        <p class="rc-hint">Desk closed: no pickup or return; overnight borrowing is allowed. Booking periods include a @(ReservationPolicy.InspectionBufferMinutes)-minute inspection buffer.</p>
 
                         @foreach (var item in preview.Items)
                         {
@@ -296,7 +276,7 @@
                                     </div>
 
                                     <p class="rc-row-state @(!item.IsAvailable ? "is-error" : "")">
-                                        @(item.IsAvailable ? "Available for the checked schedule." : item.Reason)
+                                        @(item.IsAvailable ? "Available for this schedule." : item.Reason)
                                     </p>
 
                                     <ul class="rc-booking-list">
@@ -319,10 +299,7 @@
                             </div>
                         }
 
-                        <p class="rc-preview-status">
-                            This preview does not reserve equipment.
-                            Availability is checked again when you submit.
-                        </p>
+
                     }
                 </section>
                 <div class="form-group rc-purpose">
@@ -330,11 +307,11 @@
                         Purpose of borrowing
                         <span class="required" aria-hidden="true">*</span>
                     </label>
-                    <textarea asp-for="Purpose" rows="3" maxlength="500" required placeholder="For example, a class presentation or laboratory activity."></textarea>
+                    <textarea asp-for="Purpose" rows="3" maxlength="500" required placeholder="e.g. Class presentation"></textarea>
                     <span asp-validation-for="Purpose" class="field-validation-error"></span>
                 </div>
                 <div class="rc-submit-area">
-                    <p class="rc-hint">Availability is checked again when you submit.</p>
+                    <p class="rc-hint">Preview only. Availability is checked again on submission.</p>
                     @if (isEdit)
                     {
                         <button class="button button-secondary" type="submit"
