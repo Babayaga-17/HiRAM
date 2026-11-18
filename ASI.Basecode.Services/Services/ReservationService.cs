@@ -733,6 +733,9 @@ namespace ASI.Basecode.Services.Services
         {
             var errors = new List<ValidationResult>();
 
+            string TimeLabel(TimeSpan time) =>
+                DateTime.MinValue.Add(time).ToString("h:mm tt", System.Globalization.CultureInfo.InvariantCulture);
+
             // If pickup is null, add a validation error for pickup
             if (!pickup.HasValue)
                 errors.Add(new ValidationResult("Choose a pickup date and time.", new[] { nameof(ReservationFormModel.Pickup) }));
@@ -754,11 +757,11 @@ namespace ASI.Basecode.Services.Services
 
             // If start is outside the desk opening and closing time, add a validation error for pickup
             if (start.TimeOfDay < ReservationPolicy.DeskOpeningTime || start.TimeOfDay > ReservationPolicy.DeskClosingTime)
-                errors.Add(new ValidationResult($"Pickup must be between " + $"{ReservationPolicy.DeskOpeningTime:hh\\:mm} and " + $"{ReservationPolicy.DeskClosingTime:hh\\:mm}.", new[] { nameof(ReservationFormModel.Pickup) }));
+                errors.Add(new ValidationResult($"Pickup must be between " + $"{TimeLabel(ReservationPolicy.DeskOpeningTime)} and " + $"{TimeLabel(ReservationPolicy.DeskClosingTime)}.", new[] { nameof(ReservationFormModel.Pickup) }));
 
             // If end is outside the desk opening and latest return time, add a validation error for expectedReturn
             if (end.TimeOfDay < ReservationPolicy.DeskOpeningTime || end.TimeOfDay > ReservationPolicy.LatestReturnTime)
-                errors.Add(new ValidationResult($"Return must be between " + $"{ReservationPolicy.DeskOpeningTime:hh\\:mm} and " + $"{ReservationPolicy.LatestReturnTime:hh\\:mm}, " + "allowing time for inspection before closing.", new[] { nameof(ReservationFormModel.ExpectedReturn) }));
+                errors.Add(new ValidationResult($"Return must be between " + $"{TimeLabel(ReservationPolicy.DeskOpeningTime)} and " + $"{TimeLabel(ReservationPolicy.LatestReturnTime)}, " + "allowing time for inspection before closing.", new[] { nameof(ReservationFormModel.ExpectedReturn) }));
 
             // If end is before or equal to start, add a validation error for expectedReturn
             if (end <= start)

@@ -12,7 +12,7 @@
     var selectionError = ViewData["SelectionError"] as string;
 }
 
-<div class="reservation-create" data-reservation-create>
+<div class="reservation-create">
     <button class="back-link reservation-link-button rc-back" type="submit" form="reservationForm" formaction="@changeEquipmentUrl" formnovalidate>
         <svg class="icon" aria-hidden="true">
             <use href="#i-chevron" />
@@ -108,24 +108,31 @@
                         <span asp-validation-for="ExpectedReturn" class="field-validation-error"></span>
                     </div>
                 </div>
-                <p id="scheduleHint" class="rc-hint">Philippine time (UTC+8).</p>
-
-                <div class="rc-preview-actions">
-                    <p class="rc-hint">Changed your dates? Check availability again.</p>
-
-                    <button class="button button-secondary"
-                            type="submit"
-                            formaction="@Url.Action("CheckAvailability", "Reservation", new { id = reservationId })"
-                            formnovalidate>
-                        Check availability
-                    </button>
-                </div>
+                @* <p id="scheduleHint" class="rc-hint">Philippine time (UTC+8).</p> *@
 
                 <section class="rc-availability"
                          aria-labelledby="createAvailabilityHeading">
-                    <h2 id="createAvailabilityHeading">
-                        Availability
-                    </h2>
+                    <div class="rc-availability-heading">
+                        <div class="rc-availability-title">
+                            <h2 id="createAvailabilityHeading">Availability</h2>
+                            @if (Model.AvailabilityPreview != null)
+                            {
+                                <p class="rc-hint">
+                                    Checked schedule:
+                                    @Model.AvailabilityPreview.Pickup.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)
+                                    to
+                                    @Model.AvailabilityPreview.ExpectedReturn.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)
+                                </p>
+                            }
+                        </div>
+                        <button class="button button-secondary rc-availability-button"
+                            type="submit"
+                            formaction="@Url.Action("CheckAvailability", "Reservation", new { id = reservationId })"
+                            formnovalidate>
+                        <svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg>
+                        Check availability
+                    </button>
+                    </div>
 
                     @if (Model.AvailabilityPreview == null)
                     {
@@ -145,13 +152,7 @@
 
                         string Width(DateTime start, DateTime end) => ((end - start).TotalMinutes / totalMinutes * 100).ToString("0.###", CultureInfo.InvariantCulture);
 
-                        <p class="rc-hint">
-                            Checked schedule:
-                            @preview.Pickup.ToString("MMM d, yyyy h:mm tt")
-                            to
-                            @preview.ExpectedReturn.ToString("MMM d, yyyy h:mm tt")
 
-                        </p>
 
                         <div class="rc-legend">
                             <span>
@@ -309,9 +310,9 @@
 
                                             <li class="@(overlaps ? "is-overlap" : "")">
                                                 @period.Type:
-                                                @period.Start.ToString("MMM d, yyyy h:mm tt")
+                                                @period.Start.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)
                                                 to
-                                                @period.End.ToString("MMM d, yyyy h:mm tt")
+                                                @period.End.ToString("MMM d, yyyy h:mm tt", CultureInfo.InvariantCulture)
                                                 @(overlaps ? " - Overlaps your schedule" : "")
                                             </li>
                                         }
@@ -341,7 +342,7 @@
                             Discard changes
                         </button>
                     }
-                    <button class="button button-primary" type="submit" data-submit-request>@(isEdit ? "Save changes" : "Submit request")</button>
+                    <button class="button button-primary" type="submit">@(isEdit ? "Save changes" : "Submit request")</button>
                 </div>
             </section>
 
