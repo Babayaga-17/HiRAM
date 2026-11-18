@@ -1,5 +1,6 @@
 ﻿@* ASI.Basecode.WebApp/Views/BorrowerProfile/Index.cshtml *@
 @using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Borrower
 @using ASI.Basecode.Services.Services
 @model BorrowerPageViewModel
 @{
@@ -9,9 +10,364 @@
     var rows = Model.Rows;
     int showFrom = Model.TotalCount == 0 ? 0 : (Model.Page - 1) * Model.PageSize + 1;
     int showTo = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
-    bool filtered = !string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.Status);
 }
 
+<style>
+    /* ---------- Theme variables ---------- */
+    :root {
+        --bp-surface: #ffffff;
+        --bp-border: #dfe3f0;
+        --bp-text: #1b2340;
+        --bp-muted: #6b7280;
+        --bp-accent: #4f5bd5;
+        --bp-btn-bg: #ffffff;
+        --bp-btn-text: #1b2340;
+        --bp-btn-hover: #4f5bd5;
+    }
+
+        :root.dark, .dark, [data-theme="dark"], [data-bs-theme="dark"] {
+            --bp-surface: #111c33;
+            --bp-border: #22304d;
+            --bp-text: #eef2fb;
+            --bp-muted: #8a96b0;
+            --bp-accent: #8b9cf7;
+            --bp-btn-bg: #1a2741;
+            --bp-btn-text: #c9d3e8;
+            --bp-btn-hover: #8b9cf7;
+        }
+
+    /* ---------- Modals ---------- */
+    .bp-modal {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(3, 7, 18, 0.6);
+        z-index: 1000;
+        padding: 16px;
+    }
+
+        .bp-modal.open {
+            display: flex;
+        }
+
+    .bp-dialog {
+        background: var(--bp-surface);
+        color: var(--bp-text);
+        border: 1px solid var(--bp-border);
+        border-radius: 12px;
+        padding: 20px;
+        width: min(560px, 100%);
+        max-height: 90vh;
+        overflow: auto;
+    }
+
+        .bp-dialog h3 {
+            margin: 0 0 6px;
+            font-size: 18px;
+            color: var(--bp-text);
+        }
+
+    .bp-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin: 12px 0;
+    }
+
+        .bp-grid .full {
+            grid-column: 1 / -1;
+        }
+
+    .bp-label {
+        display: block;
+        font-size: 12px;
+        color: var(--bp-muted);
+        margin-bottom: 4px;
+    }
+
+    .bp-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 16px;
+    }
+
+    .bp-suspension-fields {
+        display: none;
+    }
+
+    /* ---------- Summary strip ---------- */
+    .bp-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        background: var(--bp-surface);
+        border: 1px solid var(--bp-border);
+        border-radius: 12px;
+        margin-bottom: 16px;
+    }
+
+    .bp-summary-cell {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 16px 20px;
+        border-right: 1px solid var(--bp-border);
+    }
+
+        .bp-summary-cell:last-child {
+            border-right: none;
+        }
+
+    .bp-summary-label {
+        color: var(--bp-accent);
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .bp-summary-value {
+        font-size: 28px;
+        font-weight: 600;
+        color: var(--bp-text);
+    }
+
+    .bp-summary-caption {
+        font-size: 13px;
+        color: var(--bp-muted);
+    }
+
+    /* ---------- Filters: outlined, no fill, same as Categories ---------- */
+    .bp-filters {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .bp-search {
+        position: relative;
+        flex: 1;
+        min-width: 260px;
+    }
+
+        .bp-search svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--bp-muted);
+            pointer-events: none;
+        }
+
+    .bp-filters .bp-search input,
+    .bp-filters .bp-select {
+        height: 36px;
+        width: 100%;
+        background: transparent !important;
+        border: 1px solid var(--bp-border) !important;
+        border-radius: 8px;
+        color: var(--bp-text);
+        font-size: 13px;
+        box-shadow: none;
+        outline: none;
+    }
+
+    .bp-filters .bp-search input {
+        padding: 0 12px 0 36px;
+    }
+
+        .bp-filters .bp-search input::placeholder {
+            color: var(--bp-muted);
+        }
+
+    .bp-filters .bp-select {
+        width: auto;
+        min-width: 150px;
+        padding: 0 10px;
+    }
+
+        .bp-filters .bp-search input:focus,
+        .bp-filters .bp-select:focus {
+            border-color: var(--bp-accent) !important;
+        }
+
+    .bp-filter-label {
+        color: var(--bp-accent);
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .bp-filters .bp-btn {
+        height: 36px;
+        padding: 0 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+    }
+
+        .bp-filters .bp-btn:not(.ghost) {
+            background: #2563eb;
+            color: #ffffff;
+            border: 1px solid #2563eb;
+        }
+
+        .bp-filters .bp-btn.ghost {
+            background: transparent !important;
+            color: var(--bp-text);
+            border: 1px solid var(--bp-border);
+        }
+
+    /* ---------- Table: plain labels, no header background ---------- */
+    .bp-table-wrap {
+        overflow-x: auto;
+    }
+
+    .bp-table {
+        width: 100%;
+        table-layout: auto;
+        border-collapse: collapse;
+    }
+
+        .bp-table thead th {
+            background: transparent !important;
+            color: var(--bp-muted) !important;
+            font-size: 12px !important;
+            font-weight: 500 !important;
+            text-transform: none !important;
+            letter-spacing: normal !important;
+            padding: 10px 12px !important;
+            border-bottom: 1px solid var(--bp-border) !important;
+            white-space: nowrap;
+        }
+
+        .bp-table tbody td {
+            font-size: 13px;
+            padding: 10px 12px;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--bp-border);
+            color: var(--bp-text);
+        }
+
+        .bp-table td .bp-name {
+            font-size: 13px;
+        }
+
+        .bp-table td .bp-muted {
+            font-size: 12px;
+        }
+
+        .bp-table td .bp-avatar {
+            width: 30px;
+            height: 30px;
+            font-size: 12px;
+        }
+
+        /* Dates and suspension text stay on one line */
+        .bp-table td.bp-nowrap,
+        .bp-table td .bp-until {
+            white-space: nowrap !important;
+        }
+
+    /* ---------- Status: colored dot and text, no background ---------- */
+    .bp-status-text {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        background: none !important;
+        padding: 0 !important;
+        border: none !important;
+    }
+
+        .bp-status-text::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #94a3b8;
+        }
+
+        .bp-status-text.active {
+            color: #22c55e;
+        }
+
+            .bp-status-text.active::before {
+                background: #22c55e;
+            }
+
+        .bp-status-text.suspended {
+            color: #ef4444;
+        }
+
+            .bp-status-text.suspended::before {
+                background: #ef4444;
+            }
+
+        .bp-status-text.other {
+            color: var(--bp-muted);
+        }
+
+    /* ---------- Actions: one row ---------- */
+    .bp-table td.bp-row-actions {
+        white-space: nowrap !important;
+        width: 1%;
+        padding-right: 16px;
+    }
+
+        .bp-table td.bp-row-actions .bp-row-group {
+            display: flex !important;
+            flex-direction: row !important;
+            flex-wrap: nowrap !important;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+        }
+
+            .bp-table td.bp-row-actions .bp-row-group > * {
+                flex: 0 0 auto !important;
+                margin: 0 !important;
+            }
+
+            .bp-table td.bp-row-actions .bp-row-group form {
+                display: inline-flex !important;
+                margin: 0 !important;
+            }
+
+        .bp-table td.bp-row-actions .bp-row-action {
+            display: inline-flex !important;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            height: 28px;
+            padding: 0 10px;
+            border-radius: 8px;
+            border: 1px solid var(--bp-border);
+            background: var(--bp-btn-bg);
+            color: var(--bp-btn-text);
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+            .bp-table td.bp-row-actions .bp-row-action svg {
+                width: 12px;
+                height: 12px;
+                flex: none;
+            }
+
+            .bp-table td.bp-row-actions .bp-row-action:hover {
+                color: var(--bp-btn-hover);
+                border-color: var(--bp-btn-hover);
+            }
+</style>
 
 <div class="bp">
     <div class="bp-head">
@@ -30,26 +386,40 @@
         <div class="bp-alert err">@TempData["Error"]</div>
     }
 
-    <div class="bp-stats">
-        <div class="bp-stat"><small>Total Borrowers</small><strong>@Model.OverallTotal</strong></div>
-        <div class="bp-stat"><small>Eligible</small><strong>@Model.OverallEligible</strong></div>
-        <div class="bp-stat"><small>Suspended</small><strong>@Model.OverallSuspended</strong></div>
+    <!-- Summary strip (matches Equipment Categories) -->
+    <div class="bp-summary">
+        <div class="bp-summary-cell">
+            <span class="bp-summary-label">Total borrowers</span>
+            <span class="bp-summary-value">@Model.OverallTotal</span>
+            <span class="bp-summary-caption">Registered borrower accounts</span>
+        </div>
+        <div class="bp-summary-cell">
+            <span class="bp-summary-label">Eligible</span>
+            <span class="bp-summary-value">@Model.OverallEligible</span>
+            <span class="bp-summary-caption">Can make reservations</span>
+        </div>
+        <div class="bp-summary-cell">
+            <span class="bp-summary-label">Suspended</span>
+            <span class="bp-summary-value">@Model.OverallSuspended</span>
+            <span class="bp-summary-caption">Blocked until suspension ends</span>
+        </div>
     </div>
 
     <div class="bp-card">
         <div class="bp-toolbar">
-            <form method="get" asp-action="Index">
-                <input class="bp-input" type="search" name="search" value="@Model.Search" placeholder="Search by name, user code, program or department" />
-                <select class="bp-select" name="status" onchange="this.form.submit()">
-                    <option value="" selected="@string.IsNullOrEmpty(Model.Status)">All status</option>
+            <form method="get" asp-action="Index" class="bp-filters">
+                <div class="bp-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
+                    <input class="bp-input" type="search" name="search" value="@Model.Search" placeholder="Search by name, user code, program or department" />
+                </div>
+                <label class="bp-filter-label" for="bpStatus">Status</label>
+                <select id="bpStatus" class="bp-select" name="status">
+                    <option value="" selected="@string.IsNullOrEmpty(Model.Status)">All statuses</option>
                     <option value="Eligible" selected="@(Model.Status == EligibilityStatuses.Eligible)">Active (Eligible)</option>
                     <option value="Suspended" selected="@(Model.Status == EligibilityStatuses.Suspended)">Suspended</option>
                 </select>
-                <button class="bp-btn" type="submit">Search</button>
-                @if (filtered)
-                {
-                    <a class="bp-btn ghost bp-clear-link" asp-action="Index">Clear</a>
-                }
+                <button class="bp-btn" type="submit">Apply</button>
+                <a class="bp-btn ghost bp-clear-link" asp-action="Index">Clear</a>
             </form>
         </div>
 
@@ -61,12 +431,22 @@
         {
             <div class="bp-table-wrap" role="region" aria-label="Borrower profiles" tabindex="0">
                 <table class="bp-table">
-                    <thead><tr><th>Borrower</th><th>Department</th><th>Program</th><th>Contact</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Borrower</th>
+                            <th>Department</th>
+                            <th>Program</th>
+                            <th>Contact</th>
+                            <th>Status</th>
+                            <th>Registered</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         @foreach (var b in rows)
                         {
                             var initials = string.Concat((b.FullName ?? "?").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpper(p[0])));
-                            var badge = b.EligibilityStatus == EligibilityStatuses.Eligible ? "active" : b.EligibilityStatus == EligibilityStatuses.Suspended ? "suspended" : "other";
+                            var statusClass = b.EligibilityStatus == EligibilityStatuses.Eligible ? "active" : b.EligibilityStatus == EligibilityStatuses.Suspended ? "suspended" : "other";
                             <tr>
                                 <td><div class="bp-user"><div class="bp-avatar">@initials</div><div><div class="bp-name">@b.FullName</div><div class="bp-muted">@b.UserCode</div></div></div></td>
                                 <td>@(b.DepartmentName ?? "—")</td>
@@ -79,37 +459,50 @@
                                 </td>
                                 <td>@(string.IsNullOrEmpty(b.ContactNumber) ? "—" : b.ContactNumber)</td>
                                 <td>
-                                    <span class="bp-badge @badge">@b.EligibilityStatus</span>
+                                    <span class="bp-status-text @statusClass">@b.EligibilityStatus</span>
                                     @if (b.EligibilityStatus == EligibilityStatuses.Suspended)
                                     {
-                                        <div class="bp-muted" title="@b.SuspensionReason">@(b.SuspendedUntil.HasValue ? "until " + b.SuspendedUntil.Value.ToString("MMM dd, yyyy") : "indefinite")</div>
+                                        <div class="bp-muted bp-until" title="@b.SuspensionReason">@(b.SuspendedUntil.HasValue ? "until " + b.SuspendedUntil.Value.ToString("MMM dd, yyyy") : "indefinite")</div>
                                     }
                                 </td>
-                                <td>@b.CreatedAt.ToString("MMM dd, yyyy")</td>
-                                <td>
-                                    <div class="bp-actions">
-                                        <button type="button" class="bp-icon-btn" data-url="@Url.Action("History", new { id = b.UserId })" onclick="bpHistory(this)">History</button>
+                                <td class="bp-nowrap">@b.CreatedAt.ToString("MMM dd, yyyy")</td>
+
+                                <td class="bp-row-actions">
+                                    <div class="bp-row-group">
+                                        <button type="button" class="bp-row-action"
+                                                data-url="@Url.Action("History", new { id = b.UserId })"
+                                                onclick="bpHistory(this)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                                            History
+                                        </button>
+
                                         @if (b.EligibilityStatus == EligibilityStatuses.Suspended)
                                         {
-                                            <form method="post" asp-action="SetStatus" class="bp-status-form">
+                                            <form method="post" asp-action="SetStatus">
                                                 <input type="hidden" name="id" value="@b.UserId" />
                                                 <input type="hidden" name="suspend" value="false" />
                                                 <input type="hidden" name="search" value="@Model.Search" />
                                                 <input type="hidden" name="status" value="@Model.Status" />
                                                 <input type="hidden" name="page" value="@Model.Page" />
-                                                <button type="submit" class="bp-icon-btn">Activate</button>
+                                                <button type="submit" class="bp-row-action">Activate</button>
                                             </form>
                                         }
                                         else
                                         {
-                                            <button type="button" class="bp-icon-btn" data-id="@b.UserId" data-name="@b.FullName" onclick="bpSuspend(this)">Suspend</button>
+                                            <button type="button" class="bp-row-action"
+                                                    data-id="@b.UserId" data-name="@b.FullName"
+                                                    onclick="bpSuspend(this)">
+                                                Suspend
+                                            </button>
                                         }
-                                        <button type="button" class="bp-icon-btn"
+
+                                        <button type="button" class="bp-row-action"
                                                 data-id="@b.UserId" data-code="@b.UserCode" data-name="@b.FullName" data-phone="@b.ContactNumber"
                                                 data-dept="@b.DepartmentId" data-program="@b.Program" data-year="@b.YearLevel"
                                                 data-status="@b.EligibilityStatus" data-reason="@b.SuspensionReason"
                                                 data-until="@(b.SuspendedUntil?.ToString("yyyy-MM-dd"))"
                                                 onclick="bpEdit(this)">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
                                             Edit
                                         </button>
                                     </div>
@@ -160,6 +553,7 @@
     </div>
 </div>
 
+<!-- Edit borrower -->
 <div class="bp-modal" id="bpModal">
     <div class="bp-dialog">
         <h3>Edit Borrower</h3>
@@ -187,25 +581,29 @@
                 <div><label class="bp-label">Year level</label><input class="bp-input" type="number" min="1" max="6" name="YearLevel" id="f_year" /></div>
                 <div class="full">
                     <label class="bp-label">Eligibility status *</label>
-                    <select class="bp-select" name="EligibilityStatus" id="f_status" onchange="bpToggle()"><option>Eligible</option><option>Suspended</option></select>
+                    <select class="bp-select" name="EligibilityStatus" id="f_status" onchange="bpToggle()">
+                        <option value="Eligible">Eligible</option>
+                        <option value="Suspended">Suspended</option>
+                    </select>
                 </div>
                 <div class="full bp-suspension-fields" id="susp">
-                    <div class="bp-grid bp-suspension-grid">
+                    <div class="bp-grid">
                         <div><label class="bp-label">Suspended until</label><input class="bp-input" type="date" name="SuspendedUntil" id="f_until" /></div>
                         <div><label class="bp-label">Reason</label><input class="bp-input" name="SuspensionReason" id="f_reason" maxlength="250" /></div>
                     </div>
                 </div>
             </div>
             <div class="bp-foot">
-                <button type="button" class="bp-btn ghost" onclick="bpClose()">Cancel</button>
+                <button type="button" class="bp-btn ghost" onclick="bpClose('bpModal')">Cancel</button>
                 <button type="submit" class="bp-btn">Save Changes</button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Suspend borrower -->
 <div class="bp-modal" id="bpSuspModal">
-    <div class="bp-dialog bp-suspend-dialog">
+    <div class="bp-dialog">
         <h3>Suspend borrower</h3>
         <p class="bp-sub" id="bpSuspText"></p>
         <form method="post" asp-action="SetStatus">
@@ -219,45 +617,107 @@
                 <div class="full"><label class="bp-label">Suspended until (optional)</label><input class="bp-input" type="date" name="until" /></div>
             </div>
             <div class="bp-foot">
-                <button type="button" class="bp-btn ghost" onclick="document.getElementById('bpSuspModal').classList.remove('open')">Cancel</button>
+                <button type="button" class="bp-btn ghost" onclick="bpClose('bpSuspModal')">Cancel</button>
                 <button type="submit" class="bp-btn danger">Suspend</button>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Borrowing history: the returned partial supplies its own heading and Close button -->
 <div class="bp-modal" id="bpHistModal">
-    <div class="bp-dialog bp-history-dialog" id="bpHistBody"></div>
+    <div class="bp-dialog" style="width: min(760px, 100%);">
+        <div id="bpHistBody"></div>
+    </div>
 </div>
 
 <script>
-    const $ = id => document.getElementById(id);
-    function bpToggle() { $('susp').style.display = $('f_status').value === 'Suspended' ? 'block' : 'none'; }
-    function bpEdit(btn) {
-        const d = btn.dataset;
-        $('f_id').value = d.id; $('f_code').value = d.code; $('f_name').value = d.name; $('f_phone').value = d.phone || '';
-        $('f_dept').value = d.dept; $('f_program').value = d.program || ''; $('f_year').value = d.year || '';
-        $('f_status').value = d.status === 'Suspended' ? 'Suspended' : 'Eligible';
-        $('f_until').value = d.until || ''; $('f_reason').value = d.reason || '';
-        bpToggle(); $('bpModal').classList.add('open');
-    }
-    function bpClose() { $('bpModal').classList.remove('open'); }
-    function bpSuspend(btn) {
-        $('s_id').value = btn.dataset.id;
-        $('bpSuspText').textContent = 'Suspend ' + btn.dataset.name + '? They will be marked as not eligible to borrow.';
-        $('bpSuspModal').classList.add('open');
-    }
-    async function bpHistory(btn) {
-        const box = $('bpHistBody');
-        box.innerHTML = '<p class="bp-sub">Loading history...</p>';
-        $('bpHistModal').classList.add('open');
-        try {
-            const r = await fetch(btn.dataset.url);
-            box.innerHTML = r.ok ? await r.text() : '<p class="bp-sub">Could not load the borrowing history.</p>';
-        } catch (e) {
-            box.innerHTML = '<p class="bp-sub">Could not load the borrowing history.</p>';
+    (function () {
+        const byId = id => document.getElementById(id);
+
+        function openModal(id) {
+            const m = byId(id);
+            if (m) m.classList.add('open');
         }
-    }
-    function bpHistClose() { $('bpHistModal').classList.remove('open'); }
-    document.querySelectorAll('.bp-modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+        window.bpClose = function (id) {
+            const m = byId(id);
+            if (m) m.classList.remove('open');
+        };
+
+        // Alias for any Close button in the returned history partial that still calls the old name
+        window.bpHistClose = function () {
+            window.bpClose('bpHistModal');
+        };
+
+        window.bpToggle = function () {
+            const status = byId('f_status');
+            const box = byId('susp');
+            if (status && box) {
+                box.style.display = status.value === 'Suspended' ? 'block' : 'none';
+            }
+        };
+
+        window.bpEdit = function (btn) {
+            const d = btn.dataset;
+            const set = (id, value) => { const el = byId(id); if (el) el.value = value; };
+
+            set('f_id', d.id);
+            set('f_code', d.code);
+            set('f_name', d.name);
+            set('f_phone', d.phone || '');
+            set('f_dept', d.dept || '');
+            set('f_program', d.program || '');
+            set('f_year', d.year || '');
+            set('f_status', d.status === 'Suspended' ? 'Suspended' : 'Eligible');
+            set('f_until', d.until || '');
+            set('f_reason', d.reason || '');
+
+            window.bpToggle();
+            openModal('bpModal');
+        };
+
+        window.bpSuspend = function (btn) {
+            const d = btn.dataset;
+            const idEl = byId('s_id');
+            const textEl = byId('bpSuspText');
+            if (idEl) idEl.value = d.id;
+            if (textEl) textEl.textContent = 'Suspend ' + d.name + '? They will be marked as not eligible to borrow.';
+            openModal('bpSuspModal');
+        };
+
+        window.bpHistory = async function (btn) {
+            const body = byId('bpHistBody');
+            if (!body) return;
+
+            body.innerHTML = '<p class="bp-sub">Loading history...</p>';
+            openModal('bpHistModal');
+
+            try {
+                const response = await fetch(btn.dataset.url, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                if (!response.ok) {
+                    body.innerHTML = '<p class="bp-sub">Could not load the borrowing history (error ' + response.status + ').</p>';
+                    return;
+                }
+                body.innerHTML = await response.text();
+            } catch (err) {
+                console.error('History request failed:', err);
+                body.innerHTML = '<p class="bp-sub">Could not load the borrowing history.</p>';
+            }
+        };
+
+        document.querySelectorAll('.bp-modal').forEach(function (m) {
+            m.addEventListener('click', function (e) {
+                if (e.target === m) m.classList.remove('open');
+            });
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.bp-modal.open').forEach(function (m) { m.classList.remove('open'); });
+            }
+        });
+    })();
 </script>
