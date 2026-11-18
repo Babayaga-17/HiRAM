@@ -45,7 +45,7 @@ namespace ASI.Basecode.Services.Services
                 return Failed(LoginFailureReason.InvalidCredentials); // Password does not match, return invalid credentials
 
             if (account.LockoutEndAt.HasValue && account.LockoutEndAt.Value > DateTime.Now) // Checks if the account is currently locked out
-                return Failed(LoginFailureReason.TemporarilyLocked);                
+                return Failed(LoginFailureReason.TemporarilyLocked);
 
             var failureReason = account.AccountStatus switch
             {
