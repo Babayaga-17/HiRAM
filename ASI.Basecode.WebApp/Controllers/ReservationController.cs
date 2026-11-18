@@ -316,7 +316,7 @@ public class ReservationController : ControllerBase<ReservationController>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = RoleNames.Borrower)]
-    public IActionResult CheckAvailability(int? id, [Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose,RowVersion")] ReservationEditFormModel model, string returnUrl = null)
+    public IActionResult CheckAvailability(int? id, [Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose,RowVersion,PreviewDay")] ReservationEditFormModel model, string returnUrl = null, string previewAction = null)
     {
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
         {
@@ -331,6 +331,21 @@ public class ReservationController : ControllerBase<ReservationController>
         // Purpose is needed for submission, not an availability check.
         ModelState.Remove(nameof(model.Purpose));
 
+        if (previewAction == "day")
+        {
+            if (!model.PreviewDay.HasValue)
+            {
+                ModelState.AddModelError(
+                    nameof(model.PreviewDay),
+                    "Choose a valid day to preview.");
+            }
+        }
+        else
+        {
+            model.PreviewDay = null;
+            ModelState.Remove(nameof(model.PreviewDay));
+        }
+
         if (!id.HasValue)
             ModelState.Remove(nameof(model.RowVersion));
 
@@ -339,12 +354,13 @@ public class ReservationController : ControllerBase<ReservationController>
         ReservationFormModel form = id.HasValue
             ? model
             : new ReservationFormModel
-            {
-                EquipmentIds = model.EquipmentIds,
-                Pickup = model.Pickup,
-                ExpectedReturn = model.ExpectedReturn,
-                Purpose = model.Purpose
-            };
+        {
+            EquipmentIds = model.EquipmentIds,
+            Pickup = model.Pickup,
+            ExpectedReturn = model.ExpectedReturn,
+            Purpose = model.Purpose,
+            PreviewDay = model.PreviewDay
+        };
 
         try
         {

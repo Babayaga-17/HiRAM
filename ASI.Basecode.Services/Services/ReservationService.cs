@@ -100,14 +100,51 @@ namespace ASI.Basecode.Services.Services
                     throw new InvalidOperationException("Only pending reservations can be edited.");
             }
 
+            var rangeStart = pickup.Date;
+
+            // A return exactly at midnight doesn't need another full day.
+            var rangeEnd = expectedReturn.TimeOfDay == TimeSpan.Zero
+                ? expectedReturn
+                : expectedReturn.Date.AddDays(1);
+
+            var isDayView = form.PreviewDay.HasValue;
+
+            if (isDayView)
+            {
+                var selectedDay = form.PreviewDay.Value.Date;
+
+                if (selectedDay < rangeStart || selectedDay >= rangeEnd)
+                {
+                    throw new ArgumentException(
+                        "Choose a preview day within the reservation period.");
+                }
+
+                rangeStart = selectedDay;
+                rangeEnd = selectedDay.AddDays(1);
+            }
+            else if (pickup.Date == expectedReturn.Date)
+            {
+                // Focus on the selected hours, with surrounding context.
+                var dayStart = pickup.Date;
+                var dayEnd = dayStart.AddDays(1);
+
+                rangeStart = pickup - dayStart >= TimeSpan.FromHours(1)
+                    ? pickup.AddHours(-1)
+                    : dayStart;
+
+                rangeEnd = dayEnd - expectedReturn >= TimeSpan.FromHours(1)
+                    ? expectedReturn.AddHours(1)
+                    : dayEnd;
+            }
+
             var preview = new ReservationAvailabilityPreview
             {
                 Pickup = pickup,
-                ExpectedReturn = expectedReturn
+                ExpectedReturn = expectedReturn,
+                RangeStart = rangeStart,
+                RangeEnd = rangeEnd,
+                IsDayView = isDayView
             };
-
-            var rangeStart = pickup.Date;
-            var rangeEnd = expectedReturn.Date.AddDays(1);
 
             foreach (var equipmentId in form.EquipmentIds.Distinct())
             {

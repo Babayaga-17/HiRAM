@@ -8,6 +8,10 @@ public class ReservationAvailabilityPreview
 {
     public DateTime Pickup { get; set; }
     public DateTime ExpectedReturn { get; set; }
+    public DateTime RangeStart { get; set; }
+    public DateTime RangeEnd { get; set; }
+
+    public bool IsDayView { get; set; }
 
     public List<ReservationEquipmentPreview> Items { get; set; } = new();
 }

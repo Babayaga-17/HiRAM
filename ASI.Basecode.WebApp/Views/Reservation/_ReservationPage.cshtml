@@ -131,6 +131,39 @@
                         Selected equipment availability
                     </h2>
 
+                    <div class="rc-preview-actions">
+                        <div class="form-group">
+                            <label asp-for="PreviewDay">Day to preview</label>
+
+                            <input asp-for="PreviewDay"
+                                   type="date"
+                                   asp-format="{0:yyyy-MM-dd}" />
+
+                            <span asp-validation-for="PreviewDay"
+                                  class="field-validation-error"></span>
+                        </div>
+
+                        <button class="button button-secondary"
+                                type="submit"
+                                name="previewAction"
+                                value="day"
+                                formaction="@Url.Action("CheckAvailability", "Reservation",
+                                                new { id = reservationId })"
+                                formnovalidate>
+                            View day
+                        </button>
+
+                        <button class="button button-secondary"
+                                type="submit"
+                                name="previewAction"
+                                value="full"
+                                formaction="@Url.Action("CheckAvailability", "Reservation",
+                                                new { id = reservationId })"
+                                formnovalidate>
+                            Full period
+                        </button>
+                    </div>
+
                     @if (Model.AvailabilityPreview == null)
                     {
                         <p class="rc-hint">
@@ -141,13 +174,20 @@
                     else
                     {
                         var preview = Model.AvailabilityPreview;
-                        var rangeStart = preview.Pickup.Date;
-                        var rangeEnd = preview.ExpectedReturn.Date.AddDays(1);
+                        var rangeStart = preview.RangeStart;
+                        var rangeEnd = preview.RangeEnd;
                         var totalMinutes = (rangeEnd - rangeStart).TotalMinutes;
 
                         string Position(DateTime value) => ((value - rangeStart).TotalMinutes / totalMinutes * 100).ToString("0.###", CultureInfo.InvariantCulture);
 
                         string Width(DateTime start, DateTime end) => ((end - start).TotalMinutes / totalMinutes * 100).ToString("0.###", CultureInfo.InvariantCulture);
+
+                        <p class="rc-hint">
+                            @(preview.IsDayView ? "Day detail" : "Schedule overview"):
+                            @rangeStart.ToString("MMM d, yyyy h:mm tt")
+                            to
+                            @rangeEnd.ToString("MMM d, yyyy h:mm tt")
+                        </p>
 
                         <p class="rc-hint">
                             Last checked schedule:
@@ -193,9 +233,22 @@
                                     </div>
 
                                     <div class="rc-track" aria-hidden="true">
-                                        <div class="rc-selection"
-                                             style="left: @(Position(preview.Pickup))%; width: @(Width(preview.Pickup, preview.ExpectedReturn))%;">
-                                        </div>
+                                        @{
+                                            var selectionStart = preview.Pickup < rangeStart
+                                            ? rangeStart
+                                            : preview.Pickup;
+
+                                            var selectionEnd = preview.ExpectedReturn > rangeEnd
+                                            ? rangeEnd
+                                            : preview.ExpectedReturn;
+                                        }
+
+                                        @if (selectionEnd > selectionStart)
+                                        {
+                                            <div class="rc-selection"
+                                                 style="left: @(Position(selectionStart))%; width: @(Width(selectionStart, selectionEnd))%;">
+                                            </div>
+                                        }
 
                                         @foreach (var period in item.Periods)
                                         {
