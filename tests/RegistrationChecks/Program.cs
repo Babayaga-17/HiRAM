@@ -11,6 +11,7 @@ using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Borrower;
 using ASI.Basecode.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -20,6 +21,23 @@ int passed = 0;
 void Check(bool pass, string name) { if (!pass) throw new Exception(name); passed++; Console.WriteLine("PASS " + name); }
 async Task Reject(Func<Task> action, string name) { try { await action(); } catch (ValidationException) { Check(true, name); return; } throw new Exception(name); }
 // This mode must return before photo uploads or disposable database setup.
+if (args.Contains("--academic-only"))
+{
+    Check(ProgramOptions.ByDepartment.Count == 10 && ProgramOptions.ByDepartment.Values.Sum(p => p.Count) == 20,
+        "Program catalog maps ten department codes to twenty programs");
+    Check(ProgramOptions.GetPrograms("ccs").Count == 3, "Program lookup accepts department code casing");
+    Check(ProgramOptions.GetPrograms("UNKNOWN").Count == 0, "Unmapped department has no programs");
+    Check(ProgramOptions.IsProgramAllowed("COE", "BS Computer Engineering"), "Matching program accepted");
+    Check(!ProgramOptions.IsProgramAllowed("CCS", "BS Computer Engineering"), "Program from another department rejected");
+    Check(!ProgramOptions.IsProgramAllowed("CCS", "BSCS"), "Old test abbreviation rejected");
+    Check(!ProgramOptions.IsProgramAllowed("COE", "BSCS"), "Test value cannot move to another department");
+    Check(!ProgramOptions.IsProgramAllowed("CCS", "Other"), "Arbitrary program rejected");
+    Check(ProgramOptions.IsProgramAllowed("CCS", "BS Computer Science (AI-Focused Elective)"), "Approved full program accepted");
+    Check(!ProgramOptions.IsProgramAllowed(null, "BS Computer Engineering")
+        && !ProgramOptions.IsProgramAllowed("CCS", null), "Incomplete academic choices rejected");
+    Console.WriteLine($"All {passed} database-free academic checks passed.");
+    return;
+}
 if (args.Contains("--roles-only"))
 {
     var signIn = new SignInManager();
@@ -89,7 +107,7 @@ try
 {
     if (db.Database.GetDbConnection().Database != database) throw new InvalidOperationException("Test connection mismatch; stopped before database access.");
     db.Database.EnsureCreated();
-    var department = new Department { DepartmentCode = "TEST", DepartmentName = "Test department", IsActive = true, CreatedBy = "test" };
+    var department = new Department { DepartmentCode = "CCS", DepartmentName = "College of Computer Studies", IsActive = true, CreatedBy = "test" };
     db.Add(department); db.SaveChanges();
     PasswordManager.secretKey = "registration-test-only";
     var users = new UserRepository(new UnitOfWork(db));
@@ -97,7 +115,7 @@ try
     var profiles = new BorrowerProfileRepository(new UnitOfWork(db));
     var photos = new FakePhoto(); var email = new FakeEmail();
     BorrowerProfileService Service(IUserRepository repository = null) => new(profiles, repository ?? users, accounts, photos, email, NullLogger<BorrowerProfileService>.Instance, new NotificationService(new NotificationRepository(new UnitOfWork(db))));
-    BorrowerRegistrationViewModel Form(string code, string type = "Student") => new() { UserCode = code, BorrowerType = type, FirstName = "Mara", LastName = "Reyes", DepartmentId = department.DepartmentId, Program = "Computer Science", YearLevel = 2, Email = code + "@example.test", Password = "TestPass123", ConfirmPassword = "TestPass123" };
+    BorrowerRegistrationViewModel Form(string code, string type = "Student") => new() { UserCode = code, BorrowerType = type, FirstName = "Mara", LastName = "Reyes", DepartmentId = department.DepartmentId, Program = "BS Information Technology", YearLevel = 2, Email = code + "@example.test", Password = "TestPass123", ConfirmPassword = "TestPass123" };
     await Service().RegisterAsync(Form("STUDENT-1"), new MemoryStream(new byte[] { 1 }), "test.png");
     var saved = db.Users.Include(u => u.Account).Include(u => u.BorrowerProfileUser).Single();
     Check(saved.ProfilePhotoStoragePath == "profiles/test.png" && saved.Account.AccountStatus == "PendingApproval" && saved.BorrowerProfileUser.EligibilityStatus == "Ineligible", "User, pending account, borrower profile and photo path save together");

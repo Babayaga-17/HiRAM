@@ -1,0 +1,12 @@
+@using ASI.Basecode.Resources.Constants
+@model (System.Collections.Generic.IEnumerable<ASI.Basecode.Data.Models.Department> Departments, string Program)
+<option value="">Select program</option>
+@foreach (var department in Model.Departments)
+{
+    <optgroup label="@department.DepartmentName" data-department="@department.DepartmentId">
+        @foreach (var program in ProgramOptions.GetPrograms(department.DepartmentCode))
+        {
+            <option value="@program" selected="@(program == Model.Program)">@program</option>
+        }
+    </optgroup>
+}

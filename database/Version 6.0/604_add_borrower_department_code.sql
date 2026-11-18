@@ -1,3 +1,5 @@
+-- RETIRED: department-table removal was cancelled. Do not run for the current design.
+-- Retained as history: the user already executed this additive migration.
 -- Transitional migration: retain DepartmentId and its foreign key.
 -- Pause borrower registration/profile/account edits while running this script.
 -- Rerun before cutover if the old application has written new assignments.

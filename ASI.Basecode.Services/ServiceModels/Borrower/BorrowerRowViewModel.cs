@@ -13,7 +13,6 @@ namespace ASI.Basecode.Services.ServiceModels.Borrower
         public string FullName { get; set; }
         public string ContactNumber { get; set; }
         public int DepartmentId { get; set; }
-        public string DepartmentCode { get; set; }
         public string BorrowerType { get; set; }
         public string DepartmentName { get; set; }
         public string Program { get; set; }

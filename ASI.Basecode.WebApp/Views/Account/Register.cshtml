@@ -33,7 +33,7 @@
         {
             <p class="alert" role="alert">@error</p>
         }
-        <form asp-controller="Account" asp-action="Register" method="post" enctype="multipart/form-data" id="registrationForm">
+        <form asp-controller="Account" asp-action="Register" method="post" enctype="multipart/form-data" id="registrationForm" data-academic-fields>
             <div asp-validation-summary="All" class="validation-summary" role="alert"></div>
 
             <p class="registration-help">
@@ -136,7 +136,7 @@
                         </div>
                         <div class="field">
                             <label asp-for="DepartmentId">Department <span class="required" aria-hidden="true">*</span></label>
-                            <select asp-for="DepartmentId">
+                            <select asp-for="DepartmentId" data-academic-department>
                                 <option value="">Select department</option>
                                 @foreach (var department in Model.Departments)
                                 {
@@ -152,7 +152,9 @@
                     <div class="registration-grid" id="studentFields">
                         <div class="field">
                             <label asp-for="Program">Program <span class="required" aria-hidden="true">*</span></label>
-                            <input asp-for="Program" maxlength="150" placeholder="e.g. BS Computer Science" />
+                            <select asp-for="Program" data-academic-program>
+                                <partial name="_AcademicProgramOptions" model="@((Model.Departments.AsEnumerable(), Model.Program))" />
+                            </select>
                             <span asp-validation-for="Program"></span>
                         </div>
                         <div class="field">
@@ -233,5 +235,6 @@
     <partial name="_ValidationScriptsPartial" />
     <script src="~/js/password-toggle.js" asp-append-version="true"></script>
     <script src="~/js/registration.js" asp-append-version="true"></script>
+    <script src="~/js/academic-options.js" asp-append-version="true"></script>
 }
 

@@ -63,8 +63,7 @@ public class UserAccountFormViewModel : IValidatableObject
     public string AccountStatus { get; set; } = AccountStatuses.Active;
 
     // Borrower details. Required on the server only when the role is Borrower (see UserAccountService).
-    [StringLength(20)]
-    public string DepartmentCode { get; set; }
+    public int? DepartmentId { get; set; }
 
     [StringLength(150, ErrorMessage = "Program must not exceed 150 characters.")]
     public string Program { get; set; } = string.Empty;
@@ -119,12 +118,4 @@ public class UserAccountFormViewModel : IValidatableObject
             yield return new ValidationResult(PasswordRuleText, new[] { nameof(Password) });
         }
     }
-}
-
-/// <summary>Active department shown in the Borrower department dropdown.</summary>
-public class DepartmentOption
-{
-    public string DepartmentCode { get; set; } = string.Empty;
-
-    public string DepartmentName { get; set; } = string.Empty;
 }

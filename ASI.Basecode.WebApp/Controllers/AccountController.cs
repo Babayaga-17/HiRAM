@@ -289,6 +289,7 @@ namespace ASI.Basecode.WebApp.Controllers
             }
 
             var model = new BorrowerRegistrationViewModel();
+            LoadRegistrationDepartments(model);
             return View(model);
         }
 
@@ -325,6 +326,7 @@ namespace ASI.Basecode.WebApp.Controllers
             ModelState.SetModelValue(nameof(model.ConfirmPassword), string.Empty, string.Empty);
             model.Password = null;
             model.ConfirmPassword = null;
+            LoadRegistrationDepartments(model);
             return View(model);
         }
 
@@ -358,6 +360,16 @@ namespace ASI.Basecode.WebApp.Controllers
         {
             await this._signInManager.SignOutAsync();
             return RedirectToAction("Login", "Account");
+        }
+
+        private void LoadRegistrationDepartments(BorrowerRegistrationViewModel model)
+        {
+            try { model.Departments = _borrowerProfileService.GetDepartments(); }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "Unable to load registration departments.");
+                model.DepartmentError = "Departments could not be loaded. Please refresh and try again.";
+            }
         }
     }
 }

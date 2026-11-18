@@ -3,11 +3,12 @@
 @model UserAccountFormViewModel
 @{
     var roles = RoleNames.All;
-    var departments = ViewData["Departments"] as List<DepartmentOption> ?? new List<DepartmentOption>();
+    var departments = ViewData["Departments"] as List<ASI.Basecode.Data.Models.Department>
+        ?? new List<ASI.Basecode.Data.Models.Department>();
     var isSelf = ViewData["IsSelf"] as bool? == true;
     var showBorrower = Model.RoleName == RoleNames.Borrower;
 }
-<form class="category-form" id="userAccountForm" asp-controller="UserAccount" asp-action="@(Model.IsEdit ? "Edit" : "Create")" method="post" novalidate>
+<form class="category-form" id="userAccountForm" asp-controller="UserAccount" asp-action="@(Model.IsEdit ? "Edit" : "Create")" method="post" novalidate data-academic-fields>
     <div asp-validation-summary="ModelOnly"></div>
     <input asp-for="UserId" type="hidden" />
     <input asp-for="Version" type="hidden" />
@@ -156,7 +157,7 @@
         <div class="form-grid">
             <div class="form-group">
                 <label for="DepartmentId">Department <span class="required">*</span></label>
-                <select asp-for="DepartmentId">
+                <select asp-for="DepartmentId" data-academic-department>
                     <option value="">Select a department</option>
                     @foreach (var department in departments)
                     {
@@ -168,7 +169,9 @@
 
             <div class="form-group">
                 <label for="Program">Program <span class="required">*</span></label>
-                <input asp-for="Program" type="text" maxlength="150" placeholder="e.g. BSCS" />
+                <select asp-for="Program" data-academic-program>
+                    <partial name="_AcademicProgramOptions" model="@((departments.AsEnumerable(), Model.Program))" />
+                </select>
                 <span asp-validation-for="Program"></span>
             </div>
 
@@ -226,3 +229,4 @@
         </button>
     </div>
 </form>
+<script src="~/js/academic-options.js" asp-append-version="true"></script>
