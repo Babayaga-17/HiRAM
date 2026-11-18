@@ -89,7 +89,9 @@
                     <strong>@User.Identity?.Name</strong>
                 </p>
 
-                <div asp-validation-summary="All" class="reservation-errors" role="alert"></div>
+                <div asp-validation-summary="ModelOnly" class="reservation-errors" role="alert"></div>
+                @Html.ValidationMessage("RowVersion")
+                @Html.ValidationMessage("EquipmentIds")
                 <div class="rc-dates">
                     <div class="form-group">
                         <label asp-for="Pickup">

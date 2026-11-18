@@ -39,7 +39,7 @@
 
         <input asp-for="RowVersion" type="hidden" />
 
-        <div asp-validation-summary="All"
+        <div asp-validation-summary="ModelOnly"
              class="reservation-errors"
              role="alert"></div>
 
@@ -50,6 +50,8 @@
             <textarea asp-for="Reason"
                       rows="4"
                       maxlength="500"></textarea>
+            <span asp-validation-for="Reason"></span>
+            <span asp-validation-for="RowVersion"></span>
         </div>
 
         <div class="form-actions">

@@ -13,11 +13,10 @@
       enctype="multipart/form-data"
       novalidate>
     
-    <!--This shows every validation error at the top of the form.-->
-    <!-- <div asp-validation-summary="ModelOnly"></div> -->
-    <div asp-validation-summary="All"></div>
+    <div asp-validation-summary="ModelOnly"></div>
 
     <input asp-for="EquipmentId" type="hidden" />
+    <span asp-validation-for="EquipmentId"></span>
 
     <section class="form-group" aria-labelledby="equipmentPhotosHeading">
         <h2 id="equipmentPhotosHeading">Equipment photos</h2>
