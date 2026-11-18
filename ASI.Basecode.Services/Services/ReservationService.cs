@@ -100,30 +100,12 @@ namespace ASI.Basecode.Services.Services
             var rangeStart = pickup.Date;
             var rangeEnd = expectedReturn.Date.AddDays(1);
 
-            var isDayView = form.PreviewDay.HasValue;
-
-            if (isDayView)
-            {
-                var selectedDay = form.PreviewDay.Value.Date;
-
-                if (selectedDay < pickup.Date ||
-                    selectedDay > expectedReturn.Date)
-                {
-                    throw new ArgumentException(
-                        "Choose a preview day within the reservation period.");
-                }
-
-                rangeStart = selectedDay;
-                rangeEnd = selectedDay.AddDays(1);
-            }
-
             var preview = new ReservationAvailabilityPreview
             {
                 Pickup = pickup,
                 ExpectedReturn = expectedReturn,
                 RangeStart = rangeStart,
-                RangeEnd = rangeEnd,
-                IsDayView = isDayView
+                RangeEnd = rangeEnd
             };
 
             foreach (var equipmentId in form.EquipmentIds.Distinct())

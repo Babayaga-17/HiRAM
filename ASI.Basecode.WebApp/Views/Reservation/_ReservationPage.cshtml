@@ -131,39 +131,6 @@
                         Selected equipment availability
                     </h2>
 
-                    <div class="rc-preview-actions">
-                        <div class="form-group">
-                            <label asp-for="PreviewDay">Day to preview</label>
-
-                            <input asp-for="PreviewDay"
-                                   type="date"
-                                   asp-format="{0:yyyy-MM-dd}" />
-
-                            <span asp-validation-for="PreviewDay"
-                                  class="field-validation-error"></span>
-                        </div>
-
-                        <button class="button button-secondary"
-                                type="submit"
-                                name="previewAction"
-                                value="day"
-                                formaction="@Url.Action("CheckAvailability", "Reservation",
-                                                new { id = reservationId })"
-                                formnovalidate>
-                            View day
-                        </button>
-
-                        <button class="button button-secondary"
-                                type="submit"
-                                name="previewAction"
-                                value="full"
-                                formaction="@Url.Action("CheckAvailability", "Reservation",
-                                                new { id = reservationId })"
-                                formnovalidate>
-                            Full period
-                        </button>
-                    </div>
-
                     @if (Model.AvailabilityPreview == null)
                     {
                         <p class="rc-hint">
@@ -184,7 +151,7 @@
                         string Width(DateTime start, DateTime end) => ((end - start).TotalMinutes / totalMinutes * 100).ToString("0.###", CultureInfo.InvariantCulture);
 
                         <p class="rc-hint">
-                            @(preview.IsDayView ? "Day detail" : "Schedule overview"):
+                            @(preview.Pickup.Date == preview.ExpectedReturn.Date ? "Day preview" : "Full period preview"):
                             @rangeStart.ToString("MMM d, yyyy h:mm tt")
                             to
                             @rangeEnd.ToString("MMM d, yyyy h:mm tt")

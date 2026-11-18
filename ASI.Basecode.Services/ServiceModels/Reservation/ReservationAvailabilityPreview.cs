@@ -11,7 +11,6 @@ public class ReservationAvailabilityPreview
     public DateTime RangeStart { get; set; }
     public DateTime RangeEnd { get; set; }
 
-    public bool IsDayView { get; set; }
 
     public List<ReservationEquipmentPreview> Items { get; set; } = new();
 }
