@@ -22,15 +22,10 @@
         <div><h2>Temporary password</h2><p>Give this to the user through a secure channel. It is shown only once.</p></div>
     </div>
     <div class="temp-password">
-        <code id="temporaryPassword">@temporaryPassword</code>
-        <button type="button" class="button button-secondary" id="copyPassword"><svg class="icon"><use href="#i-check" /></svg>Copy</button>
+        <code>@temporaryPassword</code>
     </div>
     <p class="temp-password-note">Failed sign-in attempts and any lockout were cleared. The user signs in with <strong>@Model.Email</strong> and this password.</p>
     <div class="form-actions">
         <a class="button button-primary" asp-controller="UserAccount" asp-action="Details" asp-route-id="@Model.UserId">Done</a>
     </div>
 </section>
-
-@section Scripts {
-    <script src="~/js/user-account.js" asp-append-version="true"></script>
-}

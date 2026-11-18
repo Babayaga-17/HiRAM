@@ -8,6 +8,14 @@
     var activeCount = Model.Count(account => account.IsActive);
     var loadError = TempData["UserAccountLoadError"] as string;
 
+    var search = ViewBag.Search as string ?? "";
+    var selectedRole = ViewBag.Role as string ?? "all";
+    var selectedStatus = ViewBag.Status as string ?? "all";
+    var totalCount = ViewBag.TotalCount as int? ?? Model.Count;
+    var hasFilters = !string.IsNullOrWhiteSpace(search) ||
+        (!string.IsNullOrWhiteSpace(selectedRole) && !selectedRole.Equals("all", StringComparison.OrdinalIgnoreCase)) ||
+        (!string.IsNullOrWhiteSpace(selectedStatus) && !selectedStatus.Equals("all", StringComparison.OrdinalIgnoreCase));
+
     string LastActive(DateTime? value)
     {
         if (!value.HasValue) return "Never";
@@ -62,7 +70,7 @@ else
             <span class="count-pill">@Model.Count @(Model.Count == 1 ? "user" : "users")</span>
         </div>
 
-        @if (Model.Count == 0)
+        @if (totalCount == 0 && !hasFilters)
         {
             <div class="empty-categories">
                 <span class="empty-icon"><svg class="icon"><use href="#i-users" /></svg></span>
@@ -73,66 +81,68 @@ else
         }
         else
         {
-            <div class="list-toolbar">
-                <label class="search-field"><svg class="icon"><use href="#i-search" /></svg><span class="sr-only">Search users</span><input id="userSearch" type="search" placeholder="Search user, email, or ID…" autocomplete="off" /></label>
+            <form method="get" asp-action="Index" class="list-toolbar">
+                <label class="search-field"><svg class="icon"><use href="#i-search" /></svg><span class="sr-only">Search users</span><input name="search" value="@search" type="search" placeholder="Search user, email, or ID…" autocomplete="off" /></label>
                 <label class="filter-field">
                     <span>Role</span>
-                    <select id="roleFilter" aria-label="Filter by role">
+                    <select name="role" aria-label="Filter by role">
                         <option value="all">All roles</option>
                         @foreach (var role in roles)
                         {
-                            <option value="@role.RoleName.ToLowerInvariant()">@role.RoleName</option>
+                            <option value="@role.RoleName" selected="@(string.Equals(selectedRole, role.RoleName, StringComparison.OrdinalIgnoreCase))">@role.RoleName</option>
                         }
                     </select>
                 </label>
                 <label class="filter-field">
                     <span>Status</span>
-                    <select id="statusFilter" aria-label="Filter by status">
+                    <select name="status" aria-label="Filter by status">
                         <option value="all">All statuses</option>
                         @foreach (var status in ASI.Basecode.Resources.Constants.AccountStatuses.FilterOptions)
                         {
-                            <option value="@status.ToLowerInvariant()">@(status == "PendingApproval" ? "Pending approval" : status)</option>
+                            <option value="@status" selected="@(string.Equals(selectedStatus, status, StringComparison.OrdinalIgnoreCase))">@(status == "PendingApproval" ? "Pending approval" : status)</option>
                         }
                     </select>
                 </label>
-            </div>
-            <div class="table-scroll" role="region" aria-label="User accounts" tabindex="0">
-                <table class="category-table">
-                    <thead><tr><th scope="col">User</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Last active</th><th scope="col">Status</th><th scope="col" class="actions-column">Actions</th></tr></thead>
-                    <tbody id="userRows">
-                        @foreach (var account in Model)
-                        {
-                            <tr data-search="@($"{account.FullName} {account.UserCode} {account.Email}".ToLowerInvariant())" data-role="@account.RoleName.ToLowerInvariant()" data-status="@account.AccountStatus.ToLowerInvariant()">
-                                <td><div class="category-name-cell"><span class="category-tile"><svg class="icon"><use href="#i-user" /></svg></span><span><strong>@account.FullName</strong><small>@account.UserCode</small></span></div></td>
-                                <td>@account.Email</td>
-                                <td><span class="role-pill">@account.RoleName</span></td>
-                                <td>@LastActive(account.LastLoginAt)</td>
-                                <td><span class="status-badge status-@account.AccountStatus.ToLowerInvariant()"><span></span>@(account.AccountStatus == "PendingApproval" ? "Pending approval" : account.AccountStatus)</span></td>
-                                <td class="actions-column">
-                                    <div class="row-actions">
-                                        <a class="icon-button" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="View @account.FullName" title="View account"><svg class="icon"><use href="#i-eye" /></svg></a>
-                                        <a class="icon-button" asp-controller="UserAccount" asp-action="Edit" asp-route-id="@account.UserId" aria-label="Edit @account.FullName" title="Edit account"><svg class="icon"><use href="#i-edit" /></svg></a>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-            <div class="empty-results" id="emptyResults" hidden>
-                <span class="empty-icon"><svg class="icon"><use href="#i-search" /></svg></span>
-                <h3>No matching users</h3>
-                <p>Try a different search term, role, or status.</p>
-                <button type="button" class="text-button" id="clearFilters">Clear filters</button>
-            </div>
-            <div class="table-footer"><span id="resultCount">Showing @Model.Count of @Model.Count users</span></div>
+                <button type="submit" class="button button-primary">Apply</button>
+                <a asp-action="Index" class="button button-secondary">Clear</a>
+            </form>
+
+            @if (Model.Count == 0)
+            {
+                <div class="empty-results">
+                    <span class="empty-icon"><svg class="icon"><use href="#i-search" /></svg></span>
+                    <h3>No matching users</h3>
+                    <p>Try a different search term, role, or status.</p>
+                    <a asp-action="Index" class="text-button">Clear filters</a>
+                </div>
+            }
+            else
+            {
+                <div class="table-scroll" role="region" aria-label="User accounts" tabindex="0">
+                    <table class="category-table">
+                        <thead><tr><th scope="col">User</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Last active</th><th scope="col">Status</th><th scope="col" class="actions-column">Actions</th></tr></thead>
+                        <tbody>
+                            @foreach (var account in Model)
+                            {
+                                <tr>
+                                    <td><div class="category-name-cell"><span class="category-tile"><svg class="icon"><use href="#i-user" /></svg></span><span><strong>@account.FullName</strong><small>@account.UserCode</small></span></div></td>
+                                    <td>@account.Email</td>
+                                    <td><span class="role-pill">@account.RoleName</span></td>
+                                    <td>@LastActive(account.LastLoginAt)</td>
+                                    <td><span class="status-badge status-@account.AccountStatus.ToLowerInvariant()"><span></span>@(account.AccountStatus == "PendingApproval" ? "Pending approval" : account.AccountStatus)</span></td>
+                                    <td class="actions-column">
+                                        <div class="row-actions">
+                                            <a class="icon-button" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="View @account.FullName" title="View account"><svg class="icon"><use href="#i-eye" /></svg></a>
+                                            <a class="icon-button" asp-controller="UserAccount" asp-action="Edit" asp-route-id="@account.UserId" aria-label="Edit @account.FullName" title="Edit account"><svg class="icon"><use href="#i-edit" /></svg></a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-footer"><span>Showing @Model.Count of @totalCount users</span></div>
+            }
         }
     </section>
-}
-
-@section Scripts {
-    @if (Model.Count > 0 && loadError == null)
-    {
-        <script src="~/js/user-account.js" asp-append-version="true"></script>
-    }
 }

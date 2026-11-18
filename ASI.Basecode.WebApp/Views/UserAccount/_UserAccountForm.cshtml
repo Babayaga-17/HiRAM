@@ -123,36 +123,11 @@
                 <label for="Password">
                     Password <span class="required">*</span>
                 </label>
-
-                <div class="password-field">
-                    <input asp-for="Password"
-                           type="password"
-                           maxlength="64"
-                           autocomplete="new-password"
-                           required />
-
-                    <button type="button"
-                            class="password-toggle js-password-toggle"
-                            data-target="Password"
-                            data-password-label="password"
-                            aria-controls="Password"
-                            aria-label="Show password">
-
-                        <svg class="eye-open"
-                             viewBox="0 0 24 24"
-                             aria-hidden="true"
-                             hidden>
-                            <use href="#i-eye"></use>
-                        </svg>
-
-                        <svg class="eye-closed"
-                             viewBox="0 0 24 24"
-                             aria-hidden="true">
-                            <use href="#i-eye-closed"></use>
-                        </svg>
-                    </button>
-                </div>
-
+                <input asp-for="Password"
+                       type="password"
+                       maxlength="64"
+                       autocomplete="new-password"
+                       required />
                 <span asp-validation-for="Password"></span>
             </div>
 
@@ -160,42 +135,17 @@
                 <label for="ConfirmPassword">
                     Confirm password <span class="required">*</span>
                 </label>
-
-                <div class="password-field">
-                    <input asp-for="ConfirmPassword"
-                           type="password"
-                           maxlength="64"
-                           autocomplete="new-password"
-                           required />
-
-                    <button type="button"
-                            class="password-toggle js-password-toggle"
-                            data-target="ConfirmPassword"
-                            data-password-label="confirm password"
-                            aria-controls="ConfirmPassword"
-                            aria-label="Show confirm password">
-
-                        <svg class="eye-open"
-                             viewBox="0 0 24 24"
-                             aria-hidden="true"
-                             hidden>
-                            <use href="#i-eye"></use>
-                        </svg>
-
-                        <svg class="eye-closed"
-                             viewBox="0 0 24 24"
-                             aria-hidden="true">
-                            <use href="#i-eye-closed"></use>
-                        </svg>
-                    </button>
-                </div>
-
+                <input asp-for="ConfirmPassword"
+                       type="password"
+                       maxlength="64"
+                       autocomplete="new-password"
+                       required />
                 <span asp-validation-for="ConfirmPassword"></span>
             </div>
         }
     </div>
 
-    <div id="borrowerDetails" class="borrower-details" data-borrower-role-name="@RoleNames.Borrower" style="display:@(showBorrower ? "block" : "none");">
+    <div id="borrowerDetails" class="borrower-details">
         <div class="form-divider"></div>
 
         <div class="form-card-header">
@@ -276,21 +226,3 @@
         </button>
     </div>
 </form>
-
-<script>
-    (function () {
-        var roleSelect = document.getElementById("RoleName");
-        var details = document.getElementById("borrowerDetails");
-        if (!roleSelect || !details) { return; }
-
-        var borrowerRoleName = details.getAttribute("data-borrower-role-name");
-
-        function refreshBorrowerDetails() {
-            var isBorrower = roleSelect.value === borrowerRoleName;
-            details.style.display = isBorrower ? "block" : "none";
-        }
-
-        roleSelect.addEventListener("change", refreshBorrowerDetails);
-        refreshBorrowerDetails();
-    })();
-</script>
