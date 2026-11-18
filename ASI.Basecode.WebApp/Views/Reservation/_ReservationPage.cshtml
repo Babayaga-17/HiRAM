@@ -212,9 +212,11 @@
                                 </div>
 
                                 <div class="rc-row-schedule">
-                                    <div class="rc-axis">
-                                        <span>@rangeStart.ToString("MMM d, h:mm tt")</span>
-                                        <span>@rangeEnd.ToString("MMM d, h:mm tt")</span>
+                                    <div class="rc-axis rc-day-axis">
+                                        @for (var day = rangeStart.Date; day < rangeEnd; day = day.AddDays(1))
+                                        {
+                                            <span>@day.ToString("MMM d")</span>
+                                        }
                                     </div>
 
                                     <div class="rc-track" aria-hidden="true">
@@ -285,6 +287,11 @@
                                                      style="left: @(Position(start))%; width: @(Width(start, end))%;">
                                                 </div>
                                             }
+                                        }
+                                        @for (var boundary = rangeStart.Date.AddDays(1); boundary < rangeEnd; boundary = boundary.AddDays(1))
+                                        {
+                                            <div class="rc-day-divider"
+                                                 style="left: @(Position(boundary))%;"></div>
                                         }
                                     </div>
 
