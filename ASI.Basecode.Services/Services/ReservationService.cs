@@ -100,6 +100,12 @@ namespace ASI.Basecode.Services.Services
             var rangeStart = pickup.Date;
             var rangeEnd = expectedReturn.Date.AddDays(1);
 
+            if (pickup.Date == expectedReturn.Date)
+            {
+                rangeStart = pickup.Date.Add(ReservationPolicy.DeskOpeningTime).AddHours(-1);
+                rangeEnd = pickup.Date.Add(ReservationPolicy.DeskClosingTime).AddHours(1);
+            }
+
             var preview = new ReservationAvailabilityPreview
             {
                 Pickup = pickup,

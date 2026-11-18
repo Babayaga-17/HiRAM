@@ -192,12 +192,26 @@
                                 </div>
 
                                 <div class="rc-row-schedule">
+                                    @if (preview.Pickup.Date == preview.ExpectedReturn.Date)
+                                    {
+                                        <div class="rc-axis rc-time-axis" aria-label="Hours in Philippine time">
+                                            @foreach (var hour in new[] { 7, 8, 12, 17, 18 })
+                                            {
+                                                var marker = rangeStart.Date.AddHours(hour);
+                                                <span class="@(hour == 7 ? "rc-time-start" : hour == 18 ? "rc-time-end" : "")"
+                                                      style="left: @(Position(marker))%;">@marker.ToString("h tt", CultureInfo.InvariantCulture)</span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
                                     <div class="rc-axis rc-day-axis">
                                         @for (var day = rangeStart.Date; day < rangeEnd; day = day.AddDays(1))
                                         {
                                             <span>@day.ToString("MMM d")</span>
                                         }
                                     </div>
+                                    }
 
                                     <div class="rc-track" aria-hidden="true">
 
@@ -205,15 +219,22 @@
                                         {
                                             var opensAt = day.Add(ReservationPolicy.DeskOpeningTime);
                                             var closesAt = day.Add(ReservationPolicy.DeskClosingTime);
-                                            var nextDay = day.AddDays(1);
+                                            var closedStart = day < rangeStart ? rangeStart : day;
+                                            var morningEnd = opensAt > rangeEnd ? rangeEnd : opensAt;
+                                            var eveningStart = closesAt < rangeStart ? rangeStart : closesAt;
+                                            var closedEnd = day.AddDays(1) > rangeEnd ? rangeEnd : day.AddDays(1);
 
-                                            <div class="rc-desk-closed"
-                                                 style="left: @(Position(day))%; width: @(Width(day, opensAt))%;">
-                                            </div>
+                                            if (morningEnd > closedStart)
+                                            {
+                                                <div class="rc-desk-closed"
+                                                     style="left: @(Position(closedStart))%; width: @(Width(closedStart, morningEnd))%;"></div>
+                                            }
 
-                                            <div class="rc-desk-closed"
-                                                 style="left: @(Position(closesAt))%; width: @(Width(closesAt, nextDay))%;">
-                                            </div>
+                                            if (closedEnd > eveningStart)
+                                            {
+                                                <div class="rc-desk-closed"
+                                                     style="left: @(Position(eveningStart))%; width: @(Width(eveningStart, closedEnd))%;"></div>
+                                            }
                                         }
 
                                         @{
