@@ -33,6 +33,8 @@ public partial class BorrowerProfile
 
     public DateTime? UpdatedAt { get; set; }
 
+    public string DepartmentCode { get; set; }
+
     public virtual Department Department { get; set; }
 
     public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();

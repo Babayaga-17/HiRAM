@@ -9,7 +9,7 @@ namespace ASI.Basecode.Services.ServiceModels.Borrower
     public class BorrowerFormModel
     {
             public int UserId { get; set; }
-            public int DepartmentId { get; set; }
+            public string DepartmentCode { get; set; }
             public string Program { get; set; }
             public byte? YearLevel { get; set; }
             public string EligibilityStatus { get; set; }

@@ -42,6 +42,17 @@ namespace ASI.Basecode.Resources.Constants
             return Departments.FirstOrDefault(department =>
                 string.Equals(department.Code, code, StringComparison.OrdinalIgnoreCase));
         }
+
+        // Stored legacy values must come from the repository, never posted fields.
+        public static bool IsProgramAllowed(string? code, string? program,
+            string? storedCode = null, string? storedProgram = null)
+        {
+            var department = FindDepartment(code);
+            if (department == null || string.IsNullOrWhiteSpace(program)) return false;
+            return department.Programs.Contains(program, StringComparer.Ordinal)
+                || (string.Equals(department.Code, storedCode, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(program, storedProgram, StringComparison.Ordinal));
+        }
     }
 
     public sealed class AcademicDepartmentOption

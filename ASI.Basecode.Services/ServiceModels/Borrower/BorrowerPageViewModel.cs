@@ -19,6 +19,7 @@ namespace ASI.Basecode.Services.ServiceModels.Borrower
         public int OverallEligible { get; set; }
         public int OverallSuspended { get; set; }
         public List<BorrowerRowViewModel> Rows { get; set; } = new();
-        public List<Department> Departments { get; set; } = new();
+        public IReadOnlyList<ASI.Basecode.Resources.Constants.AcademicDepartmentOption> Departments
+            => ASI.Basecode.Resources.Constants.AcademicOptions.Departments;
     }
 }

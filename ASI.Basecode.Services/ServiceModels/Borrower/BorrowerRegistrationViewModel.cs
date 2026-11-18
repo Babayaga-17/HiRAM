@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using ASI.Basecode.Data.Models;
+using ASI.Basecode.Resources.Constants;
 namespace ASI.Basecode.Services.ServiceModels.Borrower;
 
 public class BorrowerRegistrationViewModel : IValidatableObject
@@ -13,13 +13,12 @@ public class BorrowerRegistrationViewModel : IValidatableObject
     [StringLength(20)] public string Suffix { get; set; }
     [Required, EmailAddress, StringLength(255)] public string Email { get; set; }
     [StringLength(30), Phone] public string ContactNumber { get; set; }
-    [Required, Range(1, int.MaxValue)] public int? DepartmentId { get; set; }
+    [Required, StringLength(20)] public string DepartmentCode { get; set; }
     [StringLength(150)] public string Program { get; set; }
     public byte? YearLevel { get; set; }
     [Required, RegularExpression(UserAccountFormViewModel.PasswordPattern, ErrorMessage = UserAccountFormViewModel.PasswordRuleText)] public string Password { get; set; }
     [Required, Compare(nameof(Password), ErrorMessage = "Passwords must match.")] public string ConfirmPassword { get; set; }
-    public List<Department> Departments { get; set; } = new();
-    public string DepartmentError { get; set; }
+    public IReadOnlyList<AcademicDepartmentOption> Departments => AcademicOptions.Departments;
     public IEnumerable<ValidationResult> Validate(ValidationContext context)
     {
         if (BorrowerType == "Student")
