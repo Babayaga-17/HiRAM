@@ -119,11 +119,3 @@ public class UserAccountFormViewModel : IValidatableObject
         }
     }
 }
-
-/// <summary>Active department shown in the Borrower department dropdown.</summary>
-public class DepartmentOption
-{
-    public int DepartmentId { get; set; }
-
-    public string DepartmentName { get; set; } = string.Empty;
-}

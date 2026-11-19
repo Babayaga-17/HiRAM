@@ -89,26 +89,8 @@ namespace ASI.Basecode.Services.Services
             }).ToList();
         }
 
-        /// <summary>Active departments for the Borrower department dropdown.</summary>
-        public List<DepartmentOption> GetActiveDepartments()
-
-        {
-
-            return _borrowerProfileRepository.GetActiveDepartments()
-
-                .Select(department => new DepartmentOption
-
-                {
-
-                    DepartmentId = department.DepartmentId,
-
-                    DepartmentName = department.DepartmentName
-
-                })
-
-                .ToList();
-
-        }
+        /// <summary>Active database departments used by account forms.</summary>
+        public List<Department> GetActiveDepartments() => _borrowerProfileRepository.GetActiveDepartments();
 
         /// <summary>Copies the stored BorrowerProfile into the form model (edit screen only).</summary>
         public void FillBorrowerProfile(UserAccountFormViewModel model)
@@ -165,8 +147,7 @@ namespace ASI.Basecode.Services.Services
                 errors[nameof(UserAccountFormViewModel.Password)] = "Password is required.";
             var role = GetAssignableRole(model.RoleName, errors);
             var isBorrower = IsBorrowerRole(role);
-            if (isBorrower)
-                ValidateBorrowerProfile(model, errors);
+            var department = isBorrower ? ValidateBorrowerProfile(model, errors) : null;
             if (errors.Count > 0)
                 throw new UserAccountValidationException(errors);
 
@@ -197,9 +178,9 @@ namespace ASI.Basecode.Services.Services
             {
                 user.BorrowerProfileUser = new BorrowerProfile
                 {
-                    DepartmentId = model.DepartmentId.Value,
-                    Program = model.Program,
-                    YearLevel = model.YearLevel,
+                    DepartmentId = department.DepartmentId,
+                    Program = model.BorrowerType == "Faculty" ? null : model.Program,
+                    YearLevel = model.BorrowerType == "Faculty" ? null : model.YearLevel,
                     BorrowerType = model.BorrowerType,
                     EligibilityStatus = model.EligibilityStatus,
                     CreatedBy = createdBy,
@@ -237,12 +218,13 @@ namespace ASI.Basecode.Services.Services
             var isBorrower = IsBorrowerRole(role);
 
             model.EligibilityLocked = profile != null && IsEligibilityLocked(account.AccountStatus, profile);
+            Department department = null;
             if (isBorrower)
             {
                 // A locked eligibility keeps the stored value, whatever the form posted.
                 if (model.EligibilityLocked)
                     model.EligibilityStatus = profile.EligibilityStatus;
-                ValidateBorrowerProfile(model, errors);
+                department = ValidateBorrowerProfile(model, errors);
             }
 
             if (errors.Count > 0)
@@ -321,7 +303,7 @@ namespace ASI.Basecode.Services.Services
                     };
                     account.User.BorrowerProfileUser = profile; // EF inserts it with the tracked User
                 }
-                ApplyBorrowerProfile(profile, model, updatedBy, now);
+                ApplyBorrowerProfile(profile, model, department, updatedBy, now);
             }
             else if (profile != null)
             {
@@ -457,29 +439,38 @@ namespace ASI.Basecode.Services.Services
         /// Borrower fields are required when the role is Borrower. Eligibility is skipped when it is locked,
         /// because the stored value is kept in that case.
         /// </summary>
-        private void ValidateBorrowerProfile(UserAccountFormViewModel model, Dictionary<string, string> errors)
+        private Department ValidateBorrowerProfile(UserAccountFormViewModel model, Dictionary<string, string> errors)
         {
-            if (!model.DepartmentId.HasValue || !_borrowerProfileRepository.GetActiveDepartments().Any(department => department.DepartmentId == model.DepartmentId.Value))
+            var department = _borrowerProfileRepository.GetActiveDepartments()
+                .FirstOrDefault(item => item.DepartmentId == model.DepartmentId);
+            if (department == null)
                 errors[nameof(UserAccountFormViewModel.DepartmentId)] = "Select an active department.";
 
-            if (string.IsNullOrWhiteSpace(model.Program))
-                errors[nameof(UserAccountFormViewModel.Program)] = "Program is required.";
-            else if (model.Program.Length > 150)
-                errors[nameof(UserAccountFormViewModel.Program)] = "Program must not exceed 150 characters.";
-
-            if (!model.YearLevel.HasValue || model.YearLevel.Value < 1 || model.YearLevel.Value > 5)
-                errors[nameof(UserAccountFormViewModel.YearLevel)] = "Select a year level from 1 to 5.";
+            if (model.BorrowerType != "Faculty")
+            {
+                if (!ProgramOptions.IsProgramAllowed(department?.DepartmentCode, model.Program))
+                    errors[nameof(UserAccountFormViewModel.Program)] = "Select a program belonging to the department.";
+                if (!model.YearLevel.HasValue || model.YearLevel.Value < 1 || model.YearLevel.Value > 5)
+                    errors[nameof(UserAccountFormViewModel.YearLevel)] = "Select a year level from 1 to 5.";
+            }
+            else
+            {
+                model.Program = null;
+                model.YearLevel = null;
+            }
 
             if (!UserAccountFormViewModel.BorrowerTypeOptions.Contains(model.BorrowerType))
                 errors[nameof(UserAccountFormViewModel.BorrowerType)] = "Select Student or Faculty.";
 
             if (!model.EligibilityLocked && !UserAccountFormViewModel.EligibilityOptions.Contains(model.EligibilityStatus))
                 errors[nameof(UserAccountFormViewModel.EligibilityStatus)] = "Select a valid eligibility status.";
+
+            return department;
         }
 
-        private static void ApplyBorrowerProfile(BorrowerProfile profile, UserAccountFormViewModel model, string updatedBy, DateTime now)
+        private static void ApplyBorrowerProfile(BorrowerProfile profile, UserAccountFormViewModel model, Department department, string updatedBy, DateTime now)
         {
-            profile.DepartmentId = model.DepartmentId.Value;
+            profile.DepartmentId = department.DepartmentId;
             profile.Program = model.Program;
             profile.YearLevel = model.YearLevel;
             profile.BorrowerType = model.BorrowerType;

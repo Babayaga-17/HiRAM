@@ -5,6 +5,7 @@ using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Borrower;
 using ASI.Basecode.Services.ServiceModels.Reservation;
 using ASI.Basecode.Services.Services;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +25,7 @@ try
     User Person(string code, string roleName, string status = "Active") => new() { UserCode = code, FirstName = code, LastName = "Test", CreatedBy = "test",
         Account = new Account { RoleName = roleName, Email = code + "@example.invalid", PasswordHash = "unused", AccountStatus = status, CreatedBy = "test" } };
     var admin = Person("ADMIN", RoleNames.Admin); var custodian = Person("STAFF", RoleNames.Custodian); var disabledAdmin = Person("OFFLINE", RoleNames.Admin, "Disabled");
-    var department = new Department { DepartmentCode = "TEST", DepartmentName = "Test department", IsActive = true, CreatedBy = "test" };
+    var department = new Department { DepartmentCode = "CCS", DepartmentName = "College of Computer Studies", IsActive = true, CreatedBy = "test" };
     db.AddRange(admin, custodian, disabledAdmin, department); db.SaveChanges();
     var unit = new UnitOfWork(db); var repository = new NotificationRepository(unit); var notifications = new NotificationService(repository);
     var users = new UserRepository(unit); var accounts = new AccountRepository(unit);
