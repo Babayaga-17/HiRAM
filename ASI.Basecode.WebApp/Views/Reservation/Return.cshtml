@@ -49,7 +49,7 @@
     Record missing parts as damaged pending review.
 </div>
 
-<form asp-controller="Reservation" asp-action="Return" method="post">
+<form class="return-form" asp-controller="Reservation" asp-action="Return" method="post">
     <input type="hidden"
            name="ReservationId"
            value="@Model.ReservationId" />
@@ -62,7 +62,11 @@
     {
         var item = outstanding[i];
         var input = previous?.Items?.FirstOrDefault(
-        entry => entry.ReservationItemId == item.ReservationItemId);
+            entry => entry.ReservationItemId == item.ReservationItemId);
+
+        var selectedCondition = input != null
+        ? input.ConditionAtReturn
+        : item.ConditionAtBorrowing;
 
         <section class="content-card form-card rs-panel"
                  aria-labelledby="item-heading-@i">
@@ -115,7 +119,7 @@
                     @foreach (var condition in conditions)
                     {
                         <option value="@condition"
-                                selected="@(input?.ConditionAtReturn == condition)">
+                                selected="@(selectedCondition == condition)">
                             @condition
                         </option>
                     }
