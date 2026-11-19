@@ -147,7 +147,10 @@
         }
     </div>
 
-    <div id="borrowerDetails" class="borrower-details">
+    <fieldset id="borrowerDetails"
+              class="borrower-details"
+              hidden="@(!showBorrower)"
+              disabled="@(!showBorrower)">  
         <div class="form-divider"></div>
 
         <div class="form-card-header">
@@ -221,7 +224,7 @@
                 <span asp-validation-for="BorrowerType"></span>
             </div>
         </div>
-    </div>
+    </fieldset>
 
     <div class="form-actions">
         <a class="button button-secondary" asp-controller="UserAccount" asp-action="@(Model.IsEdit ? "Details" : "Index")" asp-route-id="@(Model.IsEdit? Model.UserId.ToString() : null)">Cancel</a>

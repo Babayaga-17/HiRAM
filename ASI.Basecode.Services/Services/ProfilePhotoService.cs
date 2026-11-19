@@ -48,12 +48,12 @@ public class ProfilePhotoService : PhotoStorageManager, IProfilePhotoService
                 "Choose a valid JPG or PNG profile picture.");
         }
 
-        using var normalized = Normalize(source);
-        var path = $"profiles/{Guid.NewGuid():N}.png";
+        using var normalized = Normalize(source, format.Value.Extension);
+        var path = $"profiles/{Guid.NewGuid():N}{format.Value.Extension}";
 
         try
         {
-            await UploadAsync(path, normalized, "image/png", cancellationToken);
+            await UploadAsync(path, normalized, format.Value.ContentType, cancellationToken);
         }
         catch
         {
@@ -104,7 +104,7 @@ public class ProfilePhotoService : PhotoStorageManager, IProfilePhotoService
         }
     }
 
-    private static MemoryStream Normalize(Stream content)
+    private static MemoryStream Normalize(Stream content, string extension)
     {
         if (!OperatingSystem.IsWindowsVersionAtLeast(6, 1))
             throw new PlatformNotSupportedException("The current profile image decoder requires Windows.");
@@ -130,7 +130,11 @@ public class ProfilePhotoService : PhotoStorageManager, IProfilePhotoService
             }
 
             var output = new MemoryStream();
-            bitmap.Save(output, ImageFormat.Png);
+            var outputFormat = extension == ".jpg"
+                ? ImageFormat.Jpeg
+                : ImageFormat.Png;
+
+            bitmap.Save(output, outputFormat);
             output.Position = 0;
             return output;
         }
