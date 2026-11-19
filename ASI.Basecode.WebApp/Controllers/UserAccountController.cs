@@ -3,9 +3,7 @@ using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Exceptions;
 
 using ASI.Basecode.Services.Interfaces;
-
-using ASI.Basecode.Services.ServiceModels;
-
+using ASI.Basecode.Services.ServiceModels.UserAccount;
 using ASI.Basecode.WebApp.Authorization;
 
 using ASI.Basecode.WebApp.Models;

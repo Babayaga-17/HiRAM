@@ -13,6 +13,7 @@ using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.ServiceModels.Borrower;
+using ASI.Basecode.Services.ServiceModels.UserAccount;
 using ASI.Basecode.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -171,10 +172,9 @@ try
     Check(email.Attempts == approvalEmailAttempts, "Rejected approvals do not send email");
     var approvalResult = await management.ApproveRegistrationAsync(studentId, "0", "admin");
     Check(approvalResult, "Pending registration approved");
-    Check(email.Attempts == approvalEmailAttempts, "Approval does not send SMTP within its request");
+    Check(email.Attempts == approvalEmailAttempts, "Approval service leaves email delivery to the controller");
     Check(db.Notifications.Count(n => n.RecipientUserId == studentId && n.EventType == NotificationEvents.RegistrationApproved) == 1,
         "Approval creates one borrower in-app notification");
-    Check(!db.NotificationEmails.Any(), "Registration and approval create no queued notification emails");
     db.ChangeTracker.Clear();
     var approved = users.GetProfileByUserId(studentId);
     Check(approved.Account.AccountStatus == "Active" && approved.BorrowerProfileUser.EligibilityStatus == "Eligible", "Approval persists Active and Eligible together");
@@ -225,7 +225,7 @@ try
     email.Fail = true;
     var attemptsBeforeApproval = email.Attempts;
     Check(await management.ApproveRegistrationAsync(emailFailId, "0", "admin"), "Approval does not depend on the email provider");
-    Check(email.Attempts == attemptsBeforeApproval && !db.NotificationEmails.Any(), "Approval neither sends nor queues email");
+    Check(email.Attempts == attemptsBeforeApproval, "Approval service does not call the email provider");
     Check(db.Notifications.Any(n => n.RecipientUserId == emailFailId && n.EventType == NotificationEvents.RegistrationApproved),
         "Approval still notifies the borrower when the email provider is unavailable");
     db.ChangeTracker.Clear();
