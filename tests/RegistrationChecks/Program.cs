@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 using ASI.Basecode.WebApp.Authentication;
 using ASI.Basecode.Resources.Constants;
@@ -84,21 +85,28 @@ if (!OperatingSystem.IsWindowsVersionAtLeast(6, 1)) throw new Exception("Image c
 using var image = new Bitmap(700, 350);
 using var imageStream = new MemoryStream();
 image.Save(imageStream, ImageFormat.Png); imageStream.Position = 0;
-var path = await photoService.UploadProfileAsync(imageStream, "personal-name.png");
+IFormFile Photo(Stream stream, string name) => new FormFile(stream, 0, stream.Length, "photo", name);
+var path = await photoService.UploadProfileAsync(Photo(imageStream, "personal-name.png"));
 Check(path.StartsWith("profiles/") && !path.Contains("personal-name") && http.Paths.Last().Contains("/profile-images/"), "Profile upload uses private profile bucket and random path");
 using (var normalized = Image.FromStream(new MemoryStream(http.LastBytes))) Check(normalized.Width == 512 && normalized.Height == 256, "Photo is decoded and resized with aspect ratio preserved");
 var before = http.Paths.Count;
-await Reject(async () => { await photoService.UploadProfileAsync(new MemoryStream(new byte[] { 1, 2, 3 }), "renamed.png"); }, "Corrupt image rejected before upload");
-await Reject(async () => { await photoService.UploadProfileAsync(new MemoryStream(new byte[2 * 1024 * 1024 + 1]), "oversized.png"); }, "Oversized image rejected");
-await Reject(async () => { await photoService.UploadProfileAsync(new MemoryStream(new byte[1]), "picture.svg"); }, "Unsupported format rejected");
+await Reject(async () => { await photoService.UploadProfileAsync(Photo(new MemoryStream(new byte[] { 1, 2, 3 }), "renamed.png")); }, "Corrupt image rejected before upload");
+await Reject(async () => { await photoService.UploadProfileAsync(Photo(new MemoryStream(new byte[2 * 1024 * 1024 + 1]), "oversized.png")); }, "Oversized image rejected");
+await Reject(async () => { await photoService.UploadProfileAsync(Photo(new MemoryStream(new byte[1]), "picture.svg")); }, "Unsupported format rejected");
 Check(http.Paths.Count == before, "Invalid images never reach storage");
 http.FailUpload = true; imageStream.Position = 0;
-try { await photoService.UploadProfileAsync(imageStream, "picture.png"); throw new Exception("Expected upload failure"); } catch (HttpRequestException) { }
+try { await photoService.UploadProfileAsync(Photo(imageStream, "picture.png")); throw new Exception("Expected upload failure"); } catch (HttpRequestException) { }
 Check(http.Methods.Last() == "DELETE", "Uncertain upload failure triggers cleanup");
 http.FailUpload = false;
 var equipmentPhotos = new EquipmentPhotoService(new HttpClient(http), options);
 await equipmentPhotos.UploadAsync("equipment/test.png", new MemoryStream(new byte[] { 1 }), "image/png");
 Check(http.Paths.Last().Contains("/equipment-images/"), "Equipment photo bucket is preserved");
+
+if (args.Contains("--photos-only"))
+{
+    Console.WriteLine($"All {passed} database-free photo checks passed.");
+    return;
+}
 
 // New disposable database, never the application's configured database.
 var database = "HiRAM_RegistrationChecks_" + Guid.NewGuid().ToString("N");
@@ -116,22 +124,22 @@ try
     var photos = new FakePhoto(); var email = new FakeEmail();
     BorrowerProfileService Service(IUserRepository repository = null) => new(profiles, repository ?? users, accounts, photos, email, NullLogger<BorrowerProfileService>.Instance, new NotificationService(new NotificationRepository(new UnitOfWork(db))));
     BorrowerRegistrationViewModel Form(string code, string type = "Student") => new() { UserCode = code, BorrowerType = type, FirstName = "Mara", LastName = "Reyes", DepartmentId = department.DepartmentId, Program = "BS Information Technology", YearLevel = 2, Email = code + "@example.test", Password = "TestPass123", ConfirmPassword = "TestPass123" };
-    await Service().RegisterAsync(Form("STUDENT-1"), new MemoryStream(new byte[] { 1 }), "test.png");
+    await Service().RegisterAsync(Form("STUDENT-1"), Photo(new MemoryStream(new byte[] { 1 }), "test.png"));
     var saved = db.Users.Include(u => u.Account).Include(u => u.BorrowerProfileUser).Single();
     Check(saved.ProfilePhotoStoragePath == "profiles/test.png" && saved.Account.AccountStatus == "PendingApproval" && saved.BorrowerProfileUser.EligibilityStatus == "Ineligible", "User, pending account, borrower profile and photo path save together");
     Check(saved.Account.RoleName == RoleNames.Borrower && saved.Account.PasswordHash != "TestPass123", "Server assigns Borrower on Account and protects password");
-    await Reject(async () => { await Service().RegisterAsync(Form("STUDENT-1"), null, null); }, "Duplicate school ID rejected");
+    await Reject(async () => { await Service().RegisterAsync(Form("STUDENT-1"), null); }, "Duplicate school ID rejected");
     var invalid = Form("INVALID"); invalid.DepartmentId = int.MaxValue;
-    await Reject(async () => { await Service().RegisterAsync(invalid, null, null); }, "Unknown department rejected");
+    await Reject(async () => { await Service().RegisterAsync(invalid, null); }, "Unknown department rejected");
     var missingProgram = Form("NO-PROGRAM"); missingProgram.Program = null;
-    await Reject(async () => { await Service().RegisterAsync(missingProgram, null, null); }, "Student program required on server");
-    await Service().RegisterAsync(Form("FACULTY-1", "Faculty"), null, null);
+    await Reject(async () => { await Service().RegisterAsync(missingProgram, null); }, "Student program required on server");
+    await Service().RegisterAsync(Form("FACULTY-1", "Faculty"), null);
     var faculty = db.Users.Include(u => u.BorrowerProfileUser).Single(u => u.UserCode == "FACULTY-1");
     Check(faculty.ProfilePhotoStoragePath == null && faculty.BorrowerProfileUser.Program == null && faculty.BorrowerProfileUser.YearLevel == null, "Faculty registers without photo or student-only fields");
-    try { await Service(new FailingUserRepository(users)).RegisterAsync(Form("FAIL-SAVE"), new MemoryStream(new byte[1]), "test.png"); throw new Exception("Expected save failure"); } catch (InvalidOperationException) { }
+    try { await Service(new FailingUserRepository(users)).RegisterAsync(Form("FAIL-SAVE"), Photo(new MemoryStream(new byte[1]), "test.png")); throw new Exception("Expected save failure"); } catch (InvalidOperationException) { }
     Check(photos.Deleted == 1 && !db.Users.Any(u => u.UserCode == "FAIL-SAVE"), "Failed registration save deletes uploaded photo");
     email.Fail = true;
-    var sent = await Service().RegisterAsync(Form("EMAIL-FAIL"), null, null);
+    var sent = await Service().RegisterAsync(Form("EMAIL-FAIL"), null);
     Check(!sent && db.Users.Any(u => u.UserCode == "EMAIL-FAIL"), "Email failure does not undo saved registration");
 
     email.Fail = false;
@@ -178,7 +186,7 @@ try
     Check(db.Notifications.Count(n => n.RecipientUserId == studentId && n.EventType == NotificationEvents.RegistrationApproved) == 1,
         "Repeated approval does not duplicate the in-app notification");
 
-    await Service().RegisterAsync(Form("APPROVAL-ROLLBACK"), null, null);
+    await Service().RegisterAsync(Form("APPROVAL-ROLLBACK"), null);
     var rollbackId = db.Users.Single(u => u.UserCode == "APPROVAL-ROLLBACK").UserId;
     db.ChangeTracker.Clear();
     var attemptsBeforeFailure = email.Attempts;
@@ -195,7 +203,7 @@ try
     blocked.EligibilityStatus = "Suspended"; db.SaveChanges(); db.ChangeTracker.Clear();
     RejectApproval(() => Approve(rollbackId, "0", "admin"), "Approval cannot overwrite suspension");
 
-    await Service().RegisterAsync(Form("CONCURRENT-APPROVAL"), null, null);
+    await Service().RegisterAsync(Form("CONCURRENT-APPROVAL"), null);
     var concurrentId = db.Users.Single(u => u.UserCode == "CONCURRENT-APPROVAL").UserId;
     async Task<bool> ConcurrentApproval() => await Task.Run(() =>
     {
@@ -211,7 +219,7 @@ try
     Check(db.Notifications.Count(n => n.RecipientUserId == concurrentId && n.EventType == NotificationEvents.RegistrationApproved) == 1,
         "Concurrent approval commits one in-app notification");
 
-    await Service().RegisterAsync(Form("APPROVAL-EMAIL-FAIL"), null, null);
+    await Service().RegisterAsync(Form("APPROVAL-EMAIL-FAIL"), null);
     var emailFailId = db.Users.Single(u => u.UserCode == "APPROVAL-EMAIL-FAIL").UserId;
     db.ChangeTracker.Clear();
     email.Fail = true;
@@ -246,7 +254,7 @@ class StorageHandler : HttpMessageHandler
 class FakePhoto : IProfilePhotoService
 {
     public int Deleted;
-    public Task<string> UploadProfileAsync(Stream content, string name, CancellationToken token = default) => Task.FromResult("profiles/test.png");
+    public Task<string> UploadProfileAsync(IFormFile photo, CancellationToken token = default) => Task.FromResult("profiles/test.png");
     public Task<string> CreateReadUrlAsync(string path, CancellationToken token = default) => Task.FromResult("https://example.test/photo");
     public Task DeleteAsync(string path, CancellationToken token = default) { Deleted++; return Task.CompletedTask; }
 }

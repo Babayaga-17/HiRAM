@@ -1,5 +1,6 @@
 ﻿using ASI.Basecode.Data.Models;
 using ASI.Basecode.Services.ServiceModels.Borrower;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -17,7 +18,7 @@ namespace ASI.Basecode.Services.Interfaces
         BorrowerHistoryViewModel GetHistory(int userId);
         (bool ok, string message) Save(BorrowerFormModel m, string actor);
         (bool ok, string message) SetStatus(int userId, bool suspend, string reason, DateTime? until, string actor);
-        Task<bool> RegisterAsync(BorrowerRegistrationViewModel model, Stream photo, string fileName, CancellationToken cancellationToken = default);
+        Task<bool> RegisterAsync(BorrowerRegistrationViewModel model, IFormFile photo, CancellationToken cancellationToken = default);
 
     }
 }

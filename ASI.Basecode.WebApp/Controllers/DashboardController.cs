@@ -44,16 +44,14 @@ public class DashboardController : ControllerBase<DashboardController>
 
                 return View(viewName, model);
             }
-
-            if (User.IsInRole(RoleNames.Custodian))
+            else if (User.IsInRole(RoleNames.Custodian))
             {
                 viewName = RoleNames.Custodian;
                 var model = await _dashboardService.GetCustodianOverviewAsync();
 
                 return View(viewName, model);
             }
-
-            if (User.IsInRole(RoleNames.Admin))
+            else if (User.IsInRole(RoleNames.Admin))
             {
                 viewName = RoleNames.Admin;
                 var model = await _dashboardService.GetAdminOverviewAsync();

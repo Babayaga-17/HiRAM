@@ -1,3 +1,10 @@
+using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
+using ASI.Basecode.Services.ServiceModels;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Drawing;
@@ -7,12 +14,6 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
-using ASI.Basecode.Resources.Constants;
-using ASI.Basecode.Services.Interfaces;
-using ASI.Basecode.Services.Manager;
-using ASI.Basecode.Services.ServiceModels;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace ASI.Basecode.Services.Services;
 
@@ -29,10 +30,11 @@ public class ProfilePhotoService : PhotoStorageManager, IProfilePhotoService
         _logger = logger;
     }
 
-    public async Task<string> UploadProfileAsync(Stream content, string fileName, CancellationToken cancellationToken = default)
+    public async Task<string> UploadProfileAsync(IFormFile photo, CancellationToken cancellationToken = default)
     {
-        ValidateFileExtension(fileName);
+        ValidateFileExtension(photo.FileName);
 
+        using var content = photo.OpenReadStream();
         using var source = new MemoryStream();
         await ReadPhotoAsync(content, source, cancellationToken);
 

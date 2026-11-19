@@ -398,61 +398,33 @@ public class UserAccountController : ControllerBase<UserAccountController>
     [ValidateAntiForgeryToken]
 
     public async Task<IActionResult> Approve(int id, string version)
-
     {
-
         if (!ModelState.IsValid || string.IsNullOrWhiteSpace(version))
-
         {
-
             TempData["UserAccountError"] = "Refresh the account details before approving.";
-
             return RedirectToAction(nameof(Details), new { id });
-
         }
-
         try
-
         {
-
             var found = await _userAccountService.ApproveRegistrationAsync(id, version, UserId);
-
             if (!found)
-
             {
-
                 TempData["UserAccountError"] = "The account no longer exists.";
-
                 return RedirectToAction(nameof(Index));
-
             }
-
             TempData["UserAccountSuccess"] =
-
                 "Registration approved. The account is active and the borrower is eligible.";
-
         }
-
         catch (UserAccountValidationException exception)
-
         {
-
             TempData["UserAccountError"] = string.Join(" ", exception.Errors.Values);
-
         }
-
         catch (Exception exception)
-
         {
-
             _logger.LogError(exception, "Unable to approve registration for user {UserId}.", id);
-
             TempData["UserAccountError"] = "Approval could not be saved. Reload the account details and try again.";
-
         }
-
         return RedirectToAction(nameof(Details), new { id });
-
     }
 
 

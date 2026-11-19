@@ -6,6 +6,7 @@ using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.ServiceModels.Borrower;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -193,7 +194,7 @@ namespace ASI.Basecode.Services.Services
             return (true, suspend ? "Borrower suspended." : "Borrower activated.");
         }
 
-        public async Task<bool> RegisterAsync(BorrowerRegistrationViewModel model, Stream photo, string fileName, CancellationToken cancellationToken = default)
+        public async Task<bool> RegisterAsync(BorrowerRegistrationViewModel model, IFormFile photo, CancellationToken cancellationToken = default)
         {
             model.UserCode = model.UserCode?.Trim(); model.Email = model.Email?.Trim();
             Validator.ValidateObject(model, new ValidationContext(model), true);
@@ -243,8 +244,11 @@ namespace ASI.Basecode.Services.Services
             string path = null;
             try
             {
-                if (photo != null) path = await photos.UploadProfileAsync(photo, fileName, cancellationToken);
+                if (photo != null)
+                    path = await photos.UploadProfileAsync(photo, cancellationToken);
+
                 user.ProfilePhotoStoragePath = path;
+
                 // One SaveChanges inserts this complete related graph in an EF transaction.
                 _notifications.RegistrationSubmitted(user);
                 users.AddUser(user);

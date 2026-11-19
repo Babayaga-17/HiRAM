@@ -307,8 +307,7 @@ namespace ASI.Basecode.WebApp.Controllers
             {
                 try
                 {
-                    using var stream = profilePhoto?.OpenReadStream();
-                    var emailSent = await _borrowerProfileService.RegisterAsync(model, stream, profilePhoto?.FileName, HttpContext.RequestAborted);
+                    var emailSent = await _borrowerProfileService.RegisterAsync(model, profilePhoto, HttpContext.RequestAborted);
 
                     TempData["RegistrationSubmitted"] = true;
 
