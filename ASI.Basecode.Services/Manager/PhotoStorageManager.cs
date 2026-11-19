@@ -1,5 +1,6 @@
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
@@ -202,6 +203,44 @@ public abstract class PhotoStorageManager
             throw new HttpRequestException(
                 $"Unable to {operation} photo. " +
                 $"Storage returned HTTP {(int)response.StatusCode}.");
+        }
+    }
+
+    protected static (string Extension, string ContentType)? GetPhotoFormat(Stream content)
+    {
+        var originalPosition = content.Position;
+
+        try
+        {
+            using var reader = new BinaryReader(content, System.Text.Encoding.UTF8, leaveOpen: true);
+
+            var bytes = reader.ReadBytes(12);
+
+            if (bytes.Length >= 3 &&
+                bytes[0] == 0xFF &&
+                bytes[1] == 0xD8 &&
+                bytes[2] == 0xFF)
+            {
+                return (".jpg", "image/jpeg");
+            }
+
+            if (bytes.AsSpan().StartsWith(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }))
+            {
+                return (".png", "image/png");
+            }
+
+            if (bytes.Length == 12 &&
+                bytes.AsSpan(0, 4).SequenceEqual("RIFF"u8) &&
+                bytes.AsSpan(8, 4).SequenceEqual("WEBP"u8))
+            {
+                return (".webp", "image/webp");
+            }
+
+            return null;
+        }
+        finally
+        {
+            content.Position = originalPosition;
         }
     }
 }
