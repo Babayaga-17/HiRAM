@@ -498,7 +498,7 @@
 
                                         <button type="button" class="bp-row-action"
                                                 data-id="@b.UserId" data-code="@b.UserCode" data-name="@b.FullName" data-phone="@b.ContactNumber"
-                                                data-dept="@b.DepartmentId" data-program="@b.Program" data-year="@b.YearLevel"
+                                                data-dept="@b.DepartmentId" data-program="@b.Program" data-year="@b.YearLevel" data-borrower-type="@b.BorrowerType"
                                                 data-status="@b.EligibilityStatus" data-reason="@b.SuspensionReason"
                                                 data-until="@(b.SuspendedUntil?.ToString("yyyy-MM-dd"))"
                                                 onclick="bpEdit(this)">
@@ -558,7 +558,7 @@
     <div class="bp-dialog">
         <h3>Edit Borrower</h3>
         <p class="bp-sub">Name, contact number and user code are read-only. You can update the department, program, year level and eligibility status.</p>
-        <form method="post" asp-action="Save">
+        <form method="post" asp-action="Save" data-academic-fields>
             <input type="hidden" name="UserId" id="f_id" value="0" />
             <input type="hidden" name="search" value="@Model.Search" />
             <input type="hidden" name="status" value="@Model.Status" />
@@ -569,7 +569,7 @@
                 <div class="full"><label class="bp-label">Full name</label><input class="bp-input" id="f_name" readonly tabindex="-1" /></div>
                 <div class="full">
                     <label class="bp-label">Department *</label>
-                    <select class="bp-select" name="DepartmentId" id="f_dept" required>
+                    <select class="bp-select" name="DepartmentId" id="f_dept" required data-academic-department>
                         <option value="">Select department</option>
                         @foreach (var d in Model.Departments)
                         {
@@ -631,6 +631,7 @@
     </div>
 </div>
 
+<script src="~/js/academic-options.js" asp-append-version="true"></script>
 <script>
     (function () {
         const byId = id => document.getElementById(id);
@@ -667,7 +668,9 @@
             set('f_name', d.name);
             set('f_phone', d.phone || '');
             set('f_dept', d.dept || '');
-            set('f_program', d.program || '');
+            byId('f_program').dispatchEvent(new CustomEvent('academic:load', {
+                detail: { program: d.program || '', borrowerType: d.borrowerType || '' }
+            }));
             set('f_year', d.year || '');
             set('f_status', d.status === 'Suspended' ? 'Suspended' : 'Eligible');
             set('f_until', d.until || '');

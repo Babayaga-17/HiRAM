@@ -8,8 +8,7 @@
     ViewData["TopbarPage"] = "Reservations";
 
     var previous = ViewData["ReturnInput"] as ReturnReservationRequest;
-    var conditions = EquipmentFormViewModel.Conditions
-        .Where(condition => condition != EquipmentConditions.Lost);
+    var conditions = EquipmentFormViewModel.Conditions;
 
     var outstanding = Model.Items.Where(item => !item.IsReturned).ToList();
 }

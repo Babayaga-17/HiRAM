@@ -80,6 +80,7 @@ namespace ASI.Basecode.Services.Services
                                                        .Where(x => !string.IsNullOrWhiteSpace(x))),
                            ContactNumber = b.User.ContactNumber,
                            DepartmentId = b.DepartmentId,
+                           BorrowerType = b.BorrowerType,
                            DepartmentName = b.Department?.DepartmentName,
                            Program = b.Program,
                            YearLevel = b.YearLevel,
@@ -129,15 +130,22 @@ namespace ASI.Basecode.Services.Services
         public (bool ok, string message) Save(BorrowerFormModel m, string actor)
         {
             if (m.UserId == 0) return (false, "Select an existing borrower to edit.");
-            if (m.DepartmentId == 0) return (false, "Department is required.");
+            var department = GetDepartments().FirstOrDefault(d => d.DepartmentId == m.DepartmentId);
+            if (department == null) return (false, "Select an active department.");
 
             var profile = _repository.GetForUpdate(m.UserId);
             if (profile == null) return (false, "Borrower not found.");
 
+            var program = m.Program?.Trim();
+            if (profile.BorrowerType != "Faculty"
+                && !ProgramOptions.IsProgramAllowed(department.DepartmentCode, program))
+                return (false, "Select a program belonging to the department.");
+
+
             var now = DateTime.Now;
-            profile.DepartmentId = m.DepartmentId;
-            profile.Program = m.Program?.Trim();
-            profile.YearLevel = m.YearLevel;
+            profile.DepartmentId = department.DepartmentId;
+            profile.Program = profile.BorrowerType == "Faculty" ? null : program;
+            profile.YearLevel = profile.BorrowerType == "Faculty" ? null : m.YearLevel;
             profile.EligibilityStatus = m.EligibilityStatus == EligibilityStatuses.Suspended ? EligibilityStatuses.Suspended : EligibilityStatuses.Eligible;
 
             if (profile.EligibilityStatus == EligibilityStatuses.Suspended)
@@ -196,7 +204,11 @@ namespace ASI.Basecode.Services.Services
             if (accounts.EmailExists(model.Email))
                 throw new ValidationException("That email is already registered.");
 
-            if (!GetDepartments().Any(d => d.DepartmentId == model.DepartmentId)) throw new ValidationException("Select an active department.");
+            var department = GetDepartments().FirstOrDefault(d => d.DepartmentId == model.DepartmentId);
+            if (department == null) throw new ValidationException("Select an active department.");
+            model.Program = model.Program?.Trim();
+            if (model.BorrowerType == "Student" && !ProgramOptions.IsProgramAllowed(department.DepartmentCode, model.Program))
+                throw new ValidationException("Select a program belonging to the department.");
             var now = DateTime.Now;
             var user = new User
             {
@@ -219,7 +231,7 @@ namespace ASI.Basecode.Services.Services
                 },
                 BorrowerProfileUser = new BorrowerProfile
                 {
-                    DepartmentId = model.DepartmentId.Value,
+                    DepartmentId = department.DepartmentId,
                     BorrowerType = model.BorrowerType,
                     Program = model.BorrowerType == "Student" ? model.Program.Trim() : null,
                     YearLevel = model.BorrowerType == "Student" ? model.YearLevel : null,

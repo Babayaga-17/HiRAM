@@ -632,30 +632,13 @@ public class UserAccountController : ControllerBase<UserAccountController>
     private IActionResult FormView(UserAccountFormViewModel model)
 
     {
-
-        try
-
-        {
-
-            // Active roles, plus the user's current role even if it was deactivated later.
-
-            ViewData["Departments"] = _userAccountService.GetActiveDepartments();
-
-        }
-
+        try { ViewData["Departments"] = _userAccountService.GetActiveDepartments(); }
         catch (Exception exception)
-
         {
-
             _logger.LogError(exception, "Unable to load departments.");
-
-            ViewData["Departments"] = new List<DepartmentOption>();
-
+            ViewData["Departments"] = new List<ASI.Basecode.Data.Models.Department>();
             ModelState.AddModelError(string.Empty, "Unable to load departments. Please try again.");
-
         }
-
-
 
         ViewData["IsSelf"] = model.IsEdit && model.UserId == CurrentUserId;
 
