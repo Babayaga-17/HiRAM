@@ -191,8 +191,8 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _userRepository.AddUser(user); // inserts Users + Accounts together
-                AddAudit(currentUserId, createdBy, ipAddress, UserAccountAuditActions.Created, user.UserId,
-                    $"Created {user.UserCode} ({user.Account.Email}) with role {role} and status {user.Account.AccountStatus}.");
+                //AddAudit(currentUserId, createdBy, ipAddress, UserAccountAuditActions.Created, user.UserId,
+                //    $"Created {user.UserCode} ({user.Account.Email}) with role {role} and status {user.Account.AccountStatus}.");
             });
 
             return user.UserId;
@@ -313,9 +313,9 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account); // also saves the tracked User changes
-                AddAudit(currentUserId, updatedBy, ipAddress,
-                    roleChanged ? UserAccountAuditActions.RoleChanged : UserAccountAuditActions.Updated,
-                    account.UserId, $"Updated {model.UserCode}: {string.Join("; ", changes)}");
+                //AddAudit(currentUserId, updatedBy, ipAddress,
+                //    roleChanged ? UserAccountAuditActions.RoleChanged : UserAccountAuditActions.Updated,
+                //    account.UserId, $"Updated {model.UserCode}: {string.Join("; ", changes)}");
             });
 
             return true;
@@ -367,9 +367,9 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account);
-                AddAudit(currentUserId, updatedBy, ipAddress,
-                    activate ? UserAccountAuditActions.Activated : UserAccountAuditActions.Deactivated,
-                    userId, $"Status of {account.User.UserCode}: {previousStatus} -> {newStatus}.");
+                //AddAudit(currentUserId, updatedBy, ipAddress,
+                //    activate ? UserAccountAuditActions.Activated : UserAccountAuditActions.Deactivated,
+                //    userId, $"Status of {account.User.UserCode}: {previousStatus} -> {newStatus}.");
             });
 
             return true;
@@ -424,8 +424,8 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account);
-                AddAudit(currentUserId, updatedBy, ipAddress, UserAccountAuditActions.AccessReset, userId,
-                    $"Temporary password issued and lockout cleared for {account.User.UserCode}.");
+                //AddAudit(currentUserId, updatedBy, ipAddress, UserAccountAuditActions.AccessReset, userId,
+                //    $"Temporary password issued and lockout cleared for {account.User.UserCode}.");
             });
 
             return temporaryPassword;
@@ -553,21 +553,6 @@ namespace ASI.Basecode.Services.Services
             }
         }
 
-        private void AddAudit(int currentUserId, string createdBy, string ipAddress, string action, int targetUserId, string details)
-        {
-            //_auditLogRepository.AddAuditLog(new AuditLog
-            //{
-            //    UserId = currentUserId > 0 ? currentUserId : null,
-            //    Action = action,
-            //    EntityName = "Accounts",
-            //    EntityId = targetUserId.ToString(CultureInfo.InvariantCulture),
-            //    Details = details,
-            //    IpAddress = ipAddress != null && ipAddress.Length > 45 ? ipAddress.Substring(0, 45) : ipAddress,
-            //    CreatedBy = createdBy ?? Const.System,
-            //    CreatedAt = DateTime.Now
-            //});
-        }
-
         /// <summary>
         /// Runs repository saves in one transaction and turns unique-key violations
         /// (e.g. a double-submitted form) into field errors.
@@ -621,6 +606,7 @@ namespace ASI.Basecode.Services.Services
             const string lower = "abcdefghijkmnopqrstuvwxyz";
             const string digits = "23456789";
             const string symbols = "@#$%&*?";
+
             var all = upper + lower + digits + symbols;
 
             var chars = new List<char>
