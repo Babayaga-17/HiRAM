@@ -1,3 +1,4 @@
+@using ASI.Basecode.Services.ServiceModels.Notification
 @model NotificationMenuViewModel
 <details class="notification-menu" name="topbar-menu">
     <summary class="notification-toggle" aria-label="@(Model.UnreadCount > 0 && Model.IsAvailable ? $"Notifications, {Model.UnreadCount} unread" : "Notifications")">

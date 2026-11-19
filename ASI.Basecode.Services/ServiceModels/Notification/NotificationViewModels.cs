@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ASI.Basecode.Services.ServiceModels;
+namespace ASI.Basecode.Services.ServiceModels.Notification;
 
 // Read-only notification presentation contracts; recipient filtering is enforced in the repository.
 public class NotificationItemViewModel

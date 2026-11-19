@@ -5,7 +5,7 @@ using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
-using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.UserAccount;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -28,7 +28,6 @@ namespace ASI.Basecode.Services.Services
     ///  - Administrators cannot change their own role or deactivate their own account.
     ///  - The last active Admin account cannot be demoted or deactivated.
     ///  - Edits and status changes are rejected if the account changed after the form was loaded.
-    ///  - Each change is written to AuditLogs in the same transaction.
     /// </summary>
     public class UserAccountService : IUserAccountService
     {
@@ -36,7 +35,6 @@ namespace ASI.Basecode.Services.Services
         private readonly IUserRepository _userRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly IBorrowerProfileRepository _borrowerProfileRepository;
-        //private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationService _notifications;
 
@@ -44,14 +42,12 @@ namespace ASI.Basecode.Services.Services
             IUserRepository userRepository,
             IAccountRepository accountRepository,
             IBorrowerProfileRepository borrowerProfileRepository,
-            //IAuditLogRepository auditLogRepository,
             IUnitOfWork unitOfWork,
             INotificationService notifications)
         {
             _userRepository = userRepository;
             _accountRepository = accountRepository;
             _borrowerProfileRepository = borrowerProfileRepository;
-            //_auditLogRepository = auditLogRepository;
             _unitOfWork = unitOfWork;
             _notifications = notifications;
         }
@@ -191,8 +187,6 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _userRepository.AddUser(user); // inserts Users + Accounts together
-                //AddAudit(currentUserId, createdBy, ipAddress, UserAccountAuditActions.Created, user.UserId,
-                //    $"Created {user.UserCode} ({user.Account.Email}) with role {role} and status {user.Account.AccountStatus}.");
             });
 
             return user.UserId;
@@ -313,9 +307,6 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account); // also saves the tracked User changes
-                //AddAudit(currentUserId, updatedBy, ipAddress,
-                //    roleChanged ? UserAccountAuditActions.RoleChanged : UserAccountAuditActions.Updated,
-                //    account.UserId, $"Updated {model.UserCode}: {string.Join("; ", changes)}");
             });
 
             return true;
@@ -367,9 +358,6 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account);
-                //AddAudit(currentUserId, updatedBy, ipAddress,
-                //    activate ? UserAccountAuditActions.Activated : UserAccountAuditActions.Deactivated,
-                //    userId, $"Status of {account.User.UserCode}: {previousStatus} -> {newStatus}.");
             });
 
             return true;
@@ -424,8 +412,6 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account);
-                //AddAudit(currentUserId, updatedBy, ipAddress, UserAccountAuditActions.AccessReset, userId,
-                //    $"Temporary password issued and lockout cleared for {account.User.UserCode}.");
             });
 
             return temporaryPassword;

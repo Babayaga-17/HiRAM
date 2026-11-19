@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace ASI.Basecode.Services.ServiceModels
+namespace ASI.Basecode.Services.ServiceModels.Reports
 {
     public class BorrowingReportFilter
     {

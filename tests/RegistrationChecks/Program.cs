@@ -13,6 +13,7 @@ using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.ServiceModels.Borrower;
+using ASI.Basecode.Services.ServiceModels.UserAccount;
 using ASI.Basecode.Services.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -89,6 +90,22 @@ IFormFile Photo(Stream stream, string name) => new FormFile(stream, 0, stream.Le
 var path = await photoService.UploadProfileAsync(Photo(imageStream, "personal-name.png"));
 Check(path.StartsWith("profiles/") && !path.Contains("personal-name") && http.Paths.Last().Contains("/profile-images/"), "Profile upload uses private profile bucket and random path");
 using (var normalized = Image.FromStream(new MemoryStream(http.LastBytes))) Check(normalized.Width == 512 && normalized.Height == 256, "Photo is decoded and resized with aspect ratio preserved");
+using (var pngContent = new MemoryStream(http.LastBytes))
+using (var png = Image.FromStream(pngContent))
+    Check(path.EndsWith(".png") && http.LastContentType == "image/png" && png.RawFormat.Guid == ImageFormat.Png.Guid,
+        "PNG profile path, content type and encoded bytes agree");
+
+using var jpegStream = new MemoryStream();
+image.Save(jpegStream, ImageFormat.Jpeg);
+jpegStream.Position = 0;
+var jpegPath = await photoService.UploadProfileAsync(Photo(jpegStream, "portrait.jpeg"));
+using (var jpegContent = new MemoryStream(http.LastBytes))
+using (var jpeg = Image.FromStream(jpegContent))
+{
+    Check(jpegPath.EndsWith(".jpg") && http.LastContentType == "image/jpeg" && jpeg.RawFormat.Guid == ImageFormat.Jpeg.Guid,
+        "JPEG profile remains JPEG with matching path and content type");
+    Check(jpeg.Width == 512 && jpeg.Height == 256, "JPEG resizing preserves aspect ratio");
+}
 var before = http.Paths.Count;
 await Reject(async () => { await photoService.UploadProfileAsync(Photo(new MemoryStream(new byte[] { 1, 2, 3 }), "renamed.png")); }, "Corrupt image rejected before upload");
 await Reject(async () => { await photoService.UploadProfileAsync(Photo(new MemoryStream(new byte[2 * 1024 * 1024 + 1]), "oversized.png")); }, "Oversized image rejected");
@@ -171,10 +188,9 @@ try
     Check(email.Attempts == approvalEmailAttempts, "Rejected approvals do not send email");
     var approvalResult = await management.ApproveRegistrationAsync(studentId, "0", "admin");
     Check(approvalResult, "Pending registration approved");
-    Check(email.Attempts == approvalEmailAttempts, "Approval does not send SMTP within its request");
+    Check(email.Attempts == approvalEmailAttempts, "Approval service leaves email delivery to the controller");
     Check(db.Notifications.Count(n => n.RecipientUserId == studentId && n.EventType == NotificationEvents.RegistrationApproved) == 1,
         "Approval creates one borrower in-app notification");
-    Check(!db.NotificationEmails.Any(), "Registration and approval create no queued notification emails");
     db.ChangeTracker.Clear();
     var approved = users.GetProfileByUserId(studentId);
     Check(approved.Account.AccountStatus == "Active" && approved.BorrowerProfileUser.EligibilityStatus == "Eligible", "Approval persists Active and Eligible together");
@@ -225,7 +241,7 @@ try
     email.Fail = true;
     var attemptsBeforeApproval = email.Attempts;
     Check(await management.ApproveRegistrationAsync(emailFailId, "0", "admin"), "Approval does not depend on the email provider");
-    Check(email.Attempts == attemptsBeforeApproval && !db.NotificationEmails.Any(), "Approval neither sends nor queues email");
+    Check(email.Attempts == attemptsBeforeApproval, "Approval service does not call the email provider");
     Check(db.Notifications.Any(n => n.RecipientUserId == emailFailId && n.EventType == NotificationEvents.RegistrationApproved),
         "Approval still notifies the borrower when the email provider is unavailable");
     db.ChangeTracker.Clear();
@@ -243,10 +259,12 @@ class StorageHandler : HttpMessageHandler
 {
     public List<string> Paths = new(), Methods = new();
     public byte[] LastBytes;
+    public string LastContentType;
     public bool FailUpload;
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
     {
         Paths.Add(request.RequestUri.AbsolutePath); Methods.Add(request.Method.Method);
+        LastContentType = request.Content?.Headers.ContentType?.MediaType;
         LastBytes = request.Content == null ? Array.Empty<byte>() : await request.Content.ReadAsByteArrayAsync(token);
         return new HttpResponseMessage(FailUpload && request.Method == HttpMethod.Post ? HttpStatusCode.InternalServerError : HttpStatusCode.OK) { Content = new StringContent("{}") };
     }

@@ -32,8 +32,6 @@ public partial class HiramDbContext : DbContext
 
     public virtual DbSet<Notification> Notifications { get; set; }
 
-    public virtual DbSet<NotificationEmail> NotificationEmails { get; set; }
-
     public virtual DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
     public virtual DbSet<Reservation> Reservations { get; set; }
@@ -454,53 +452,6 @@ public partial class HiramDbContext : DbContext
             entity.HasOne(d => d.Reservation).WithMany(p => p.Notifications)
                 .HasForeignKey(d => d.ReservationId)
                 .HasConstraintName("FK_Notifications_Reservation");
-        });
-
-        modelBuilder.Entity<NotificationEmail>(entity =>
-        {
-            entity.HasIndex(e => new { e.DeliveryStatus, e.NextAttemptAt, e.NotificationEmailId }, "IX_NotificationEmails_Dispatch");
-
-            entity.HasIndex(e => new { e.DeliveryStatus, e.LockedUntil }, "IX_NotificationEmails_Lease");
-
-            entity.HasIndex(e => e.NotificationId, "UQ_NotificationEmails_Notification").IsUnique();
-
-            entity.Property(e => e.NotificationEmailId).HasColumnName("notification_email_id");
-            entity.Property(e => e.AttemptCount).HasColumnName("attempt_count");
-            entity.Property(e => e.Body)
-                .IsRequired()
-                .HasMaxLength(4000)
-                .HasColumnName("body");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("(sysutcdatetime())")
-                .HasColumnName("created_at");
-            entity.Property(e => e.DeliveryStatus)
-                .IsRequired()
-                .HasMaxLength(20)
-                .HasDefaultValue("Pending")
-                .HasColumnName("delivery_status");
-            entity.Property(e => e.LastError)
-                .HasMaxLength(500)
-                .HasColumnName("last_error");
-            entity.Property(e => e.LeaseToken).HasColumnName("lease_token");
-            entity.Property(e => e.LockedUntil).HasColumnName("locked_until");
-            entity.Property(e => e.NextAttemptAt)
-                .HasDefaultValueSql("(sysutcdatetime())")
-                .HasColumnName("next_attempt_at");
-            entity.Property(e => e.NotificationId).HasColumnName("notification_id");
-            entity.Property(e => e.RecipientEmail)
-                .IsRequired()
-                .HasMaxLength(255)
-                .HasColumnName("recipient_email");
-            entity.Property(e => e.SentAt).HasColumnName("sent_at");
-            entity.Property(e => e.Subject)
-                .IsRequired()
-                .HasMaxLength(200)
-                .HasColumnName("subject");
-
-            entity.HasOne(d => d.Notification).WithOne(p => p.NotificationEmail)
-                .HasForeignKey<NotificationEmail>(d => d.NotificationId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_NotificationEmails_Notification");
         });
 
         modelBuilder.Entity<PasswordResetToken>(entity =>

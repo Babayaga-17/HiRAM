@@ -40,11 +40,11 @@ try
     var borrower = db.Users.Include(u => u.Account).Single(u => u.UserCode == "BORROWER");
     Check(db.Notifications.Count(n => n.EventType == NotificationEvents.RegistrationSubmitted) == 1, "New registration notifies only active admins");
     Check(db.Notifications.Any(n => n.RecipientUserId == admin.UserId && n.RelatedUserId == borrower.UserId), "New user's generated ID is linked atomically");
-    Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Registration creates no notification email; direct receipt remains separate");
+    Check(mail.Attempts == 1, "Registration sends one direct receipt email");
     var management = new UserAccountService(users, accounts, new BorrowerProfileRepository(unit), unit, notifications);
     Check(await management.ApproveRegistrationAsync(borrower.UserId, "0", "admin"), "Pending registration approved");
     Check(db.Notifications.Count(n => n.EventType == NotificationEvents.RegistrationApproved && n.RecipientUserId == borrower.UserId) == 1, "Approval creates borrower notification");
-    Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Approval creates no queued or direct email");
+    Check(mail.Attempts == 1, "Approval service leaves email delivery to the controller");
 
     var equipment = new Equipment { EquipmentCode = "TEST-EQUIP", EquipmentName = "Test projector", IsActive = true, ConditionStatus = "Good", CreatedBy = "test" };
     db.Add(equipment); db.SaveChanges();
@@ -68,7 +68,7 @@ try
     var cancelled = db.Reservations.Single(r => r.ReservationNumber == cancelledNumber);
     Check(submissions.Cancel(cancelled.ReservationId, new ReservationCancelFormModel { RowVersion = Convert.ToBase64String(cancelled.RowVersion), Reason = "Schedule changed" }, borrower.UserId) == null, "Cancellation succeeds");
     Check(db.Notifications.Any(n => n.EventType == NotificationEvents.ReservationCancelled && n.RecipientUserId == custodian.UserId), "Cancellation notifies custodian");
-    Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Reservation events create no queued or direct email");
+    Check(mail.Attempts == 1, "Notification service does not send reservation emails");
 
     var menu = await notifications.GetMenuAsync(borrower.UserId, token);
     var own = db.Notifications.AsNoTracking().First(n => n.RecipientUserId == borrower.UserId);
@@ -94,7 +94,6 @@ try
     finally { db.ChangeTracker.Clear(); db.Database.ExecuteSqlRaw("DROP TRIGGER dbo.NotificationCheckFailure;"); }
     Check(!db.Users.Any(u => u.UserCode == "ROLLBACK"), "Notification failure rolls back registration graph");
 
-    Check(!db.NotificationEmails.Any(), "In-app notification workflows leave the legacy email queue empty");
     Console.WriteLine($"All {passed} notification checks passed.");
 }
 finally

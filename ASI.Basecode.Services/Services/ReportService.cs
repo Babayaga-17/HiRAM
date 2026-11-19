@@ -2,12 +2,12 @@
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Services.Interfaces;
-using ASI.Basecode.Services.ServiceModels;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using ASI.Basecode.Services.ServiceModels.Reports;
 
 namespace ASI.Basecode.Services.Services
 {

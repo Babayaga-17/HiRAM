@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 using ASI.Basecode.Data.Models;
-using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Maintenance;
 namespace ASI.Basecode.Services.Interfaces;
 public interface IMaintenanceService
 {
