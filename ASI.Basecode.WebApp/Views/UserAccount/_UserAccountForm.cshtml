@@ -86,7 +86,7 @@
             }
             else
             {
-                <select asp-for="RoleName" required>
+                <select asp-for="RoleName" id="RoleName" required onchange="document.getElementById('borrowerDetails').style.display = (this.value === '@RoleNames.Borrower') ? 'block' : 'none';">
                     <option value="">Select a role</option>
                     @foreach (var role in roles)
                     {
@@ -147,10 +147,7 @@
         }
     </div>
 
-    <fieldset id="borrowerDetails"
-              class="borrower-details"
-              hidden="@(!showBorrower)"
-              disabled="@(!showBorrower)">  
+    <div id="borrowerDetails" class="borrower-details" style="@(showBorrower ? "" : "display: none;")">
         <div class="form-divider"></div>
 
         <div class="form-card-header">
@@ -224,7 +221,7 @@
                 <span asp-validation-for="BorrowerType"></span>
             </div>
         </div>
-    </fieldset>
+    </div>
 
     <div class="form-actions">
         <a class="button button-secondary" asp-controller="UserAccount" asp-action="@(Model.IsEdit ? "Details" : "Index")" asp-route-id="@(Model.IsEdit? Model.UserId.ToString() : null)">Cancel</a>
