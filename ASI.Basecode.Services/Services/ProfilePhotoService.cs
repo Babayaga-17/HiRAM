@@ -9,12 +9,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 namespace ASI.Basecode.Services.Services;
 
-public class ProfilePhotoService : SupabasePhotoStorage, IProfilePhotoService
+public class ProfilePhotoService : PhotoStorageManager, IProfilePhotoService
 {
     private readonly ILogger<ProfilePhotoService> logger;
     public ProfilePhotoService(HttpClient client, IOptions<SupabaseStorageOptions> options, ILogger<ProfilePhotoService> logger)

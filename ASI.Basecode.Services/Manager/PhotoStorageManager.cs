@@ -12,15 +12,15 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace ASI.Basecode.Services.Services;
-public abstract class SupabasePhotoStorage
+namespace ASI.Basecode.Services.Manager;
+public abstract class PhotoStorageManager
 {
     private readonly HttpClient _httpClient;
     private readonly SupabaseStorageOptions _options;
     private readonly Uri _storageUrl;
     private readonly string _bucket;
 
-    protected SupabasePhotoStorage(HttpClient httpClient, IOptions<SupabaseStorageOptions> options, string bucket)
+    protected PhotoStorageManager(HttpClient httpClient, IOptions<SupabaseStorageOptions> options, string bucket)
     {
         _httpClient = httpClient;
         _options = options.Value;
