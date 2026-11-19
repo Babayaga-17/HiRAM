@@ -160,6 +160,12 @@
             margin-bottom: 16px;
         }
 
+        .rd-inspection-item + .rd-inspection-item {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+        }
+
     </style>
 }
 
@@ -299,47 +305,49 @@
 
         @foreach (var item in Model.Items.Where(item => item.IsReturned))
         {
-            <h3>@item.EquipmentName</h3>
-            <p class="pending-muted">@item.EquipmentCode</p>
+            <div class="rd-inspection-item">
+                <h3>@item.EquipmentName</h3>
+                <p class="pending-muted">@item.EquipmentCode</p>
 
-            <dl class="details-list">
-                <div>
-                    <dt>Returned</dt>
-                    <dd>
-                        @(item.ReturnedAt.HasValue? item.ReturnedAt.Value.ToString("MMM d, yyyy h:mm tt") : "—")
-                    </dd>
-                </div>
-                <div>
-                    <dt>Condition at return</dt>
-                    <dd>
-                        @(string.IsNullOrWhiteSpace(item.ConditionAtReturn) ? "—" : item.ConditionAtReturn)
-                    </dd>
-                </div>
-
-                @if (!string.IsNullOrWhiteSpace(item.DamageNotes))
-                {
+                <dl class="details-list">
                     <div>
-                        <dt>Damage notes</dt>
-                        <dd>@item.DamageNotes</dd>
+                        <dt>Returned</dt>
+                        <dd>
+                            @(item.ReturnedAt.HasValue? item.ReturnedAt.Value.ToString("MMM d, yyyy h:mm tt") : "—")
+                        </dd>
                     </div>
-                }
-
-                @if (!string.IsNullOrWhiteSpace(item.MissingPartsNotes))
-                {
                     <div>
-                        <dt>Missing parts</dt>
-                        <dd>@item.MissingPartsNotes</dd>
+                        <dt>Condition at return</dt>
+                        <dd>
+                            @(string.IsNullOrWhiteSpace(item.ConditionAtReturn) ? "—" : item.ConditionAtReturn)
+                        </dd>
                     </div>
-                }
 
-                @if (!string.IsNullOrWhiteSpace(item.ReturnRemarks))
-                {
-                    <div>
-                        <dt>Return remarks</dt>
-                        <dd>@item.ReturnRemarks</dd>
-                    </div>
-                }
-            </dl>
+                    @if (!string.IsNullOrWhiteSpace(item.DamageNotes))
+                    {
+                        <div>
+                            <dt>Damage notes</dt>
+                            <dd>@item.DamageNotes</dd>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(item.MissingPartsNotes))
+                    {
+                        <div>
+                            <dt>Missing parts</dt>
+                            <dd>@item.MissingPartsNotes</dd>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(item.ReturnRemarks))
+                    {
+                        <div>
+                            <dt>Return remarks</dt>
+                            <dd>@item.ReturnRemarks</dd>
+                        </div>
+                    }
+                </dl>
+            </div>
         }
     </section>
 }
