@@ -22,6 +22,11 @@
         <strong>@Model</strong>
     </p>
 
+    @if (TempData["ReservationEmailWarning"] is string emailWarning)
+    {
+        <p role="status">@emailWarning</p>
+    }
+
     <a class="button button-primary"
        asp-controller="Reservation"
        asp-action="MyReservation">

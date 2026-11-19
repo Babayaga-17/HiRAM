@@ -196,6 +196,10 @@
 {
     <div class="rd-alert error" role="alert">@errorMessage</div>
 }
+@if (TempData["ReservationEmailWarning"] is string emailWarning)
+{
+    <div class="rd-alert error" role="status">@emailWarning</div>
+}
 
 <div class="rd-grid">
     <!-- Reservation: wider, on the left -->
