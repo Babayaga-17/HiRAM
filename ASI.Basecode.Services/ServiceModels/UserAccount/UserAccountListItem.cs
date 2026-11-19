@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 
-namespace ASI.Basecode.Services.ServiceModels
+namespace ASI.Basecode.Services.ServiceModels.UserAccount
 {
     /// <summary>
     /// A user with their account, used by the list, details and edit screens.

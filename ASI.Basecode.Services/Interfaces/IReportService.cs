@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Services.ServiceModels;
+﻿using ASI.Basecode.Services.ServiceModels.Reports;
 
 namespace ASI.Basecode.Services.Interfaces
 {

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Services.ServiceModels.Equipment;
-namespace ASI.Basecode.Services.ServiceModels;
+namespace ASI.Basecode.Services.ServiceModels.Maintenance;
 
 // Form options and a paged maintenance list.
 public class MaintenancePageViewModel

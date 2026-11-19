@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ASI.Basecode.Services.ServiceModels
+namespace ASI.Basecode.Services.ServiceModels.Reservation
 {
     public class PendingReservationListItem
     {

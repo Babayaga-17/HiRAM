@@ -1,4 +1,5 @@
 ﻿using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Services.ServiceModels.Reservation;
 using System;
 using System.Collections.Generic;
 using System.Linq;

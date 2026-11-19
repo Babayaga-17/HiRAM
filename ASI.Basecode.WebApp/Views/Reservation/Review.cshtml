@@ -16,7 +16,10 @@
         _ => "rs-neutral"
     };
     var conditions = EquipmentConditions.Values;
-    var backStatus = Model.Status is ReservationStatuses.Pending or ReservationStatuses.Approved or ReservationStatuses.Borrowed or ReservationStatuses.Returned or ReservationStatuses.Rejected ? Model.Status : ReservationFilters.All;
+    var showReturnStatus = Model.BorrowedAt.HasValue || Model.Status is ReservationStatuses.Borrowed or ReservationStatuses.Returned;
+    var backStatus = Model.Status is ReservationStatuses.Pending or ReservationStatuses.Approved or ReservationStatuses.Borrowed or ReservationStatuses.Returned or ReservationStatuses.Rejected
+        ? Model.Status
+        : ReservationFilters.All;
 }
 
 @section Styles {
@@ -261,6 +264,10 @@
                         {
                             <th scope="col">Condition at release</th>
                         }
+                        @if (showReturnStatus)
+                        {
+                            <th scope="col">Return status</th>
+                        }
                     </tr>
                 </thead>
                 <tbody>
@@ -285,6 +292,19 @@
                                     @if (!string.IsNullOrWhiteSpace(item.BorrowingRemarks))
                                     {
                                         <div class="pending-muted">@item.BorrowingRemarks</div>
+                                    }
+                                </td>
+                            }
+                            @if (showReturnStatus)
+                            {
+                                <td>
+                                    @(item.IsReturned ? "Returned" : "Awaiting return")
+
+                                    @if (item.IsReturned && item.ReturnedAt.HasValue)
+                                    {
+                                        <div class="pending-muted">
+                                            @item.ReturnedAt.Value.ToString("MMM d, yyyy h:mm tt")
+                                        </div>
                                     }
                                 </td>
                             }
