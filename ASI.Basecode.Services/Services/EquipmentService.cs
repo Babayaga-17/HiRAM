@@ -424,14 +424,22 @@ namespace ASI.Basecode.Services.Services
             var maintenance = _equipmentRepository.GetEquipments()
                 .Where(item => item.EquipmentId == equipmentId)
                 .SelectMany(item => item.MaintenanceRecords)
-                .Where(record => (record.Status == MaintenanceStatuses.Scheduled || record.Status == MaintenanceStatuses.InProgress)
-                    && record.StartDateTime < end)
-                .Select(record => new { record.StartDateTime, record.EndDateTime })
+                .Where(record =>
+                    (record.Status == MaintenanceStatuses.Scheduled ||
+                    record.Status == MaintenanceStatuses.InProgress) &&
+                    record.StartDateTime < end &&
+                    (!record.ExpectedCompletionDateTime.HasValue ||
+                    record.ExpectedCompletionDateTime.Value > start))
+                .Select(record => new
+                {
+                    record.StartDateTime,
+                    record.ExpectedCompletionDateTime
+                })
                 .ToList()
                 .Select(record => new EquipmentBusyPeriod
                 {
                     Start = record.StartDateTime,
-                    End = end,
+                End = record.ExpectedCompletionDateTime ?? end,
                     Type = AvailabilityPeriodTypes.Maintenance,
                     Label = "Under maintenance"
                 })

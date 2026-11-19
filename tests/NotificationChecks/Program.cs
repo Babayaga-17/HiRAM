@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using ASI.Basecode.Data;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Data.Repositories;
@@ -5,6 +6,7 @@ using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Borrower;
 using ASI.Basecode.Services.ServiceModels.Reservation;
 using ASI.Basecode.Services.Services;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +26,7 @@ try
     User Person(string code, string roleName, string status = "Active") => new() { UserCode = code, FirstName = code, LastName = "Test", CreatedBy = "test",
         Account = new Account { RoleName = roleName, Email = code + "@example.invalid", PasswordHash = "unused", AccountStatus = status, CreatedBy = "test" } };
     var admin = Person("ADMIN", RoleNames.Admin); var custodian = Person("STAFF", RoleNames.Custodian); var disabledAdmin = Person("OFFLINE", RoleNames.Admin, "Disabled");
-    var department = new Department { DepartmentCode = "TEST", DepartmentName = "Test department", IsActive = true, CreatedBy = "test" };
+    var department = new Department { DepartmentCode = "CCS", DepartmentName = "College of Computer Studies", IsActive = true, CreatedBy = "test" };
     db.AddRange(admin, custodian, disabledAdmin, department); db.SaveChanges();
     var unit = new UnitOfWork(db); var repository = new NotificationRepository(unit); var notifications = new NotificationService(repository);
     var users = new UserRepository(unit); var accounts = new AccountRepository(unit);
@@ -34,15 +36,15 @@ try
         NullLogger<BorrowerProfileService>.Instance, notifications);
     BorrowerRegistrationViewModel Form(string code) => new() { UserCode = code, BorrowerType = "Faculty", FirstName = "Mara", LastName = "Reyes",
         DepartmentId = department.DepartmentId, Email = code + "@example.invalid", Password = "TestPass123", ConfirmPassword = "TestPass123" };
-    await registration.RegisterAsync(Form("BORROWER"), null, null);
+    await registration.RegisterAsync(Form("BORROWER"), null);
     var borrower = db.Users.Include(u => u.Account).Single(u => u.UserCode == "BORROWER");
     Check(db.Notifications.Count(n => n.EventType == NotificationEvents.RegistrationSubmitted) == 1, "New registration notifies only active admins");
     Check(db.Notifications.Any(n => n.RecipientUserId == admin.UserId && n.RelatedUserId == borrower.UserId), "New user's generated ID is linked atomically");
-    Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Registration creates no notification email; direct receipt remains separate");
+    Check(mail.Attempts == 1, "Registration sends one direct receipt email");
     var management = new UserAccountService(users, accounts, new BorrowerProfileRepository(unit), unit, notifications);
     Check(await management.ApproveRegistrationAsync(borrower.UserId, "0", "admin"), "Pending registration approved");
     Check(db.Notifications.Count(n => n.EventType == NotificationEvents.RegistrationApproved && n.RecipientUserId == borrower.UserId) == 1, "Approval creates borrower notification");
-    Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Approval creates no queued or direct email");
+    Check(mail.Attempts == 1, "Approval service leaves email delivery to the controller");
 
     var equipment = new Equipment { EquipmentCode = "TEST-EQUIP", EquipmentName = "Test projector", IsActive = true, ConditionStatus = "Good", CreatedBy = "test" };
     db.Add(equipment); db.SaveChanges();
@@ -66,7 +68,7 @@ try
     var cancelled = db.Reservations.Single(r => r.ReservationNumber == cancelledNumber);
     Check(submissions.Cancel(cancelled.ReservationId, new ReservationCancelFormModel { RowVersion = Convert.ToBase64String(cancelled.RowVersion), Reason = "Schedule changed" }, borrower.UserId) == null, "Cancellation succeeds");
     Check(db.Notifications.Any(n => n.EventType == NotificationEvents.ReservationCancelled && n.RecipientUserId == custodian.UserId), "Cancellation notifies custodian");
-    Check(!db.NotificationEmails.Any() && mail.Attempts == 1, "Reservation events create no queued or direct email");
+    Check(mail.Attempts == 1, "Notification service does not send reservation emails");
 
     var menu = await notifications.GetMenuAsync(borrower.UserId, token);
     var own = db.Notifications.AsNoTracking().First(n => n.RecipientUserId == borrower.UserId);
@@ -87,12 +89,11 @@ try
 
     db.ChangeTracker.Clear();
     db.Database.ExecuteSqlRaw("CREATE TRIGGER dbo.NotificationCheckFailure ON dbo.Notifications AFTER INSERT AS BEGIN THROW 51001, 'Simulated notification save failure', 1; END;");
-    try { await registration.RegisterAsync(Form("ROLLBACK"), null, null); throw new Exception("Expected persistence failure"); }
+    try { await registration.RegisterAsync(Form("ROLLBACK"), null); throw new Exception("Expected persistence failure"); }
     catch (DbUpdateException) { }
     finally { db.ChangeTracker.Clear(); db.Database.ExecuteSqlRaw("DROP TRIGGER dbo.NotificationCheckFailure;"); }
     Check(!db.Users.Any(u => u.UserCode == "ROLLBACK"), "Notification failure rolls back registration graph");
 
-    Check(!db.NotificationEmails.Any(), "In-app notification workflows leave the legacy email queue empty");
     Console.WriteLine($"All {passed} notification checks passed.");
 }
 finally
@@ -111,7 +112,7 @@ sealed class TestEmail : IEmailManager
 }
 sealed class TestPhoto : IProfilePhotoService
 {
-    public Task<string> UploadProfileAsync(Stream stream, string file, CancellationToken token = default) => Task.FromResult("profiles/test.png");
+    public Task<string> UploadProfileAsync(IFormFile photo, CancellationToken token = default) => Task.FromResult("profiles/test.png");
     public Task<string> CreateReadUrlAsync(string path, CancellationToken token = default) => Task.FromResult("https://example.invalid/photo");
     public Task DeleteAsync(string path, CancellationToken token = default) => Task.CompletedTask;
 }

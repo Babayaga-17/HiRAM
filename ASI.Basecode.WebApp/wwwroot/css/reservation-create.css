@@ -50,6 +50,7 @@
 .reservation-create .rc-purpose { margin-top: 22px; }
 .reservation-create .rc-submit-area { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-top: 22px; }
 .reservation-create .rc-submit-area .rc-hint { margin: 0; }
+.reservation-create .rc-submit-buttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 12px; margin-left: auto; }
 .reservation-create .rc-summary { min-width: 0; grid-column: 2; grid-row: 1; }
 .reservation-create .rc-form { grid-column: 1; grid-row: 1; }
 .reservation-create .rc-summary-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }

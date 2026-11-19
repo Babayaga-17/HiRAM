@@ -289,6 +289,7 @@ namespace ASI.Basecode.WebApp.Controllers
             }
 
             var model = new BorrowerRegistrationViewModel();
+
             LoadRegistrationDepartments(model);
             return View(model);
         }
@@ -299,16 +300,20 @@ namespace ASI.Basecode.WebApp.Controllers
         [RequestSizeLimit(3 * 1024 * 1024)]
         public async Task<IActionResult> Register(BorrowerRegistrationViewModel model, IFormFile profilePhoto)
         {
-            if (profilePhoto != null && profilePhoto.Length > ASI.Basecode.Resources.Constants.ProfilePhotoPolicy.MaxBytes)
+            if (profilePhoto != null && profilePhoto.Length > ProfilePhotoPolicy.MaxBytes)
                 ModelState.AddModelError("ProfilePhoto", "Profile picture must be 2 MB or smaller.");
+
             if (ModelState.IsValid)
             {
                 try
                 {
-                    using var stream = profilePhoto?.OpenReadStream();
-                    var emailSent = await _borrowerProfileService.RegisterAsync(model, stream, profilePhoto?.FileName, HttpContext.RequestAborted);
+                    var emailSent = await _borrowerProfileService.RegisterAsync(model, profilePhoto, HttpContext.RequestAborted);
+
                     TempData["RegistrationSubmitted"] = true;
-                    if (!emailSent) TempData["RegistrationEmailWarning"] = "Your request was saved, but the confirmation email could not be sent. Please contact your administrator if you need an update.";
+
+                    if (!emailSent) 
+                        TempData["RegistrationEmailWarning"] = "Your request was saved, but the confirmation email could not be sent. Please contact your administrator if you need an update.";
+
                     return RedirectToAction(nameof(AwaitingApproval));
                 }
                 catch (System.ComponentModel.DataAnnotations.ValidationException exception)
@@ -324,8 +329,10 @@ namespace ASI.Basecode.WebApp.Controllers
             if (profilePhoto != null) ViewData["PhotoReselectMessage"] = "Please select your profile picture again after correcting the errors.";
             ModelState.SetModelValue(nameof(model.Password), string.Empty, string.Empty);
             ModelState.SetModelValue(nameof(model.ConfirmPassword), string.Empty, string.Empty);
+
             model.Password = null;
             model.ConfirmPassword = null;
+
             LoadRegistrationDepartments(model);
             return View(model);
         }
@@ -355,6 +362,13 @@ namespace ASI.Basecode.WebApp.Controllers
             if (TempData["RegistrationSubmitted"] is not true) return RedirectToAction(nameof(Register));
             return View();
         }
+        [AllowAnonymous]
+        public async Task<IActionResult> SignOutUser()
+        {
+            await this._signInManager.SignOutAsync();
+            return RedirectToAction("Login", "Account");
+        }
+
         private void LoadRegistrationDepartments(BorrowerRegistrationViewModel model)
         {
             try { model.Departments = _borrowerProfileService.GetDepartments(); }
@@ -363,12 +377,6 @@ namespace ASI.Basecode.WebApp.Controllers
                 _logger.LogWarning(exception, "Unable to load registration departments.");
                 model.DepartmentError = "Departments could not be loaded. Please refresh and try again.";
             }
-        }
-        [AllowAnonymous]
-        public async Task<IActionResult> SignOutUser()
-        {
-            await this._signInManager.SignOutAsync();
-            return RedirectToAction("Login", "Account");
         }
     }
 }

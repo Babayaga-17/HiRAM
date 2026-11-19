@@ -1,5 +1,5 @@
 using ASI.Basecode.Data.Models;
-using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Notification;
 using System;
 using System.Threading;
 using System.Threading.Tasks;

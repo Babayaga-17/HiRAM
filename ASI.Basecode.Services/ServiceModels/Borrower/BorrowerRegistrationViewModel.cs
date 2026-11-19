@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using ASI.Basecode.Data.Models;
+using ASI.Basecode.Services.ServiceModels.UserAccount;
 namespace ASI.Basecode.Services.ServiceModels.Borrower;
 
 public class BorrowerRegistrationViewModel : IValidatableObject

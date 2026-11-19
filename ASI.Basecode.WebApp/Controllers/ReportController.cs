@@ -1,6 +1,6 @@
 ﻿using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
-using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Reports;
 using ASI.Basecode.WebApp.Mvc;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;

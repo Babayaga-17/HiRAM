@@ -284,6 +284,7 @@ namespace ASI.Basecode.Data.Repositories
             return query
                 .Include(reservation => reservation.BorrowerUser)
                     .ThenInclude(borrower => borrower.User)
+                        .ThenInclude(user => user.Account)
                 .Include(reservation => reservation.BorrowerUser)
                     .ThenInclude(borrower => borrower.Department)
                 .Include(reservation => reservation.ReservationItems)

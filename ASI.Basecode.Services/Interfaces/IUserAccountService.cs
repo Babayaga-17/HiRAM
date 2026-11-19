@@ -1,4 +1,4 @@
-using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.UserAccount;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -22,7 +22,7 @@ namespace ASI.Basecode.Services.Interfaces
 
         Task<Dictionary<string, int>> CountAccountsByStatusAsync();
         Task<List<UserAccountListItem>> GetPendingRegistrationPreviewAsync();
-        List<DepartmentOption> GetActiveDepartments();
         void FillBorrowerProfile(UserAccountFormViewModel model);
+        List<ASI.Basecode.Data.Models.Department> GetActiveDepartments();
     }
 }

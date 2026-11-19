@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-namespace ASI.Basecode.Services.ServiceModels;
+namespace ASI.Basecode.Services.ServiceModels.Maintenance;
 public class MaintenanceForm : IValidatableObject
 {
     // Limits that stop unrealistic dates (e.g. year 2050) from blocking equipment for years.

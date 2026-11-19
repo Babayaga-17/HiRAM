@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace ASI.Basecode.Services.ServiceModels;
+namespace ASI.Basecode.Services.ServiceModels.UserAccount;
 
 /// <summary>
 /// Create / edit user account form. Password fields are used only when creating.
@@ -118,12 +118,4 @@ public class UserAccountFormViewModel : IValidatableObject
             yield return new ValidationResult(PasswordRuleText, new[] { nameof(Password) });
         }
     }
-}
-
-/// <summary>Active department shown in the Borrower department dropdown.</summary>
-public class DepartmentOption
-{
-    public int DepartmentId { get; set; }
-
-    public string DepartmentName { get; set; } = string.Empty;
 }

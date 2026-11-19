@@ -7,8 +7,8 @@ using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
-using ASI.Basecode.Services.ServiceModels;
 using Microsoft.Extensions.Logging;
+using ASI.Basecode.Services.ServiceModels.Maintenance;
 namespace ASI.Basecode.Services.Services;
 public class MaintenanceService : IMaintenanceService
 {

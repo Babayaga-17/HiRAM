@@ -16,7 +16,10 @@
         _ => "rs-neutral"
     };
     var conditions = EquipmentConditions.Values;
-    var backStatus = Model.Status is ReservationStatuses.Pending or ReservationStatuses.Approved or ReservationStatuses.Borrowed or ReservationStatuses.Returned or ReservationStatuses.Rejected ? Model.Status : ReservationFilters.All;
+    var showReturnStatus = Model.BorrowedAt.HasValue || Model.Status is ReservationStatuses.Borrowed or ReservationStatuses.Returned;
+    var backStatus = Model.Status is ReservationStatuses.Pending or ReservationStatuses.Approved or ReservationStatuses.Borrowed or ReservationStatuses.Returned or ReservationStatuses.Rejected
+        ? Model.Status
+        : ReservationFilters.All;
 }
 
 @section Styles {
@@ -151,6 +154,21 @@
         .rd-grid .rd-borrower {
             border-top: 3px solid #14b8a6;
         }
+
+        .rd-equipment {
+            margin-bottom: 16px;
+        }
+
+        .rd-return-action {
+            margin-bottom: 16px;
+        }
+
+        .rd-inspection-item + .rd-inspection-item {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+        }
+
     </style>
 }
 
@@ -165,7 +183,7 @@
 
 @if (Model.Status == ReservationStatuses.Borrowed)
 {
-    <a class="button button-primary"
+    <a class="button button-primary rd-return-action"
        asp-controller="Reservation"
        asp-action="Return"
        asp-route-id="@Model.ReservationId">
@@ -180,6 +198,10 @@
 @if (TempData["ReservationError"] is string errorMessage)
 {
     <div class="rd-alert error" role="alert">@errorMessage</div>
+}
+@if (TempData["ReservationEmailWarning"] is string emailWarning)
+{
+    <div class="rd-alert error" role="status">@emailWarning</div>
 }
 
 <div class="rd-grid">
@@ -216,7 +238,7 @@
     </section>
 </div>
 
-<section class="content-card category-list" aria-labelledby="itemsHeading">
+<section class="content-card category-list rd-equipment" aria-labelledby="itemsHeading">
     <div class="card-heading">
         <div>
             <h2 id="itemsHeading">Requested equipment</h2>
@@ -241,6 +263,10 @@
                         @if (Model.Status is ReservationStatuses.Borrowed or ReservationStatuses.Returned)
                         {
                             <th scope="col">Condition at release</th>
+                        }
+                        @if (showReturnStatus)
+                        {
+                            <th scope="col">Return status</th>
                         }
                     </tr>
                 </thead>
@@ -269,6 +295,19 @@
                                     }
                                 </td>
                             }
+                            @if (showReturnStatus)
+                            {
+                                <td>
+                                    @(item.IsReturned ? "Returned" : "Awaiting return")
+
+                                    @if (item.IsReturned && item.ReturnedAt.HasValue)
+                                    {
+                                        <div class="pending-muted">
+                                            @item.ReturnedAt.Value.ToString("MMM d, yyyy h:mm tt")
+                                        </div>
+                                    }
+                                </td>
+                            }
                         </tr>
                     }
                 </tbody>
@@ -276,6 +315,66 @@
         </div>
     }
 </section>
+
+@if (Model.Items.Any(item => item.IsReturned))
+{
+    <section class="content-card form-card"
+             aria-labelledby="returnInspectionHeading">
+        <div class="form-card-header">
+            <div>
+                <h2 id="returnInspectionHeading">Return inspection</h2>
+                <p>Recorded condition and notes for returned equipment.</p>
+            </div>
+        </div>
+
+        @foreach (var item in Model.Items.Where(item => item.IsReturned))
+        {
+            <div class="rd-inspection-item">
+                <h3>@item.EquipmentName</h3>
+                <p class="pending-muted">@item.EquipmentCode</p>
+
+                <dl class="details-list">
+                    <div>
+                        <dt>Returned</dt>
+                        <dd>
+                            @(item.ReturnedAt.HasValue? item.ReturnedAt.Value.ToString("MMM d, yyyy h:mm tt") : "—")
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Condition at return</dt>
+                        <dd>
+                            @(string.IsNullOrWhiteSpace(item.ConditionAtReturn) ? "—" : item.ConditionAtReturn)
+                        </dd>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(item.DamageNotes))
+                    {
+                        <div>
+                            <dt>Damage notes</dt>
+                            <dd>@item.DamageNotes</dd>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(item.MissingPartsNotes))
+                    {
+                        <div>
+                            <dt>Missing parts</dt>
+                            <dd>@item.MissingPartsNotes</dd>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(item.ReturnRemarks))
+                    {
+                        <div>
+                            <dt>Return remarks</dt>
+                            <dd>@item.ReturnRemarks</dd>
+                        </div>
+                    }
+                </dl>
+            </div>
+        }
+    </section>
+}
 
 @if (Model.Status == ReservationStatuses.Pending)
 {

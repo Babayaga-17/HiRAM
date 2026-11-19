@@ -25,8 +25,6 @@ public partial class Notification
 
     public DateTime? ReadAt { get; set; }
 
-    public virtual NotificationEmail NotificationEmail { get; set; }
-
     public virtual User RecipientUser { get; set; }
 
     public virtual User RelatedUser { get; set; }

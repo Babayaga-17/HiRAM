@@ -2,7 +2,7 @@ using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
-using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Notification;
 using System;
 using System.Collections.Generic;
 using System.Linq;

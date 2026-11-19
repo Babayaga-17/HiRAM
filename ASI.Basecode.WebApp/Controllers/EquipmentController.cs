@@ -556,41 +556,13 @@ public class EquipmentController : ControllerBase<EquipmentController>
 
     private List<(IFormFile File, string Path, string ContentType)> PreparePhotoUploads(List<IFormFile> photos, int availableSlots)
     {
-        var uploads = new List<(IFormFile File, string Path, string ContentType)>();
+        var result = _equipmentPhotoService.PreparePhotoUploads(
+            photos, availableSlots);
 
-        if (photos == null || photos.Count == 0)
-            return uploads;
+        if (result.Error != null)
+            ModelState.AddModelError("photos", result.Error);
 
-        if (photos.Count > availableSlots)
-        {
-            var message = availableSlots == 0
-                ? "This equipment already has the maximum number of photos."
-                : $"Choose up to {availableSlots} photos.";
-
-            ModelState.AddModelError(nameof(photos), message);
-            return uploads;
-        }
-
-        foreach (var photo in photos)
-        {
-            if (photo.Length == 0 || photo.Length > EquipmentPhotoPolicy.MaxPhotoBytes)
-            {
-                ModelState.AddModelError(nameof(photos), $"Each photo must be nonempty and at most {EquipmentPhotoPolicy.MaxPhotoSizeMb} MB.");
-                break;
-            }
-
-            var format = GetPhotoFormat(photo);
-
-            if (format == null)
-            {
-                ModelState.AddModelError(nameof(photos), "Choose JPG, PNG, or WebP images.");
-                break;
-            }
-
-            uploads.Add((photo, $"equipment/{Guid.NewGuid():N}{format.Value.Extension}", format.Value.ContentType));
-        }
-
-        return uploads;
+        return result.Uploads;
     }
 
     private async Task CleanUpPhotosAsync(IEnumerable<string> paths)
@@ -606,40 +578,6 @@ public class EquipmentController : ControllerBase<EquipmentController>
                 _logger.LogWarning(exception, "Unable to clean up equipment photo {PhotoPath}.", path);
             }
         }
-    }
-
-    /* 
-     * Checks the file signature and returns the extension and MIME type used for the upload. 
-     * 
-     * This catches files renamed to look like images. It checks the header, so a corrupt image 
-     * with a valid header can still pass.
-     */
-    private static (string Extension, string ContentType)? GetPhotoFormat(IFormFile photo)
-    {
-        using var stream = photo.OpenReadStream();
-        using var reader = new BinaryReader(stream);
-        var bytes = reader.ReadBytes(12);
-
-        if (bytes.Length >= 3
-            && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF)
-        {
-            return (".jpg", "image/jpeg");
-        }
-
-        if (bytes.AsSpan().StartsWith(
-            new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }))
-        {
-            return (".png", "image/png");
-        }
-
-        if (bytes.Length == 12
-            && bytes.AsSpan(0, 4).SequenceEqual("RIFF"u8)
-            && bytes.AsSpan(8, 4).SequenceEqual("WEBP"u8))
-        {
-            return (".webp", "image/webp");
-        }
-
-        return null;
     }
 
     #endregion

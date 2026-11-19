@@ -1,7 +1,7 @@
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
-using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.UserAccount;
 using ASI.Basecode.WebApp.Authorization;
 using ASI.Basecode.WebApp.Models;
 using ASI.Basecode.WebApp.Mvc;
@@ -39,6 +39,8 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
     private readonly IAccountService _accountService;
 
+    private readonly IEmailManager _emailManager;
+
 
 
     public UserAccountController(
@@ -53,6 +55,8 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
                             IAccountService accountService,
 
+                            IEmailManager emailManager,
+
                             IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
 
     {
@@ -60,6 +64,8 @@ public class UserAccountController : ControllerBase<UserAccountController>
         this._userAccountService = userAccountService;
 
         this._accountService = accountService;
+
+        this._emailManager = emailManager;
 
     }
 
@@ -417,61 +423,62 @@ public class UserAccountController : ControllerBase<UserAccountController>
     [ValidateAntiForgeryToken]
 
     public async Task<IActionResult> Approve(int id, string version)
-
     {
-
-        if (!ModelState.IsValid || string.IsNullOrWhiteSpace(version))
-
-        {
-
-            TempData["UserAccountError"] = "Refresh the account details before approving.";
-
-            return RedirectToAction(nameof(Details), new { id });
-
-        }
+        string email;
 
         try
-
         {
+            var account = _userAccountService.GetUserAccountById(id);
+
+            if (account == null)
+            {
+                TempData["UserAccountError"] = "The account no longer exists.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            email = account.Email;
 
             var found = await _userAccountService.ApproveRegistrationAsync(id, version, UserId);
 
             if (!found)
-
             {
-
                 TempData["UserAccountError"] = "The account no longer exists.";
-
                 return RedirectToAction(nameof(Index));
-
             }
-
-            TempData["UserAccountSuccess"] =
-
-                "Registration approved. The account is active and the borrower is eligible.";
-
         }
-
         catch (UserAccountValidationException exception)
-
         {
-
-            TempData["UserAccountError"] = string.Join(" ", exception.Errors.Values);
-
+            TempData["UserAccountError"] =string.Join(" ", exception.Errors.Values);
+            return RedirectToAction(nameof(Details), new { id });
         }
-
         catch (Exception exception)
-
         {
-
             _logger.LogError(exception, "Unable to approve registration for user {UserId}.", id);
 
             TempData["UserAccountError"] = "Approval could not be saved. Reload the account details and try again.";
 
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // Approval has committed successfully.
+        TempData["UserAccountSuccess"] = "Registration approved. The account is active and the borrower is eligible.";
+
+        try
+        {
+            await _emailManager.SendAsync(
+                email,
+                "Your HiRAM registration is approved",
+                "Your registration has been approved. " +
+                "You can now sign in with your registered email address and password.");
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Registration approved, but the approval email failed for user {UserId}.", id);
+
+            TempData["UserAccountSuccess"] = "Registration approved, but the approval email could not be sent.";
         }
 
         return RedirectToAction(nameof(Details), new { id });
-
     }
 
 
@@ -651,30 +658,13 @@ public class UserAccountController : ControllerBase<UserAccountController>
     private IActionResult FormView(UserAccountFormViewModel model)
 
     {
-
-        try
-
-        {
-
-            // Active roles, plus the user's current role even if it was deactivated later.
-
-            ViewData["Departments"] = _userAccountService.GetActiveDepartments();
-
-        }
-
+        try { ViewData["Departments"] = _userAccountService.GetActiveDepartments(); }
         catch (Exception exception)
-
         {
-
             _logger.LogError(exception, "Unable to load departments.");
-
-            ViewData["Departments"] = new List<DepartmentOption>();
-
+            ViewData["Departments"] = new List<ASI.Basecode.Data.Models.Department>();
             ModelState.AddModelError(string.Empty, "Unable to load departments. Please try again.");
-
         }
-
-
 
         ViewData["IsSelf"] = model.IsEdit && model.UserId == CurrentUserId;
 

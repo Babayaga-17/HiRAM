@@ -5,7 +5,7 @@ using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.Manager;
-using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.UserAccount;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -28,7 +28,6 @@ namespace ASI.Basecode.Services.Services
     ///  - Administrators cannot change their own role or deactivate their own account.
     ///  - The last active Admin account cannot be demoted or deactivated.
     ///  - Edits and status changes are rejected if the account changed after the form was loaded.
-    ///  - Each change is written to AuditLogs in the same transaction.
     /// </summary>
     public class UserAccountService : IUserAccountService
     {
@@ -36,7 +35,6 @@ namespace ASI.Basecode.Services.Services
         private readonly IUserRepository _userRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly IBorrowerProfileRepository _borrowerProfileRepository;
-        //private readonly IAuditLogRepository _auditLogRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationService _notifications;
 
@@ -44,14 +42,12 @@ namespace ASI.Basecode.Services.Services
             IUserRepository userRepository,
             IAccountRepository accountRepository,
             IBorrowerProfileRepository borrowerProfileRepository,
-            //IAuditLogRepository auditLogRepository,
             IUnitOfWork unitOfWork,
             INotificationService notifications)
         {
             _userRepository = userRepository;
             _accountRepository = accountRepository;
             _borrowerProfileRepository = borrowerProfileRepository;
-            //_auditLogRepository = auditLogRepository;
             _unitOfWork = unitOfWork;
             _notifications = notifications;
         }
@@ -89,26 +85,8 @@ namespace ASI.Basecode.Services.Services
             }).ToList();
         }
 
-        /// <summary>Active departments for the Borrower department dropdown.</summary>
-        public List<DepartmentOption> GetActiveDepartments()
-
-        {
-
-            return _borrowerProfileRepository.GetActiveDepartments()
-
-                .Select(department => new DepartmentOption
-
-                {
-
-                    DepartmentId = department.DepartmentId,
-
-                    DepartmentName = department.DepartmentName
-
-                })
-
-                .ToList();
-
-        }
+        /// <summary>Active database departments used by account forms.</summary>
+        public List<Department> GetActiveDepartments() => _borrowerProfileRepository.GetActiveDepartments();
 
         /// <summary>Copies the stored BorrowerProfile into the form model (edit screen only).</summary>
         public void FillBorrowerProfile(UserAccountFormViewModel model)
@@ -165,8 +143,7 @@ namespace ASI.Basecode.Services.Services
                 errors[nameof(UserAccountFormViewModel.Password)] = "Password is required.";
             var role = GetAssignableRole(model.RoleName, errors);
             var isBorrower = IsBorrowerRole(role);
-            if (isBorrower)
-                ValidateBorrowerProfile(model, errors);
+            var department = isBorrower ? ValidateBorrowerProfile(model, errors) : null;
             if (errors.Count > 0)
                 throw new UserAccountValidationException(errors);
 
@@ -197,9 +174,9 @@ namespace ASI.Basecode.Services.Services
             {
                 user.BorrowerProfileUser = new BorrowerProfile
                 {
-                    DepartmentId = model.DepartmentId.Value,
-                    Program = model.Program,
-                    YearLevel = model.YearLevel,
+                    DepartmentId = department.DepartmentId,
+                    Program = model.BorrowerType == "Faculty" ? null : model.Program,
+                    YearLevel = model.BorrowerType == "Faculty" ? null : model.YearLevel,
                     BorrowerType = model.BorrowerType,
                     EligibilityStatus = model.EligibilityStatus,
                     CreatedBy = createdBy,
@@ -210,8 +187,6 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _userRepository.AddUser(user); // inserts Users + Accounts together
-                AddAudit(currentUserId, createdBy, ipAddress, UserAccountAuditActions.Created, user.UserId,
-                    $"Created {user.UserCode} ({user.Account.Email}) with role {role} and status {user.Account.AccountStatus}.");
             });
 
             return user.UserId;
@@ -237,12 +212,13 @@ namespace ASI.Basecode.Services.Services
             var isBorrower = IsBorrowerRole(role);
 
             model.EligibilityLocked = profile != null && IsEligibilityLocked(account.AccountStatus, profile);
+            Department department = null;
             if (isBorrower)
             {
                 // A locked eligibility keeps the stored value, whatever the form posted.
                 if (model.EligibilityLocked)
                     model.EligibilityStatus = profile.EligibilityStatus;
-                ValidateBorrowerProfile(model, errors);
+                department = ValidateBorrowerProfile(model, errors);
             }
 
             if (errors.Count > 0)
@@ -321,7 +297,7 @@ namespace ASI.Basecode.Services.Services
                     };
                     account.User.BorrowerProfileUser = profile; // EF inserts it with the tracked User
                 }
-                ApplyBorrowerProfile(profile, model, updatedBy, now);
+                ApplyBorrowerProfile(profile, model, department, updatedBy, now);
             }
             else if (profile != null)
             {
@@ -331,9 +307,6 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account); // also saves the tracked User changes
-                AddAudit(currentUserId, updatedBy, ipAddress,
-                    roleChanged ? UserAccountAuditActions.RoleChanged : UserAccountAuditActions.Updated,
-                    account.UserId, $"Updated {model.UserCode}: {string.Join("; ", changes)}");
             });
 
             return true;
@@ -385,9 +358,6 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account);
-                AddAudit(currentUserId, updatedBy, ipAddress,
-                    activate ? UserAccountAuditActions.Activated : UserAccountAuditActions.Deactivated,
-                    userId, $"Status of {account.User.UserCode}: {previousStatus} -> {newStatus}.");
             });
 
             return true;
@@ -442,8 +412,6 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account);
-                AddAudit(currentUserId, updatedBy, ipAddress, UserAccountAuditActions.AccessReset, userId,
-                    $"Temporary password issued and lockout cleared for {account.User.UserCode}.");
             });
 
             return temporaryPassword;
@@ -457,29 +425,38 @@ namespace ASI.Basecode.Services.Services
         /// Borrower fields are required when the role is Borrower. Eligibility is skipped when it is locked,
         /// because the stored value is kept in that case.
         /// </summary>
-        private void ValidateBorrowerProfile(UserAccountFormViewModel model, Dictionary<string, string> errors)
+        private Department ValidateBorrowerProfile(UserAccountFormViewModel model, Dictionary<string, string> errors)
         {
-            if (!model.DepartmentId.HasValue || !_borrowerProfileRepository.GetActiveDepartments().Any(department => department.DepartmentId == model.DepartmentId.Value))
+            var department = _borrowerProfileRepository.GetActiveDepartments()
+                .FirstOrDefault(item => item.DepartmentId == model.DepartmentId);
+            if (department == null)
                 errors[nameof(UserAccountFormViewModel.DepartmentId)] = "Select an active department.";
 
-            if (string.IsNullOrWhiteSpace(model.Program))
-                errors[nameof(UserAccountFormViewModel.Program)] = "Program is required.";
-            else if (model.Program.Length > 150)
-                errors[nameof(UserAccountFormViewModel.Program)] = "Program must not exceed 150 characters.";
-
-            if (!model.YearLevel.HasValue || model.YearLevel.Value < 1 || model.YearLevel.Value > 5)
-                errors[nameof(UserAccountFormViewModel.YearLevel)] = "Select a year level from 1 to 5.";
+            if (model.BorrowerType != "Faculty")
+            {
+                if (!ProgramOptions.IsProgramAllowed(department?.DepartmentCode, model.Program))
+                    errors[nameof(UserAccountFormViewModel.Program)] = "Select a program belonging to the department.";
+                if (!model.YearLevel.HasValue || model.YearLevel.Value < 1 || model.YearLevel.Value > 5)
+                    errors[nameof(UserAccountFormViewModel.YearLevel)] = "Select a year level from 1 to 5.";
+            }
+            else
+            {
+                model.Program = null;
+                model.YearLevel = null;
+            }
 
             if (!UserAccountFormViewModel.BorrowerTypeOptions.Contains(model.BorrowerType))
                 errors[nameof(UserAccountFormViewModel.BorrowerType)] = "Select Student or Faculty.";
 
             if (!model.EligibilityLocked && !UserAccountFormViewModel.EligibilityOptions.Contains(model.EligibilityStatus))
                 errors[nameof(UserAccountFormViewModel.EligibilityStatus)] = "Select a valid eligibility status.";
+
+            return department;
         }
 
-        private static void ApplyBorrowerProfile(BorrowerProfile profile, UserAccountFormViewModel model, string updatedBy, DateTime now)
+        private static void ApplyBorrowerProfile(BorrowerProfile profile, UserAccountFormViewModel model, Department department, string updatedBy, DateTime now)
         {
-            profile.DepartmentId = model.DepartmentId.Value;
+            profile.DepartmentId = department.DepartmentId;
             profile.Program = model.Program;
             profile.YearLevel = model.YearLevel;
             profile.BorrowerType = model.BorrowerType;
@@ -562,21 +539,6 @@ namespace ASI.Basecode.Services.Services
             }
         }
 
-        private void AddAudit(int currentUserId, string createdBy, string ipAddress, string action, int targetUserId, string details)
-        {
-            //_auditLogRepository.AddAuditLog(new AuditLog
-            //{
-            //    UserId = currentUserId > 0 ? currentUserId : null,
-            //    Action = action,
-            //    EntityName = "Accounts",
-            //    EntityId = targetUserId.ToString(CultureInfo.InvariantCulture),
-            //    Details = details,
-            //    IpAddress = ipAddress != null && ipAddress.Length > 45 ? ipAddress.Substring(0, 45) : ipAddress,
-            //    CreatedBy = createdBy ?? Const.System,
-            //    CreatedAt = DateTime.Now
-            //});
-        }
-
         /// <summary>
         /// Runs repository saves in one transaction and turns unique-key violations
         /// (e.g. a double-submitted form) into field errors.
@@ -630,6 +592,7 @@ namespace ASI.Basecode.Services.Services
             const string lower = "abcdefghijkmnopqrstuvwxyz";
             const string digits = "23456789";
             const string symbols = "@#$%&*?";
+
             var all = upper + lower + digits + symbols;
 
             var chars = new List<char>

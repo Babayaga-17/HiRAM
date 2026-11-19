@@ -89,7 +89,9 @@
                     <strong>@User.Identity?.Name</strong>
                 </p>
 
-                <div asp-validation-summary="All" class="reservation-errors" role="alert"></div>
+                <div asp-validation-summary="ModelOnly" class="reservation-errors" role="alert"></div>
+                @Html.ValidationMessage("RowVersion")
+                @Html.ValidationMessage("EquipmentIds")
                 <div class="rc-dates">
                     <div class="form-group">
                         <label asp-for="Pickup">
@@ -334,6 +336,7 @@
                 </div>
                 <div class="rc-submit-area">
                     <p class="rc-hint">Preview only. Availability is checked again on submission.</p>
+                    <div class="rc-submit-buttons">
                     @if (isEdit)
                     {
                         <button class="button button-secondary" type="submit"
@@ -343,6 +346,7 @@
                         </button>
                     }
                     <button class="button button-primary" type="submit">@(isEdit ? "Save changes" : "Submit request")</button>
+                    </div>
                 </div>
             </section>
 
