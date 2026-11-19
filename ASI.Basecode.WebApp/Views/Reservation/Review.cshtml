@@ -151,6 +151,15 @@
         .rd-grid .rd-borrower {
             border-top: 3px solid #14b8a6;
         }
+
+        .rd-equipment {
+            margin-bottom: 16px;
+        }
+
+        .rd-return-action {
+            margin-bottom: 16px;
+        }
+
     </style>
 }
 
@@ -165,7 +174,7 @@
 
 @if (Model.Status == ReservationStatuses.Borrowed)
 {
-    <a class="button button-primary"
+    <a class="button button-primary rd-return-action"
        asp-controller="Reservation"
        asp-action="Return"
        asp-route-id="@Model.ReservationId">
@@ -216,7 +225,7 @@
     </section>
 </div>
 
-<section class="content-card category-list" aria-labelledby="itemsHeading">
+<section class="content-card category-list rd-equipment" aria-labelledby="itemsHeading">
     <div class="card-heading">
         <div>
             <h2 id="itemsHeading">Requested equipment</h2>
@@ -276,6 +285,64 @@
         </div>
     }
 </section>
+
+@if (Model.Items.Any(item => item.IsReturned))
+{
+    <section class="content-card form-card"
+             aria-labelledby="returnInspectionHeading">
+        <div class="form-card-header">
+            <div>
+                <h2 id="returnInspectionHeading">Return inspection</h2>
+                <p>Recorded condition and notes for returned equipment.</p>
+            </div>
+        </div>
+
+        @foreach (var item in Model.Items.Where(item => item.IsReturned))
+        {
+            <h3>@item.EquipmentName</h3>
+            <p class="pending-muted">@item.EquipmentCode</p>
+
+            <dl class="details-list">
+                <div>
+                    <dt>Returned</dt>
+                    <dd>
+                        @(item.ReturnedAt.HasValue? item.ReturnedAt.Value.ToString("MMM d, yyyy h:mm tt") : "—")
+                    </dd>
+                </div>
+                <div>
+                    <dt>Condition at return</dt>
+                    <dd>
+                        @(string.IsNullOrWhiteSpace(item.ConditionAtReturn) ? "—" : item.ConditionAtReturn)
+                    </dd>
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(item.DamageNotes))
+                {
+                    <div>
+                        <dt>Damage notes</dt>
+                        <dd>@item.DamageNotes</dd>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(item.MissingPartsNotes))
+                {
+                    <div>
+                        <dt>Missing parts</dt>
+                        <dd>@item.MissingPartsNotes</dd>
+                    </div>
+                }
+
+                @if (!string.IsNullOrWhiteSpace(item.ReturnRemarks))
+                {
+                    <div>
+                        <dt>Return remarks</dt>
+                        <dd>@item.ReturnRemarks</dd>
+                    </div>
+                }
+            </dl>
+        }
+    </section>
+}
 
 @if (Model.Status == ReservationStatuses.Pending)
 {
