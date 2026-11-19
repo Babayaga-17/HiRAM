@@ -334,6 +334,7 @@ namespace ASI.Basecode.Services.Services
                 EquipmentSummary = listItem.EquipmentSummary,
                 Status = listItem.Status,
                 ContactNumber = borrower?.User?.ContactNumber,
+                BorrowerEmail = borrower?.User?.Account?.Email,
                 Program = borrower?.Program,
                 YearLevel = borrower?.YearLevel,
                 ApprovedAt = reservation.ApprovedAt,

@@ -163,3 +163,9 @@
         grid-template-columns: 1fr
     }
 }
+
+.return-form .rs-input {
+    background: var(--surface);
+    border-color: var(--control-line, var(--line));
+    color: var(--ink);
+}

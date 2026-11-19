@@ -1,5 +1,6 @@
 // ASI.Basecode.WebApp/Controllers/ReservationController.cs
 using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Resources.EmailTemplates;
 using ASI.Basecode.Services.Exceptions;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
@@ -29,6 +30,7 @@ public class ReservationController : ControllerBase<ReservationController>
 
     private readonly IReservationService _reservationService;
     private readonly IEquipmentService _equipmentService;
+    private readonly IEmailManager _emailManager;
 
     public ReservationController(
         IHttpContextAccessor httpContextAccessor,
@@ -36,10 +38,12 @@ public class ReservationController : ControllerBase<ReservationController>
         IConfiguration configuration,
         IReservationService reservationService,
         IEquipmentService equipmentService,
+        IEmailManager emailManager,
         IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
     {
         _reservationService = reservationService;
         _equipmentService = equipmentService;
+        _emailManager = emailManager;
     }
 
     #region BORROWER Actions
@@ -138,9 +142,9 @@ public class ReservationController : ControllerBase<ReservationController>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = RoleNames.Borrower)]
-    public IActionResult Create([Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose")] ReservationFormModel model)
+    public async Task<IActionResult> Create([Bind("EquipmentIds,Pickup,ExpectedReturn,Purpose")] ReservationFormModel model)
     {
-        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId))
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
             return Challenge();
 
         if (!ModelState.IsValid)
@@ -148,31 +152,47 @@ public class ReservationController : ControllerBase<ReservationController>
             LoadEquipment(model);
             return View(model);
         }
-            
+
+        string reservationNumber = null;
+
         try
         {
             var result = _reservationService.Submit(model, borrowerUserId);
-            if (result.Error == null)
-            {
-                HttpContext.Session.Remove(SelectionKey);
-                HttpContext.Session.Remove("ReservationDraft:Create");
-                TempData["ReservationNumber"] = result.ReservationNumber;
-                return RedirectToAction(nameof(Submitted));
-            }
-            ModelState.AddModelError(string.Empty, result.Error);
+            if (result.Error != null)
+                ModelState.AddModelError(string.Empty, result.Error);
+            else
+                reservationNumber = result.ReservationNumber;
         }
         catch (ReservationValidationException exception)
         {
             AddReservationErrors(exception);
         }
-        catch (Exception)
+        catch (Exception exception)
         {
-            //_logger.LogError(exception, "Unable to submit equipment reservation for borrower {UserId}.", borrowerUserId);
-            ModelState.AddModelError(string.Empty, "Your reservation could not be completed. Please try again; availability will be checked again.");
+            _logger.LogError(exception, "Unable to submit reservation for borrower {UserId}.", borrowerUserId);
+            ModelState.AddModelError(string.Empty,"Your reservation could not be completed. Please try again; " + "availability will be checked again.");
         }
 
-        LoadEquipment(model);
-        return View(model);
+        if (reservationNumber == null)
+        {
+            LoadEquipment(model);
+            return View(model);
+        }
+
+        // Reservation has been saved successfully.
+        HttpContext.Session.Remove(SelectionKey);
+        HttpContext.Session.Remove("ReservationDraft:Create");
+        TempData["ReservationNumber"] = reservationNumber;
+
+        await SendReservationEmailAsync(User.FindFirstValue(ClaimTypes.Email),
+            $"HiRAM reservation received - {reservationNumber}",
+            ReservationEmailTemplates.SubmissionBody(
+                reservationNumber,
+                model.Pickup.Value,
+                model.ExpectedReturn.Value),
+            "Your request was saved, but the confirmation email could not be sent. " + "You can track its status in My Reservations.");
+
+        return RedirectToAction(nameof(Submitted));
     }
 
     [HttpGet]
@@ -536,7 +556,8 @@ public class ReservationController : ControllerBase<ReservationController>
     public IActionResult Submitted()
     {
         var number = TempData["ReservationNumber"] as string;
-        if (number == null) return RedirectToAction("Index", "BrowseEquipment");
+        if (number == null)
+            return RedirectToAction("Index", "BrowseEquipment");
         return View(model: number);
     }
 
@@ -595,55 +616,136 @@ public class ReservationController : ControllerBase<ReservationController>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
-    public IActionResult Approve(int id, string remarks)
+    public async Task<IActionResult> Approve(int id, string remarks)
     {
+        ReservationDetailsViewModel reservation;
         try
         {
+            reservation = _reservationService.GetReservationDetails(id);
+
+            if (reservation == null)
+                return NotFound();
+
             var (ok, message) = _reservationService.Approve(id, CurrentUserId(), CurrentName(), remarks);
+
             TempData[ok ? "ReservationSuccess" : "ReservationError"] = message;
+
+            if (!ok)
+                return RedirectToAction(nameof(Review), new { id });
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Unable to approve reservation {ReservationId}.", id);
             TempData["ReservationError"] = "Unable to approve the request. Please try again.";
+
+            return RedirectToAction(nameof(Review), new { id });
         }
+
+        // Approval has been saved successfully.
+        await SendReservationEmailAsync(reservation.BorrowerEmail,
+            $"HiRAM reservation {reservation.ReservationNumber} approved",
+            ReservationEmailTemplates.ApprovalBody(
+                reservation.ReservationNumber,
+                reservation.StartDateTime,
+                reservation.ExpectedReturnDateTime),
+            "Reservation approved, but the approval email could not be sent.");
+
         return RedirectToAction(nameof(Review), new { id });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
-    public IActionResult Reject(int id, string reason)
+    public async Task<IActionResult> Reject(int id, string reason)
     {
+        ReservationDetailsViewModel reservation;
+
         try
         {
-            var (ok, message) = _reservationService.Reject(id, CurrentUserId(), CurrentName(), reason);
+            reservation = _reservationService.GetReservationDetails(id);
+
+            if (reservation == null)
+                return NotFound();
+
+            var (ok, message) = _reservationService.Reject(
+                id, CurrentUserId(), CurrentName(), reason);
+
             TempData[ok ? "ReservationSuccess" : "ReservationError"] = message;
+
+            if (!ok)
+                return RedirectToAction(nameof(Review), new { id });
         }
         catch (Exception exception)
         {
-            _logger.LogError(exception, "Unable to reject reservation {ReservationId}.", id);
-            TempData["ReservationError"] = "Unable to reject the request. Please try again.";
+            _logger.LogError(
+                exception,
+                "Unable to reject reservation {ReservationId}.",
+                id);
+
+            TempData["ReservationError"] =
+                "Unable to reject the request. Please try again.";
+
+            return RedirectToAction(nameof(Review), new { id });
         }
+
+        // Rejection has been saved successfully.
+        await SendReservationEmailAsync(reservation.BorrowerEmail,
+            $"HiRAM reservation {reservation.ReservationNumber} rejected",
+            ReservationEmailTemplates.RejectionBody(
+                reservation.ReservationNumber,
+                reason),
+            "Reservation rejected, but the rejection email could not be sent.");
+
         return RedirectToAction(nameof(Review), new { id });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
-    public IActionResult Release(ReleaseReservationRequest request)
+    public async Task<IActionResult> Release(ReleaseReservationRequest request)
     {
         var id = request?.ReservationId ?? 0;
+
         try
         {
             var (ok, message) = _reservationService.Release(request, CurrentName());
             TempData[ok ? "ReservationSuccess" : "ReservationError"] = message;
+
+            if (!ok)
+                return RedirectToAction(nameof(Review), new { id });
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Unable to release reservation {ReservationId}.", id);
             TempData["ReservationError"] = "Unable to release the equipment. Please try again.";
+            return RedirectToAction(nameof(Review), new { id });
         }
+
+        // Release has been saved successfully.
+        ReservationDetailsViewModel reservation;
+
+        try
+        {
+            reservation = _reservationService.GetReservationDetails(id);
+
+            if (reservation == null)
+                throw new InvalidOperationException("The reservation details are missing.");
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Reservation {ReservationId} released, but email details could not be loaded.", id);
+            TempData["ReservationEmailWarning"] = "Equipment released, but the release email could not be sent.";
+            return RedirectToAction(nameof(Review), new { id });
+        }
+
+        await SendReservationEmailAsync(reservation.BorrowerEmail,
+            $"HiRAM equipment released - {reservation.ReservationNumber}",
+            ReservationEmailTemplates.ReleaseBody(
+                reservation.ReservationNumber,
+                reservation.BorrowedAt,
+                reservation.ExpectedReturnDateTime),
+            "Equipment released, but the release email could not be sent.");
+
         return RedirectToAction(nameof(Review), new { id });
     }
 
@@ -652,7 +754,6 @@ public class ReservationController : ControllerBase<ReservationController>
     public async Task<IActionResult> Returns()
     {
         var model = await _reservationService.GetReservationsAsync(ReservationStatuses.Borrowed);
-
         return View(model);
     }
 
@@ -668,7 +769,6 @@ public class ReservationController : ControllerBase<ReservationController>
         if (reservation.Status != ReservationStatuses.Borrowed)
         {
             TempData["ReservationError"] = "Only borrowed reservations can be processed for return.";
-
             return RedirectToAction(nameof(Returns));
         }
 
@@ -678,8 +778,11 @@ public class ReservationController : ControllerBase<ReservationController>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = $"{RoleNames.Custodian},{RoleNames.Admin}")]
-    public IActionResult Return(ReturnReservationRequest request)
+    public async Task<IActionResult> Return(ReturnReservationRequest request)
     {
+        if (request == null)
+            return BadRequest();
+
         if (!ModelState.IsValid)
             return ShowReturnForm(request, "Check the form. Inspection notes must be 500 characters or fewer.");
 
@@ -691,19 +794,43 @@ public class ReservationController : ControllerBase<ReservationController>
                 return ShowReturnForm(request, message);
 
             TempData["ReservationSuccess"] = message;
-
-            return RedirectToAction(nameof(Review), new { id = request.ReservationId });
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Unable to record return for reservation {ReservationId}.", request.ReservationId);
-
-            TempData["ReservationError"] =
-                "The return could not be saved. The reservation may have changed. "
-                + "Review its current details before trying again.";
-
+            TempData["ReservationError"] = "The return could not be saved. The reservation may have changed. " + "Review its current details before trying again.";
             return RedirectToAction(nameof(Review), new { id = request.ReservationId });
         }
+
+        // Return has been saved successfully.
+        ReservationDetailsViewModel reservation;
+
+        try
+        {
+            reservation = _reservationService.GetReservationDetails(request.ReservationId);
+
+            if (reservation == null)
+                throw new InvalidOperationException("The reservation details are missing.");
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Return saved for reservation {ReservationId}, but email details could not be loaded.", request.ReservationId);
+
+            TempData["ReservationEmailWarning"] = "The return was saved, but the return email could not be sent.";
+
+            return RedirectToAction(
+                nameof(Review), new { id = request.ReservationId });
+        }
+
+        await SendReservationEmailAsync(reservation.BorrowerEmail,
+            $"HiRAM return recorded - {reservation.ReservationNumber}",
+            ReservationEmailTemplates.ReturnBody(
+                reservation.ReservationNumber,
+                reservation.Items.Count(item => item.IsReturned),
+                reservation.Items.Count),
+            "The return was saved, but the return email could not be sent.");
+
+        return RedirectToAction(nameof(Review), new { id = request.ReservationId });
     }
 
     #endregion
@@ -777,6 +904,21 @@ public class ReservationController : ControllerBase<ReservationController>
         }
     }
 
+    private async Task SendReservationEmailAsync(string email, string subject, string body, string failureMessage)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                throw new InvalidOperationException("The borrower email is missing.");
+
+            await _emailManager.SendAsync(email, subject, body);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Unable to send reservation email with subject {Subject}.", subject);
+            TempData["ReservationEmailWarning"] = failureMessage;
+        }
+    }
     private int? CurrentUserId()
     {
         return int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : (int?)null;
