@@ -367,6 +367,15 @@
                 color: var(--bp-btn-hover);
                 border-color: var(--bp-btn-hover);
             }
+
+    #bpModal .bp-input:disabled,
+    #bpModal .bp-select:disabled {
+        background-color: var(--bp-border);
+        color: var(--bp-muted);
+        border-color: var(--bp-border);
+        cursor: not-allowed;
+        opacity: 0.65;
+    }
 </style>
 
 <div class="bp">
@@ -448,7 +457,18 @@
                             var initials = string.Concat((b.FullName ?? "?").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpper(p[0])));
                             var statusClass = b.EligibilityStatus == EligibilityStatuses.Eligible ? "active" : b.EligibilityStatus == EligibilityStatuses.Suspended ? "suspended" : "other";
                             <tr>
-                                <td><div class="bp-user"><div class="bp-avatar">@initials</div><div><div class="bp-name">@b.FullName</div><div class="bp-muted">@b.UserCode</div></div></div></td>
+                                <td>
+                                    <div class="bp-user">
+                                        <div class="bp-avatar">@initials</div>
+                                        <div>
+                                            <div class="bp-name">@b.FullName</div>
+                                            <div class="bp-muted">@b.UserCode</div>
+                                            <div class="bp-muted">
+                                                @(string.IsNullOrWhiteSpace(b.BorrowerType) ? "Type not specified" : b.BorrowerType)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
                                 <td>@(b.DepartmentName ?? "—")</td>
                                 <td>
                                     @(string.IsNullOrEmpty(b.Program) ? "—" : b.Program)
@@ -557,7 +577,13 @@
 <div class="bp-modal" id="bpModal">
     <div class="bp-dialog">
         <h3>Edit Borrower</h3>
-        <p class="bp-sub">Name, contact number and user code are read-only. You can update the department, program, year level and eligibility status.</p>
+        <p class="bp-sub">
+            Borrower type: <strong id="f_type"></strong>
+        </p>
+        <p class="bp-sub">
+            Name, contact number and user code are read-only.
+            Program and year level apply only to students.
+        </p>
         <form method="post" asp-action="Save" data-academic-fields>
             <input type="hidden" name="UserId" id="f_id" value="0" />
             <input type="hidden" name="search" value="@Model.Search" />
@@ -577,8 +603,20 @@
                         }
                     </select>
                 </div>
-                <div><label class="bp-label">Program</label><input class="bp-input" name="Program" id="f_program" maxlength="150" /></div>
+                <div>
+                    <label class="bp-label" for="f_program">Program</label>
+                    <select class="bp-select"
+                            name="Program"
+                            id="f_program"
+                            data-academic-program>
+                        <partial name="_AcademicProgramOptions"
+                                 model="@((Model.Departments.AsEnumerable(), string.Empty))" />
+                    </select>
+                </div>
                 <div><label class="bp-label">Year level</label><input class="bp-input" type="number" min="1" max="5" name="YearLevel" id="f_year" /></div>
+                <p class="bp-muted full" id="f_faculty_note" hidden>
+                    Program and year level do not apply to faculty.
+                </p>
                 <div class="full">
                     <label class="bp-label">Eligibility status *</label>
                     <select class="bp-select" name="EligibilityStatus" id="f_status" onchange="bpToggle()">
@@ -661,6 +699,8 @@
 
         window.bpEdit = function (btn) {
             const d = btn.dataset;
+            byId('f_type').textContent = d.borrowerType || 'Not specified';
+            byId('f_faculty_note').hidden = d.borrowerType !== 'Faculty';
             const set = (id, value) => { const el = byId(id); if (el) el.value = value; };
 
             set('f_id', d.id);
