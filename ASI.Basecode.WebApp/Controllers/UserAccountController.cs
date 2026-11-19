@@ -1,46 +1,27 @@
 using ASI.Basecode.Resources.Constants;
-
 using ASI.Basecode.Services.Exceptions;
-
 using ASI.Basecode.Services.Interfaces;
-
 using ASI.Basecode.Services.ServiceModels;
-
 using ASI.Basecode.WebApp.Authorization;
-
 using ASI.Basecode.WebApp.Models;
-
 using ASI.Basecode.WebApp.Mvc;
-
 using AutoMapper;
-
 using Microsoft.AspNetCore.Authorization;
-
 using Microsoft.AspNetCore.Http;
-
 using Microsoft.AspNetCore.Mvc;
-
 using Microsoft.Extensions.Configuration;
-
 using Microsoft.Extensions.Logging;
-
 using System;
-
 using System.Collections.Generic;
-
 using System.Linq;
-
 using System.Threading.Tasks;
-
 
 
 namespace ASI.Basecode.WebApp.Controllers;
 
-
-
 /// <summary>
 
-/// WBS 5.1 User and Role Management (Figma: "Administrator / Users &amp; Roles").
+/// WBS 5.1 User and Role Management.
 
 /// Admin only, enforced on the server through the MenuAccess policy for every action,
 
@@ -86,23 +67,28 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
     // 5.12 View user accounts
     [HttpGet]
-    public IActionResult Index(string search = null, string role = null, string status = null)
+    public IActionResult Index(string search = null, string role = null, string status = null, int page = 1, int pageSize = 5)
     {
         try
         {
             var roles = _userAccountService.GetRoles();
             ViewData["Roles"] = roles;
-            ViewBag.Search = search;
-            ViewBag.Role = role;
-            ViewBag.Status = status;
 
-            var users = _userAccountService.GetUserAccounts();
-            ViewBag.TotalCount = users.Count;
+            if (pageSize != 5 && pageSize != 10 && pageSize != 20)
+            {
+                pageSize = 5;
+            }
+
+            var allUsers = _userAccountService.GetUserAccounts();
+            var totalCount = allUsers.Count;
+            var activeCount = allUsers.Count(u => u.IsActive);
+
+            var filteredUsers = allUsers;
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var term = search.Trim();
-                users = users.Where(u =>
+                filteredUsers = filteredUsers.Where(u =>
                     (!string.IsNullOrEmpty(u.FullName) && u.FullName.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
                     (!string.IsNullOrEmpty(u.UserCode) && u.UserCode.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
                     (!string.IsNullOrEmpty(u.Email) && u.Email.Contains(term, StringComparison.OrdinalIgnoreCase))).ToList();
@@ -110,21 +96,54 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
             if (!string.IsNullOrWhiteSpace(role) && !role.Equals("all", StringComparison.OrdinalIgnoreCase))
             {
-                users = users.Where(u => string.Equals(u.RoleName, role, StringComparison.OrdinalIgnoreCase)).ToList();
+                filteredUsers = filteredUsers.Where(u => string.Equals(u.RoleName, role, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
             if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
             {
-                users = users.Where(u => string.Equals(u.AccountStatus, status, StringComparison.OrdinalIgnoreCase)).ToList();
+                filteredUsers = filteredUsers.Where(u => string.Equals(u.AccountStatus, status, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
-            return View(users);
+            var filteredCount = filteredUsers.Count;
+            var totalPages = Math.Max(1, (int)Math.Ceiling((double)filteredCount / pageSize));
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+
+            var pagedUsers = filteredUsers
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var firstItem = filteredCount == 0 ? 0 : (page - 1) * pageSize + 1;
+            var lastItem = filteredCount == 0 ? 0 : firstItem + pagedUsers.Count - 1;
+
+            ViewBag.Search = search;
+            ViewBag.Role = role;
+            ViewBag.Status = status;
+            ViewBag.Page = page;
+            ViewBag.PageSize = pageSize;
+            ViewBag.TotalCount = totalCount;
+            ViewBag.ActiveCount = activeCount;
+            ViewBag.FilteredCount = filteredCount;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.FirstItem = firstItem;
+            ViewBag.LastItem = lastItem;
+
+            return View(pagedUsers);
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Unable to load user accounts.");
             TempData["UserAccountLoadError"] = "Unable to load user accounts. Please try again.";
             ViewData["Roles"] = new List<RoleListItem>();
+            ViewBag.TotalCount = 0;
+            ViewBag.ActiveCount = 0;
+            ViewBag.FilteredCount = 0;
+            ViewBag.Page = 1;
+            ViewBag.PageSize = 5;
+            ViewBag.TotalPages = 1;
+            ViewBag.FirstItem = 0;
+            ViewBag.LastItem = 0;
             return View(new List<UserAccountListItem>());
         }
     }
