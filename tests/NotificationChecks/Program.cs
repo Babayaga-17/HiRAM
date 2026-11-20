@@ -41,8 +41,8 @@ try
     Check(db.Notifications.Count(n => n.EventType == NotificationEvents.RegistrationSubmitted) == 1, "New registration notifies only active admins");
     Check(db.Notifications.Any(n => n.RecipientUserId == admin.UserId && n.RelatedUserId == borrower.UserId), "New user's generated ID is linked atomically");
     Check(mail.Attempts == 1, "Registration sends one direct receipt email");
-    var management = new UserAccountService(users, accounts, new BorrowerProfileRepository(unit), unit, notifications);
-    Check(await management.ApproveRegistrationAsync(borrower.UserId, "0", "admin"), "Pending registration approved");
+    var management = new UserAccountService(users, accounts, new BorrowerProfileRepository(unit), unit, notifications, new AuditLogRepository(unit));
+    Check(await management.ApproveRegistrationAsync(borrower.UserId, "0", admin.UserId, "admin", "127.0.0.1"), "Pending registration approved");
     Check(db.Notifications.Count(n => n.EventType == NotificationEvents.RegistrationApproved && n.RecipientUserId == borrower.UserId) == 1, "Approval creates borrower notification");
     Check(mail.Attempts == 1, "Approval service leaves email delivery to the controller");
 

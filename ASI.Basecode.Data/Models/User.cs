@@ -31,6 +31,8 @@ public partial class User
 
     public virtual Account Account { get; set; }
 
+    public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+
     public virtual ICollection<BorrowerProfile> BorrowerProfileSuspendedByUsers { get; set; } = new List<BorrowerProfile>();
 
     public virtual BorrowerProfile BorrowerProfileUser { get; set; }

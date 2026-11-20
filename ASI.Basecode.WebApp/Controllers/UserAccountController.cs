@@ -448,7 +448,7 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
             email = account.Email;
 
-            var found = await _userAccountService.ApproveRegistrationAsync(id, version, UserId);
+            var found = await _userAccountService.ApproveRegistrationAsync(id, version, CurrentUserId, UserId, ClientIp);
 
             if (!found)
             {

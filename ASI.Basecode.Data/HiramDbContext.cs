@@ -18,6 +18,8 @@ public partial class HiramDbContext : DbContext
 
     public virtual DbSet<Account> Accounts { get; set; }
 
+    public virtual DbSet<AuditLog> AuditLogs { get; set; }
+
     public virtual DbSet<BorrowerProfile> BorrowerProfiles { get; set; }
 
     public virtual DbSet<Department> Departments { get; set; }
@@ -42,7 +44,7 @@ public partial class HiramDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Addr=localhost; database=HiramDb; Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
+        => optionsBuilder.UseSqlServer("Addr=BORITTT; database=HiramDb; Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -97,6 +99,51 @@ public partial class HiramDbContext : DbContext
                 .HasForeignKey<Account>(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Accounts_Users");
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasIndex(e => e.UserId, "IX_AuditLogs_user_id");
+
+            entity.Property(e => e.AuditLogId).HasColumnName("audit_log_id");
+            entity.Property(e => e.Action)
+                .IsRequired()
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("action");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("(sysdatetime())")
+                .HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy)
+                .IsRequired()
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("created_by");
+            entity.Property(e => e.Details)
+                .IsUnicode(false)
+                .HasColumnName("details");
+            entity.Property(e => e.EntityId)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("entity_id");
+            entity.Property(e => e.EntityName)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("entity_name");
+            entity.Property(e => e.IpAddress)
+                .HasMaxLength(45)
+                .IsUnicode(false)
+                .HasColumnName("ip_address");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(e => e.UpdatedBy)
+                .HasMaxLength(100)
+                .IsUnicode(false)
+                .HasColumnName("updated_by");
+            entity.Property(e => e.UserId).HasColumnName("user_id");
+
+            entity.HasOne(d => d.User).WithMany(p => p.AuditLogs)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_AuditLogs_Users");
         });
 
         modelBuilder.Entity<BorrowerProfile>(entity =>

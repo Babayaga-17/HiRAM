@@ -37,19 +37,22 @@ namespace ASI.Basecode.Services.Services
         private readonly IBorrowerProfileRepository _borrowerProfileRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly INotificationService _notifications;
+        private readonly IAuditLogRepository _auditLogRepository;
 
         public UserAccountService(
             IUserRepository userRepository,
             IAccountRepository accountRepository,
             IBorrowerProfileRepository borrowerProfileRepository,
             IUnitOfWork unitOfWork,
-            INotificationService notifications)
+            INotificationService notifications,
+            IAuditLogRepository auditLogRepository)
         {
             _userRepository = userRepository;
             _accountRepository = accountRepository;
             _borrowerProfileRepository = borrowerProfileRepository;
             _unitOfWork = unitOfWork;
             _notifications = notifications;
+            _auditLogRepository = auditLogRepository;
         }
 
         #region View
@@ -187,7 +190,16 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _userRepository.AddUser(user); // inserts Users + Accounts together
-            });
+
+                AddAudit(
+                    currentUserId,
+                    createdBy,
+                    ipAddress,
+                    UserAccountAuditActions.Created,
+                    user.UserId,
+                    $"Created account {user.UserCode} with role {role} " +
+                    $"and status {user.Account.AccountStatus}.");
+                });
 
             return user.UserId;
         }
@@ -307,6 +319,16 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account); // also saves the tracked User changes
+
+                AddAudit(
+                currentUserId,
+                updatedBy,
+                ipAddress,
+                roleChanged
+                    ? UserAccountAuditActions.RoleChanged
+                    : UserAccountAuditActions.Updated,
+                account.UserId,
+                $"Updated account {model.UserCode}: {string.Join("; ", changes)}");
             });
 
             return true;
@@ -358,6 +380,17 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account);
+
+                AddAudit(
+                    currentUserId,
+                    updatedBy,
+                    ipAddress,
+                    activate
+                        ? UserAccountAuditActions.Activated
+                        : UserAccountAuditActions.Deactivated,
+                    userId,
+                    $"Account {account.User.UserCode}: " +
+                    $"status changed from {previousStatus} to {newStatus}.");
             });
 
             return true;
@@ -366,7 +399,7 @@ namespace ASI.Basecode.Services.Services
         /// <summary>
         /// Approves the pending account and borrower eligibility in a repository-owned transaction.
         /// </summary>
-        public Task<bool> ApproveRegistrationAsync(int userId, string version, string updatedBy)
+        public Task<bool> ApproveRegistrationAsync(int userId, string version, int currentUserId, string updatedBy, string ipAddress)
         {   
             var found = _accountRepository.UpdateRegistration(userId, account =>
             {
@@ -391,6 +424,14 @@ namespace ASI.Basecode.Services.Services
                 profile.UpdatedBy = updatedBy;
                 profile.UpdatedAt = now;
                 _notifications.RegistrationApproved(account);
+
+                AddAudit(
+                    currentUserId,
+                    updatedBy,
+                    ipAddress,
+                    UserAccountAuditActions.RegistrationApproved,
+                    account.UserId,
+                    "Registration approved. Account activated and borrower made eligible.");
             });
             return Task.FromResult(found);
         }
@@ -412,6 +453,15 @@ namespace ASI.Basecode.Services.Services
             SaveInTransaction(() =>
             {
                 _accountRepository.UpdateAccount(account);
+
+                AddAudit(
+                    currentUserId,
+                    updatedBy,
+                    ipAddress,
+                    UserAccountAuditActions.AccessReset,
+                    userId,
+                    $"Access reset for account {account.User.UserCode}. " +
+                    "Temporary password issued; failed attempts and lockout cleared.");
             });
 
             return temporaryPassword;
@@ -560,6 +610,21 @@ namespace ASI.Basecode.Services.Services
                     throw new UserAccountValidationException(nameof(UserAccountFormViewModel.Email), ErrorMessages.EmailExists);
                 throw;
             }
+        }
+
+        private void AddAudit(int actorUserId, string actorName, string ipAddress, string action, int targetUserId, string details)
+        {
+            _auditLogRepository.AddAuditLog(new AuditLog
+            {
+                UserId = actorUserId,
+                Action = action,
+                EntityName = "Users",
+                EntityId = targetUserId.ToString(),
+                Details = details,
+                IpAddress = ipAddress,
+                CreatedBy = actorName,
+                CreatedAt = DateTime.Now
+            });
         }
 
         private static void Track(List<string> changes, string label, string oldValue, string newValue)
