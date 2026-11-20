@@ -11,11 +11,6 @@
 }
 
 /* Account statuses beyond Active/Inactive (CK_Accounts_status). */
-.status-suspended {
-    color: var(--pending-ink);
-    background: var(--pending-soft)
-}
-
 .status-disabled {
     color: var(--danger-ink);
     background: var(--danger-soft)

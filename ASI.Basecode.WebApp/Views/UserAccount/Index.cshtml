@@ -146,7 +146,12 @@ else
                                     <td>@account.Email</td>
                                     <td><span class="role-pill">@account.RoleName</span></td>
                                     <td>@LastActive(account.LastLoginAt)</td>
-                                    <td><span class="status-badge status-@account.AccountStatus.ToLowerInvariant()"><span></span>@(account.AccountStatus == "PendingApproval" ? "Pending approval" : account.AccountStatus)</span></td>
+                                    @{
+                                        var isSuspended = string.Equals(account.AccountStatus, "Suspended", StringComparison.OrdinalIgnoreCase);
+                                        var displayStatus = account.AccountStatus == "PendingApproval" ? "Pending approval" : isSuspended ? "Inactive" : account.AccountStatus;
+                                        var statusBadgeClass = isSuspended ? "inactive" : account.AccountStatus.ToLowerInvariant();
+                                    }
+                                    <td><span class="status-badge status-@statusBadgeClass"><span></span>@displayStatus</span></td>
                                     <td class="actions-column">
                                         <div class="row-actions">
                                             <a class="icon-button" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="View @account.FullName" title="View account"><svg class="icon"><use href="#i-eye" /></svg></a>

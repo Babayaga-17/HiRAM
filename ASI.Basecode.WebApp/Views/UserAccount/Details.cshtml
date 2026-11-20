@@ -51,7 +51,7 @@
         <dl class="details-list">
             <div><dt>Borrower type</dt><dd>@(registration.BorrowerType ?? "Not provided")</dd></div>
             <div><dt>Department</dt><dd>@(registration.DepartmentName ?? "Not provided")</dd></div>
-            <div><dt>Eligibility</dt><dd>@(registration.EligibilityStatus ?? "No borrower profile")</dd></div>
+            <div><dt>Eligibility</dt><dd>@(registration.EligibilityStatus == "Suspended" ? "Ineligible" : (registration.EligibilityStatus ?? "No borrower profile"))</dd></div>
             @if (registration.BorrowerType != "Faculty")
             {
                 <div><dt>Program</dt><dd>@(registration.Program ?? "Not provided")</dd></div>
@@ -73,7 +73,12 @@
             <div><dt>Email</dt><dd>@Model.Email</dd></div>
             <div><dt>Contact number</dt><dd>@(string.IsNullOrEmpty(Model.ContactNumber) ? "—" : Model.ContactNumber)</dd></div>
             <div><dt>Role</dt><dd><span class="role-pill">@Model.RoleName</span></dd></div>
-            <div><dt>Status</dt><dd><span class="status-badge status-@Model.AccountStatus.ToLowerInvariant()"><span></span>@(isPending ? "Pending approval" : Model.AccountStatus)</span></dd></div>
+            @{
+                var isSuspended = string.Equals(Model.AccountStatus, "Suspended", StringComparison.OrdinalIgnoreCase);
+                var displayStatus = isPending ? "Pending approval" : isSuspended ? "Inactive" : Model.AccountStatus;
+                var statusBadgeClass = isSuspended ? "inactive" : Model.AccountStatus.ToLowerInvariant();
+            }
+            <div><dt>Status</dt><dd><span class="status-badge status-@statusBadgeClass"><span></span>@displayStatus</span></dd></div>
             <div><dt>Last sign-in</dt><dd>@Stamp(Model.LastLoginAt)</dd></div>
             <div><dt>Failed sign-in attempts</dt><dd>@Model.FailedLoginAttempts</dd></div>
             <div><dt>Locked until</dt><dd>@(isLocked ? Stamp(Model.LockoutEndAt) : "Not locked")</dd></div>
@@ -108,7 +113,7 @@
         }
         else
         {
-            <p>This account is <strong>@Model.AccountStatus</strong> and cannot sign in.</p>
+            <p>This account is <strong>@(string.Equals(Model.AccountStatus, "Suspended", StringComparison.OrdinalIgnoreCase) ? "Inactive" : Model.AccountStatus)</strong> and cannot sign in.</p>
             <form asp-controller="UserAccount" asp-action="Activate" asp-route-id="@Model.UserId" method="post">
                 <input type="hidden" name="version" value="@Model.Version" />
                 <button type="submit" class="button button-primary"><svg class="icon"><use href="#i-check" /></svg>Activate account</button>
