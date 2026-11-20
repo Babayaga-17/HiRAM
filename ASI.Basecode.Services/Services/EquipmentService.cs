@@ -390,9 +390,12 @@ namespace ASI.Basecode.Services.Services
                 .ToList();
         }
 
+        // Equipment under a deactivated category is hidden from borrowers.
+        // The equipment's own status is not changed; reactivating the category shows it again.
         private IQueryable<Equipment> GetBorrowerVisibleEquipments()
         {
-            return _equipmentRepository.GetEquipments();
+            return _equipmentRepository.GetEquipments()
+                .Where(equipment => equipment.Category == null || equipment.Category.IsActive);
         }
 
         // Pending, approved, borrowed and overdue reservations plus maintenance that overlap [start, end).
