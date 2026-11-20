@@ -226,6 +226,11 @@ public class UserAccountController : ControllerBase<UserAccountController>
 
         model.UserId = 0;
 
+        if (string.IsNullOrEmpty(model.AccountStatus))
+        {
+            model.AccountStatus = AccountStatuses.Active;
+        }
+
 
 
         if (string.IsNullOrEmpty(model.Password))
