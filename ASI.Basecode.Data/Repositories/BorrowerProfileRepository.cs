@@ -11,8 +11,14 @@ namespace ASI.Basecode.Data.Repositories
     {
         public BorrowerProfileRepository(IUnitOfWork unitOfWork) : base(unitOfWork) { }
 
-        public List<Department> GetActiveDepartments() => GetDbSet<Department>()
-            .AsNoTracking().Where(d => d.IsActive).OrderBy(d => d.DepartmentName).ToList();
+        public List<Department> GetActiveDepartments()
+        {
+            return GetDbSet<Department>()
+                .AsNoTracking()
+                .Where(d => d.IsActive)
+                .OrderBy(d => d.DepartmentName)
+                .ToList();
+        }
 
         public int CountProfiles(string eligibilityStatus = null)
         {

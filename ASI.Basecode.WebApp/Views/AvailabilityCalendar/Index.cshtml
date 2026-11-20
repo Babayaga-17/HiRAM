@@ -273,7 +273,7 @@ else
                         </div>
                         @if (isBorrower)
                         {
-                            <a asp-controller="Reservation" asp-action="Create" asp-route-equipmentId="@eq.EquipmentId">Reserve</a>
+                            <a asp-controller="Equipment" asp-action="Details" asp-route-id="@eq.EquipmentId">View Details</a>
                         }
                     </li>
                 }

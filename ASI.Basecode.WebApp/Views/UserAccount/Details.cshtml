@@ -11,6 +11,7 @@
     var isLocked = Model.LockoutEndAt.HasValue && Model.LockoutEndAt.Value > DateTime.Now;
     string Stamp(DateTime? value) => value.HasValue ? value.Value.ToString("MMM d, yyyy h:mm tt") : "—";
 }
+
 @section Styles {
     <link rel="stylesheet" href="~/css/user-account.css" asp-append-version="true" />
 }

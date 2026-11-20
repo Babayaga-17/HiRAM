@@ -21,6 +21,7 @@ public class BorrowerRegistrationViewModel : IValidatableObject
     [Required, Compare(nameof(Password), ErrorMessage = "Passwords must match.")] public string ConfirmPassword { get; set; }
     public List<Department> Departments { get; set; } = new();
     public string DepartmentError { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext context)
     {
         if (BorrowerType == "Student")
