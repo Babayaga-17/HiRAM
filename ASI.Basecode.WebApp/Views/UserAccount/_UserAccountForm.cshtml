@@ -106,7 +106,7 @@
                 @if (isSelf || Model.AccountStatus == AccountStatuses.PendingApproval)
                 {
                     <input asp-for="AccountStatus" type="hidden" />
-                    <select id="AccountStatus" disabled><option>@Model.AccountStatus</option></select>
+                    <select id="AccountStatus" disabled><option>@(string.Equals(Model.AccountStatus, "Suspended", StringComparison.OrdinalIgnoreCase) ? "Inactive" : Model.AccountStatus)</option></select>
                     <small>@(Model.AccountStatus == AccountStatuses.PendingApproval ? "Use registration approval to grant access." : "You cannot deactivate your own account.")</small>
                 }
                 else
@@ -196,10 +196,11 @@
                 <label for="EligibilityStatus">Eligibility <span class="required">*</span></label>
                 @if (Model.EligibilityLocked)
                 {
+                    var displayEligibility = string.Equals(Model.EligibilityStatus, "Suspended", StringComparison.OrdinalIgnoreCase) ? "Ineligible" : Model.EligibilityStatus;
                     <select asp-for="EligibilityStatus" disabled>
-                        <option value="@Model.EligibilityStatus">@Model.EligibilityStatus</option>
+                        <option value="@displayEligibility">@displayEligibility</option>
                     </select>
-                    <small>Eligibility is managed by registration review or suspension.</small>
+                    <small>Eligibility is managed by registration review.</small>
                 }
                 else
                 {

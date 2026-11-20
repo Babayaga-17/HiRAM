@@ -102,7 +102,7 @@ namespace ASI.Basecode.Services.Services
             model.Program = profile.Program ?? string.Empty;
             model.YearLevel = profile.YearLevel;
             model.BorrowerType = profile.BorrowerType ?? string.Empty;
-            model.EligibilityStatus = profile.EligibilityStatus ?? EligibilityStatuses.Eligible;
+            model.EligibilityStatus = profile.EligibilityStatus == SuspendedEligibility ? EligibilityStatuses.Ineligible : (profile.EligibilityStatus ?? EligibilityStatuses.Eligible);
             model.EligibilityLocked = IsEligibilityLocked(model.AccountStatus, profile);
         }
         private static IQueryable<UserAccountListItem> Project(IQueryable<Account> accounts)
@@ -119,7 +119,7 @@ namespace ASI.Basecode.Services.Services
                 ContactNumber = account.User.ContactNumber ?? string.Empty,
                 Email = account.Email,
                 RoleName = account.RoleName,
-                AccountStatus = account.AccountStatus,
+                AccountStatus = account.AccountStatus == AccountStatuses.Suspended ? AccountStatuses.Inactive : account.AccountStatus,
                 FailedLoginAttempts = account.FailedLoginAttempts,
                 LockoutEndAt = account.LockoutEndAt,
                 LastLoginAt = account.LastLoginAt,
@@ -580,6 +580,10 @@ namespace ASI.Basecode.Services.Services
             model.ContactNumber = Clean(model.ContactNumber);
             model.Email = Clean(model.Email)?.ToLowerInvariant();
             model.AccountStatus = Clean(model.AccountStatus) ?? AccountStatuses.Active;
+            if (string.Equals(model.AccountStatus, AccountStatuses.Suspended, StringComparison.OrdinalIgnoreCase))
+            {
+                model.AccountStatus = AccountStatuses.Inactive;
+            }
             model.Program = Clean(model.Program);
             model.BorrowerType = Clean(model.BorrowerType);
             model.EligibilityStatus = Clean(model.EligibilityStatus) ?? EligibilityStatuses.Eligible;

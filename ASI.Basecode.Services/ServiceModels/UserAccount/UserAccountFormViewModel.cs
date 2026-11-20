@@ -19,7 +19,7 @@ public class UserAccountFormViewModel : IValidatableObject
     /// <summary>Values allowed by CK_BorrowerProfiles_borrower_type.</summary>
     public static readonly string[] BorrowerTypeOptions = { "Student", "Faculty" };
 
-    /// <summary>Values the form lets an administrator choose. Suspended is set by the suspension flow only.</summary>
+    /// <summary>Values the form lets an administrator choose.</summary>
     public static readonly string[] EligibilityOptions = { "Eligible", "Ineligible" };
 
     public int UserId { get; set; }
@@ -74,7 +74,7 @@ public class UserAccountFormViewModel : IValidatableObject
 
     public string BorrowerType { get; set; } = string.Empty;
 
-    /// <summary>True when eligibility cannot be changed here (pending registration or suspended borrower).</summary>
+    /// <summary>True when eligibility cannot be changed here (pending registration or locked borrower).</summary>
     public bool EligibilityLocked { get; set; }
 
     [DataType(DataType.Password)]
@@ -108,7 +108,7 @@ public class UserAccountFormViewModel : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (!AccountStatuses.All.Contains(AccountStatus) && !(IsEdit && AccountStatus == AccountStatuses.PendingApproval))
+        if ((!AccountStatuses.All.Contains(AccountStatus) || AccountStatus == AccountStatuses.Suspended) && !(IsEdit && AccountStatus == AccountStatuses.PendingApproval))
         {
             yield return new ValidationResult("Select a valid status.", new[] { nameof(AccountStatus) });
         }

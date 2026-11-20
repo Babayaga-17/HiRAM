@@ -105,6 +105,11 @@ public class UserAccountController : ControllerBase<UserAccountController>
                 filteredUsers = filteredUsers.Where(u => string.Equals(u.RoleName, role, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
+            if (string.Equals(status, AccountStatuses.Suspended, StringComparison.OrdinalIgnoreCase))
+            {
+                status = "all";
+            }
+
             if (!string.IsNullOrWhiteSpace(status) && !status.Equals("all", StringComparison.OrdinalIgnoreCase))
             {
                 filteredUsers = filteredUsers.Where(u => string.Equals(u.AccountStatus, status, StringComparison.OrdinalIgnoreCase)).ToList();
