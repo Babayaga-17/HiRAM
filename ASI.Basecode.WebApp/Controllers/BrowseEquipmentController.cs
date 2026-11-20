@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Data.Models;
+using ASI.Basecode.Data.Models;
 using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
@@ -340,7 +340,9 @@ public class BrowseEquipmentController : ControllerBase<BrowseEquipmentControlle
 
     private void LoadCategories()
     {
+        // Borrowers only see active categories in the filter.
         var categories = _equipmentCategoryService.GetEquipmentCategories()
+            .Where(category => category.IsActive)
             .OrderBy(category => category.CategoryName)
             .ToList();
 

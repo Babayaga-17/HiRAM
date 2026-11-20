@@ -1,4 +1,4 @@
-﻿using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Resources.Constants;
 using ASI.Basecode.Services.Interfaces;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.ServiceModels.Equipment;
@@ -59,6 +59,21 @@ public class AvailabilityCalendarController : ControllerBase<AvailabilityCalenda
             var allEquipments = _equipmentService.GetEquipments()
                 .Where(item => item.IsActive)
                 .ToList();
+
+            // Borrowers do not see deactivated categories or the equipment under them.
+            // Equipment records are not changed; reactivating the category shows them again.
+            if (User.IsInRole(RoleNames.Borrower))
+            {
+                var inactiveCategoryIds = categories
+                    .Where(c => !c.IsActive)
+                    .Select(c => c.CategoryId)
+                    .ToHashSet();
+
+                categories = categories.Where(c => c.IsActive).ToList();
+                allEquipments = allEquipments
+                    .Where(e => !e.CategoryId.HasValue || !inactiveCategoryIds.Contains(e.CategoryId.Value))
+                    .ToList();
+            }
 
             DateTime rangeStart;
             DateTime rangeEnd;
