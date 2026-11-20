@@ -63,9 +63,7 @@ public class DashboardController : ControllerBase<DashboardController>
         }
         catch (Exception exception)
         {
-            _logger.LogError(
-                exception, "Unable to load the {Dashboard} dashboard.", viewName);
-
+            _logger.LogError(exception, "Unable to load the {Dashboard} dashboard.", viewName);
             ViewData["DashboardError"] = "Your dashboard could not be loaded. Refresh to try again.";
 
             return View(viewName);

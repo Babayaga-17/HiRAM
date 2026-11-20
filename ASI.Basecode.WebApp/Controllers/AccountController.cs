@@ -14,7 +14,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using ZXing;
 using static ASI.Basecode.Resources.Constants.Enums;
@@ -317,7 +319,7 @@ namespace ASI.Basecode.WebApp.Controllers
 
                     return RedirectToAction(nameof(AwaitingApproval));
                 }
-                catch (System.ComponentModel.DataAnnotations.ValidationException exception)
+                catch (ValidationException exception)
                 {
                     ModelState.AddModelError(string.Empty, exception.Message);
                 }
@@ -338,11 +340,11 @@ namespace ASI.Basecode.WebApp.Controllers
             return View(model);
         }
 
-        [Authorize]
         [HttpGet]
+        [Authorize(Roles = $"{RoleNames.Borrower}, {RoleNames.Custodian}, {RoleNames.Admin}")]
         public async Task<IActionResult> MyProfile()
         {
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userIdClaim = UserId;
 
             if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
                 return Challenge();
@@ -387,7 +389,9 @@ namespace ASI.Basecode.WebApp.Controllers
 
         private void LoadRegistrationDepartments(BorrowerRegistrationViewModel model)
         {
-            try { model.Departments = _borrowerProfileService.GetDepartments(); }
+            try { 
+                model.Departments = _borrowerProfileService.GetDepartments(); 
+            }
             catch (Exception exception)
             {
                 _logger.LogWarning(exception, "Unable to load registration departments.");

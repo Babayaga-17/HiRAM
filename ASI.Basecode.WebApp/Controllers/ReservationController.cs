@@ -104,6 +104,11 @@ public class ReservationController : ControllerBase<ReservationController>
 
         try
         {
+            model.EligibilityStatus = _reservationService.GetBorrowerEligibility(borrowerUserId);
+
+            if (model.EligibilityStatus != EligibilityStatuses.Eligible)
+                return View(model);
+
             LoadEquipment(model);
 
             if (model.EquipmentIds.Count > 0 &&
@@ -919,6 +924,7 @@ public class ReservationController : ControllerBase<ReservationController>
             TempData["ReservationEmailWarning"] = failureMessage;
         }
     }
+    
     private int? CurrentUserId()
     {
         return int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id) ? id : (int?)null;

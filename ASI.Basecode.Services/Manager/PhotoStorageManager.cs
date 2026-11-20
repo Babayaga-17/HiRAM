@@ -40,41 +40,14 @@ public abstract class PhotoStorageManager
 
     public async Task<string> CreateReadUrlAsync(string storagePath, CancellationToken cancellationToken = default)
     {
-        var path = EncodePath(storagePath);
+        EncodePath(storagePath);
 
-        using var request = CreateRequest(HttpMethod.Post, $"object/sign/{Uri.EscapeDataString(_bucket)}/{path}");
+        var urls = await CreateReadUrlsAsync(new[] { storagePath }, cancellationToken);
 
-        request.Content = JsonContent.Create(new
-        {
-            expiresIn = 3600
-        });
-
-        // Send the request and handle potential timeout exceptions.
-
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
-
-        // Check if the response indicates success and throw an exception if not.
-
-        EnsureSuccess(response, "create a photo URL");
-
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        using var document = JsonDocument.Parse(json);
-
-        if (!document.RootElement.TryGetProperty("signedURL", out var value)
-            || string.IsNullOrWhiteSpace(value.GetString()))
-        {
+        if (!urls.TryGetValue(storagePath, out var url))
             throw new InvalidOperationException("Supabase did not return a photo URL.");
-        }
 
-        var signedUrl = value.GetString();
-
-        if (Uri.TryCreate(signedUrl, UriKind.Absolute, out var absoluteUrl))
-        {
-            return absoluteUrl.AbsoluteUri;
-        }
-
-        return new Uri(_storageUrl, signedUrl.TrimStart('/')).AbsoluteUri;
+        return url;
     }
 
     public async Task<Dictionary<string, string>> CreateReadUrlsAsync(IEnumerable<string> storagePaths, CancellationToken cancellationToken = default)

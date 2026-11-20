@@ -132,6 +132,13 @@ namespace ASI.Basecode.Services.Services
             return preview;
         }
 
+        public string GetBorrowerEligibility(int borrowerUserId)
+        {
+            return _reservationRepository
+                .GetBorrowerProfile(borrowerUserId)?
+                .EligibilityStatus;
+        }
+
         public (string ReservationNumber, string Error) Submit(ReservationFormModel form, int borrowerUserId)
         {
             EnsureValidSchedule(form);
