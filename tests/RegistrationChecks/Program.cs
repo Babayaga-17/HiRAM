@@ -160,9 +160,22 @@ try
     Check(!sent && db.Users.Any(u => u.UserCode == "EMAIL-FAIL"), "Email failure does not undo saved registration");
 
     email.Fail = false;
-    var management = new UserAccountService(users, accounts, profiles, new UnitOfWork(db), new NotificationService(new NotificationRepository(new UnitOfWork(db))));
+    var auditAdmin = new User
+    {
+        UserCode = "AUDIT-ADMIN", FirstName = "Audit", LastName = "Admin", CreatedBy = "test",
+        Account = new Account
+        {
+            Email = "audit-admin@example.invalid", RoleName = RoleNames.Admin,
+            AccountStatus = AccountStatuses.Active, CreatedBy = "test",
+            PasswordHash = PasswordManager.EncryptPassword("TestPass123")
+        }
+    };
+    db.Add(auditAdmin);
+    db.SaveChanges();
+    var auditActorId = auditAdmin.UserId;
+    var management = new UserAccountService(users, accounts, profiles, new UnitOfWork(db), new NotificationService(new NotificationRepository(new UnitOfWork(db))), new AuditLogRepository(new UnitOfWork(db)));
     var login = new AccountService(accounts, users, photos);
-    bool Approve(int id, string version, string actor) => management.ApproveRegistrationAsync(id, version, actor).GetAwaiter().GetResult();
+    bool Approve(int id, string version, string actor) => management.ApproveRegistrationAsync(id, version, auditActorId, actor, "127.0.0.1").GetAwaiter().GetResult();
     void RejectApproval(Action action, string name)
     {
         try { action(); }
@@ -186,8 +199,12 @@ try
     RejectApproval(() => management.EditUserAccount(editedPending, 999, "admin", null), "Edit cannot bypass pending approval");
     RejectApproval(() => Approve(studentId, "1", "admin"), "Stale approval rejected");
     Check(email.Attempts == approvalEmailAttempts, "Rejected approvals do not send email");
-    var approvalResult = await management.ApproveRegistrationAsync(studentId, "0", "admin");
+    var approvalResult = await management.ApproveRegistrationAsync(studentId, "0", auditActorId, "admin", "127.0.0.1");
     Check(approvalResult, "Pending registration approved");
+    Check(db.AuditLogs.Count(log => log.Action == UserAccountAuditActions.RegistrationApproved
+        && log.EntityId == studentId.ToString() && log.UserId == auditActorId
+        && log.IpAddress == "127.0.0.1") == 1,
+        "Approval audit identifies the actor, target and connection address");
     Check(email.Attempts == approvalEmailAttempts, "Approval service leaves email delivery to the controller");
     Check(db.Notifications.Count(n => n.RecipientUserId == studentId && n.EventType == NotificationEvents.RegistrationApproved) == 1,
         "Approval creates one borrower in-app notification");
@@ -214,6 +231,8 @@ try
     Check(rolledBack.Account.AccountStatus == "PendingApproval" && rolledBack.BorrowerProfileUser.EligibilityStatus == "Ineligible", "Database failure rolls back both approval changes");
     Check(!db.Notifications.Any(n => n.RecipientUserId == rollbackId && n.EventType == NotificationEvents.RegistrationApproved),
         "Database failure rolls back the approval notification");
+    Check(!db.AuditLogs.Any(log => log.Action == UserAccountAuditActions.RegistrationApproved
+        && log.EntityId == rollbackId.ToString()), "Failed approval leaves no audit entry");
     Check(email.Attempts == attemptsBeforeFailure, "Database failure does not send approval email");
     var blocked = db.BorrowerProfiles.Single(p => p.UserId == rollbackId);
     blocked.EligibilityStatus = "Suspended"; db.SaveChanges(); db.ChangeTracker.Clear();
@@ -226,12 +245,14 @@ try
         using var context = new IsolatedTestDb(new DbContextOptionsBuilder<HiramDbContext>()
             .UseSqlServer(db.Database.GetConnectionString()).Options);
         var unit = new UnitOfWork(context);
-        var service = new UserAccountService(new UserRepository(unit), new AccountRepository(unit), new BorrowerProfileRepository(unit), unit, new NotificationService(new NotificationRepository(unit)));
-        try { return service.ApproveRegistrationAsync(concurrentId, "0", "admin").GetAwaiter().GetResult(); }
+        var service = new UserAccountService(new UserRepository(unit), new AccountRepository(unit), new BorrowerProfileRepository(unit), unit, new NotificationService(new NotificationRepository(unit)), new AuditLogRepository(unit));
+        try { return service.ApproveRegistrationAsync(concurrentId, "0", auditActorId, "admin", "127.0.0.1").GetAwaiter().GetResult(); }
         catch (ASI.Basecode.Services.Exceptions.UserAccountValidationException) { return false; }
     });
     var concurrentResults = await Task.WhenAll(ConcurrentApproval(), ConcurrentApproval());
     Check(concurrentResults.Count(result => result) == 1, "Two concurrent approvals produce exactly one success");
+    Check(db.AuditLogs.Count(log => log.Action == UserAccountAuditActions.RegistrationApproved
+        && log.EntityId == concurrentId.ToString()) == 1, "Concurrent approval writes exactly one audit entry");
     Check(db.Notifications.Count(n => n.RecipientUserId == concurrentId && n.EventType == NotificationEvents.RegistrationApproved) == 1,
         "Concurrent approval commits one in-app notification");
 
@@ -240,7 +261,7 @@ try
     db.ChangeTracker.Clear();
     email.Fail = true;
     var attemptsBeforeApproval = email.Attempts;
-    Check(await management.ApproveRegistrationAsync(emailFailId, "0", "admin"), "Approval does not depend on the email provider");
+    Check(await management.ApproveRegistrationAsync(emailFailId, "0", auditActorId, "admin", "127.0.0.1"), "Approval does not depend on the email provider");
     Check(email.Attempts == attemptsBeforeApproval, "Approval service does not call the email provider");
     Check(db.Notifications.Any(n => n.RecipientUserId == emailFailId && n.EventType == NotificationEvents.RegistrationApproved),
         "Approval still notifies the borrower when the email provider is unavailable");

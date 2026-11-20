@@ -38,6 +38,7 @@ namespace ASI.Basecode.Resources.Constants
         public const string Activated = "USER_ACCOUNT_ACTIVATED";
         public const string Deactivated = "USER_ACCOUNT_DEACTIVATED";
         public const string AccessReset = "USER_ACCESS_RESET";
+        public const string RegistrationApproved = "USER_REGISTRATION_APPROVED";
     }
 }
 

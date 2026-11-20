@@ -46,11 +46,9 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IDashboardService, DashboardService>();
             this._services.AddHttpClient<IEquipmentPhotoService, EquipmentPhotoService>();
             this._services.AddHttpClient<IProfilePhotoService, ProfilePhotoService>();
+            this._services.AddScoped<IMaintenanceService, MaintenanceService>();
 
             this._services.Configure<SupabaseStorageOptions>(this.Configuration.GetSection(SupabaseStorageOptions.SectionName));
-
-            this._services.AddScoped<IMaintenanceService, MaintenanceService>();
-            this._services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
 
             // Repositories
             this._services.AddScoped<INotificationRepository, NotificationRepository>();
@@ -63,6 +61,8 @@ namespace ASI.Basecode.WebApp
             this._services.AddScoped<IReservationRepository, ReservationRepository>();
             this._services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
             this._services.AddScoped<IReportRepository, ReportRepository>();
+            this._services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+            this._services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
 
             // Manager Class
             this._services.AddScoped<SignInManager>();
