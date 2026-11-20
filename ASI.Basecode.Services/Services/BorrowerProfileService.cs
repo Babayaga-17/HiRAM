@@ -24,27 +24,27 @@ namespace ASI.Basecode.Services.Services
     public class BorrowerProfileService : IBorrowerProfileService
     {
         private readonly IBorrowerProfileRepository _borrowerProfileRepository;
-        private readonly INotificationService _notifications;
+        private readonly INotificationService _notificationService;
         private readonly IUserRepository _userRepository;
         private readonly IAccountRepository _accountRepository;
         private readonly IProfilePhotoService _profilePhotoService;
-        private readonly IEmailManager _email;
+        private readonly IEmailManager _emailManager;
         private readonly ILogger<BorrowerProfileService> _logger;
 
         public BorrowerProfileService(IBorrowerProfileRepository borrowerProfileRepository, 
             IUserRepository userRepository,
             IAccountRepository accountRepository, 
             IProfilePhotoService profilePhotoService,
-            IEmailManager email, 
+            IEmailManager emailManager, 
             ILogger<BorrowerProfileService> logger, 
-            INotificationService notifications)
+            INotificationService notificationService)
         {
             _borrowerProfileRepository = borrowerProfileRepository;
-            _notifications = notifications;
+            _notificationService = notificationService;
             _userRepository = userRepository;
             _accountRepository = accountRepository;
             _profilePhotoService = profilePhotoService;
-            _email = email;
+            _emailManager = emailManager;
             _logger = logger;
         }
 
@@ -197,6 +197,7 @@ namespace ASI.Basecode.Services.Services
         public async Task<bool> RegisterAsync(BorrowerRegistrationViewModel model, IFormFile photo, CancellationToken cancellationToken = default)
         {
             model.UserCode = model.UserCode?.Trim(); model.Email = model.Email?.Trim();
+
             Validator.ValidateObject(model, new ValidationContext(model), true);
                 
             if (_userRepository.UserCodeExists(model.UserCode))
@@ -206,7 +207,8 @@ namespace ASI.Basecode.Services.Services
                 throw new ValidationException("That email is already registered.");
 
             var department = GetDepartments().FirstOrDefault(d => d.DepartmentId == model.DepartmentId);
-            if (department == null) throw new ValidationException("Select an active department.");
+            if (department == null) 
+                throw new ValidationException("Select an active department.");
             model.Program = model.Program?.Trim();
             if (model.BorrowerType == "Student" && !ProgramOptions.IsProgramAllowed(department.DepartmentCode, model.Program))
                 throw new ValidationException("Select a program belonging to the department.");
@@ -250,7 +252,7 @@ namespace ASI.Basecode.Services.Services
                 user.ProfilePhotoStoragePath = path;
 
                 // One SaveChanges inserts this complete related graph in an EF transaction.
-                _notifications.RegistrationSubmitted(user);
+                _notificationService.RegistrationSubmitted(user);
                 _userRepository.AddUser(user);
             }
             catch (Exception exception)
@@ -264,13 +266,17 @@ namespace ASI.Basecode.Services.Services
                     throw new ValidationException("That email or school ID was just registered. Please sign in or contact your administrator.");
                 throw;
             }
+
             try
             {
-                await _email.SendAsync(model.Email, "HiRAM registration awaiting approval",
+                await _emailManager.SendAsync(model.Email, 
+                    "HiRAM registration awaiting approval",
                     "Your registration has been received and is awaiting administrator approval. You cannot sign in until it is approved. Please do not register again while your request is pending.");
                 return true;
             }
-            catch (Exception exception) { _logger.LogWarning(exception, "Registration saved but receipt email failed for user {UserId}.", user.UserId); return false; }
+            catch (Exception exception) { 
+                _logger.LogWarning(exception, "Registration saved but receipt email failed for user {UserId}.", user.UserId); return false; 
+            }
         }
     }
 }

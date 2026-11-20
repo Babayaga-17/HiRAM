@@ -29,7 +29,10 @@ public class NotificationRepository : BaseRepository, INotificationRepository
     }
 
     // The owning business repository performs SaveChanges, including these staged graphs.
-    public void Stage(IEnumerable<Notification> notifications) => GetDbSet<Notification>().AddRange(notifications);
+    public void Stage(IEnumerable<Notification> notifications)
+    {
+        GetDbSet<Notification>().AddRange(notifications);
+    }
 
     private IQueryable<Notification> Query(int userId, string search, bool? read)
     {

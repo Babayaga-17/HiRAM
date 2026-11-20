@@ -13,18 +13,29 @@ namespace ASI.Basecode.Services.Services;
 
 public class NotificationService : INotificationService
 {
-    private readonly INotificationRepository _notifications;
-    public NotificationService(INotificationRepository notifications) => _notifications = notifications;
+    private readonly INotificationRepository _notificationRepository;
+    public NotificationService(INotificationRepository notificationRepository)
+    {
+        _notificationRepository = notificationRepository;
+    }
 
-    public void RegistrationSubmitted(User user) => Stage(_notifications.GetRecipients(RoleNames.Admin, null, true),
-        NotificationEvents.RegistrationSubmitted, "New registration awaiting review",
-        $"{user.FirstName} {user.LastName} ({user.UserCode}) registered as a borrower. Review their school details and profile before approving access.", user, null);
+    public void RegistrationSubmitted(User user)
+    {
+        Stage(
+            _notificationRepository.GetRecipients(RoleNames.Admin, null, true),
+            NotificationEvents.RegistrationSubmitted, "New registration awaiting review",
+            $"{user.FirstName} {user.LastName} ({user.UserCode}) registered as a borrower. Review their school details and profile before approving access.",
+            user,
+            null);
+    }
 
     public void RegistrationApproved(Account account)
     {
-        Stage(new[] { (account.UserId, account.Email) }, NotificationEvents.RegistrationApproved, "Your HiRAM registration is approved",
-            "Your HiRAM registration has been approved. Your account is active and you are eligible to request equipment. " +
-            "You can now sign in with your registered email address and password. Equipment requests remain subject to availability and approval.", account.User, null);
+        Stage(
+            new[] { 
+                (account.UserId, account.Email) }, NotificationEvents.RegistrationApproved, "Your HiRAM registration is approved",
+                "Your HiRAM registration has been approved. Your account is active and you are eligible to request equipment. " +
+                "You can now sign in with your registered email address and password. Equipment requests remain subject to availability and approval.", account.User, null);
     }
 
     public void ReservationChanged(Reservation reservation, string eventType)
@@ -52,17 +63,15 @@ public class NotificationService : INotificationService
                 break;
             default: throw new ArgumentException("Unsupported reservation notification event.", nameof(eventType));
         }
-        Stage(_notifications.GetRecipients(staff ? RoleNames.Custodian : null, staff ? null : reservation.BorrowerUserId, staff),
+        Stage(
+            _notificationRepository.GetRecipients(
+                                                staff ? RoleNames.Custodian : null,
+                                                staff ? null : reservation.BorrowerUserId,
+                                                staff),
             eventType, title, body, null, reservation);
     }
 
-    private void Stage(
-        IEnumerable<(int UserId, string Email)> recipients,
-        string eventType,
-        string title,
-        string body,
-        User user,
-        Reservation reservation)
+    private void Stage(IEnumerable<(int UserId, string Email)> recipients, string eventType, string title, string body, User user, Reservation reservation)
     {
         var now = DateTime.UtcNow;
         var eventKey = Guid.NewGuid();
@@ -86,21 +95,27 @@ public class NotificationService : INotificationService
             })
             .ToList();
 
-        _notifications.Stage(messages);
+        _notificationRepository.Stage(messages);
     }
 
     public async Task<NotificationListViewModel> GetPageAsync(int userId, string search, string status, int page, CancellationToken token)
     {
         search = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
-        if (search?.Length > 200) search = search.Substring(0, 200);
+
+        if (search?.Length > 200) 
+            search = search.Substring(0, 200);
+
         status = status == "read" || status == "unread" ? status : "all";
         bool? read = status == "all" ? null : status == "read";
-        var count = await _notifications.CountAsync(userId, search, read, token);
+        var count = await _notificationRepository.CountAsync(userId, search, read, token);
+
         const int size = 10;
         var pages = Math.Max(1, (int)Math.Ceiling(count / (double)size));
         page = Math.Clamp(page, 1, pages);
-        var unread = await _notifications.CountAsync(userId, null, false, token);
-        var rows = await _notifications.GetPageAsync(userId, search, read, (page - 1) * size, size, token);
+
+        var unread = await _notificationRepository.CountAsync(userId, null, false, token);
+        var rows = await _notificationRepository.GetPageAsync(userId, search, read, (page - 1) * size, size, token);
+
         return new NotificationListViewModel
         {
             IsAvailable = true,
@@ -119,8 +134,8 @@ public class NotificationService : INotificationService
     {
         try
         {
-            var unread = await _notifications.CountAsync(userId, null, false, token);
-            var rows = await _notifications.GetPageAsync(userId, null, null, 0, 5, token);
+            var unread = await _notificationRepository.CountAsync(userId, null, false, token);
+            var rows = await _notificationRepository.GetPageAsync(userId, null, null, 0, 5, token);
             return new NotificationMenuViewModel { IsAvailable = true, UnreadCount = unread, Items = rows.Select(Item).ToList() };
         }
         catch (Exception exception)
@@ -132,7 +147,7 @@ public class NotificationService : INotificationService
 
     public async Task<NotificationDetailsViewModel> GetDetailsAsync(int userId, long id, CancellationToken token)
     {
-        var n = await _notifications.GetAsync(id, userId, token);
+        var n = await _notificationRepository.GetAsync(id, userId, token);
         return n == null ? null : new NotificationDetailsViewModel
         {
             IsAvailable = true,
@@ -147,7 +162,7 @@ public class NotificationService : INotificationService
             ReservationId = n.ReservationId
         };
     }
-    public Task<bool> OpenAsync(int userId, long id, CancellationToken token) => _notifications.MarkReadAsync(id, userId, DateTime.UtcNow, token);
+    public Task<bool> OpenAsync(int userId, long id, CancellationToken token) => _notificationRepository.MarkReadAsync(id, userId, DateTime.UtcNow, token);
     private static string Category(string eventType) => eventType.StartsWith("Registration", StringComparison.Ordinal) ? "Account" : "Reservation";
     private static DateTime Local(DateTime utc) => new DateTimeOffset(DateTime.SpecifyKind(utc, DateTimeKind.Utc)).ToOffset(TimeSpan.FromHours(8)).DateTime;
     private static NotificationItemViewModel Item(Notification n) => new()

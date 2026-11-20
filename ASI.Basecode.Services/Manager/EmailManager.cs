@@ -22,6 +22,8 @@ public class EmailManager : IEmailManager
         await client.AuthenticateAsync(configuration["Smtp:User"], configuration["Smtp:Password"].Replace(" ", ""), cancellationToken);
         await client.SendAsync(message, cancellationToken);
         // The server has accepted the message; disconnect failure must not report delivery failure.
-        try { await client.DisconnectAsync(true, cancellationToken); } catch { }
+        try { 
+            await client.DisconnectAsync(true, cancellationToken); 
+        } catch { }
     }
 }
