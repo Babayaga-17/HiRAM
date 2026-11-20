@@ -387,7 +387,7 @@ public class EquipmentController : ControllerBase<EquipmentController>
         return RedirectToList(request);
     }
 
-#endregion
+    #endregion
 
     #region Helpers
 
