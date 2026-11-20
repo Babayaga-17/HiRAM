@@ -445,7 +445,12 @@ namespace ASI.Basecode.Services.Services
                     return (false, "Record the condition of every item before releasing.");
             }
 
-            var now = DateTime.Now;
+            var now = PhilippineTimeNow();
+            var releasedAt = request.ReleasedAt ?? now;
+
+            if (releasedAt > now)
+                return (false, "Release date and time cannot be in the future.");
+
             foreach (var item in reservation.ReservationItems)
             {
                 var input = inputs.First(i => i.ReservationItemId == item.ReservationItemId);
@@ -456,7 +461,7 @@ namespace ASI.Basecode.Services.Services
             }
 
             reservation.Status = ReservationStatuses.Borrowed;
-            reservation.BorrowedAt = request.ReleasedAt ?? now;
+            reservation.BorrowedAt = releasedAt;
             reservation.UpdatedBy = actorName;
             reservation.UpdatedAt = now;
 

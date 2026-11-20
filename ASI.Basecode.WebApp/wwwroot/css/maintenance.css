@@ -87,3 +87,6 @@
 .maintenance-equipment-link:hover { color: var(--link); }
 .maintenance-history-table .maintenance-status { font-size: 12px; font-weight: 650; }
 .maintenance-history-table .maintenance-status.cancelled { color: var(--muted); background: var(--raised); }
+.maintenance-form .form-group > label {
+    display: block;
+}

@@ -152,19 +152,28 @@ public class ReservationController : ControllerBase<ReservationController>
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var borrowerUserId) || borrowerUserId <= 0)
             return Challenge();
 
-        if (!ModelState.IsValid)
-        {
-            LoadEquipment(model);
-            return View(model);
-        }
-
         string reservationNumber = null;
 
         try
         {
+            model.EligibilityStatus = _reservationService.GetBorrowerEligibility(borrowerUserId);
+
+            if (model.EligibilityStatus != EligibilityStatuses.Eligible)
+                return View(model);
+
+            if (!ModelState.IsValid)
+            {
+                LoadEquipment(model);
+                return View(model);
+            }
+
             var result = _reservationService.Submit(model, borrowerUserId);
             if (result.Error != null)
+            {
                 ModelState.AddModelError(string.Empty, result.Error);
+
+                model.EligibilityStatus = _reservationService.GetBorrowerEligibility(borrowerUserId);
+            }
             else
                 reservationNumber = result.ReservationNumber;
         }
@@ -180,7 +189,9 @@ public class ReservationController : ControllerBase<ReservationController>
 
         if (reservationNumber == null)
         {
-            LoadEquipment(model);
+            if (model.EligibilityStatus == EligibilityStatuses.Eligible)
+                LoadEquipment(model);
+
             return View(model);
         }
 
@@ -386,6 +397,14 @@ public class ReservationController : ControllerBase<ReservationController>
 
         try
         {
+            if (!id.HasValue)
+            {
+                form.EligibilityStatus = _reservationService.GetBorrowerEligibility(borrowerUserId);
+
+                if (form.EligibilityStatus != EligibilityStatuses.Eligible)
+                    return View("Create", form);
+            }
+
             if (id.HasValue)
             {
                 var reservation = _reservationService.GetReservationDetails(id.Value, borrowerUserId);
@@ -401,8 +420,7 @@ public class ReservationController : ControllerBase<ReservationController>
                         new
                         {
                             id = id.Value,
-                            returnUrl =
-                            ViewData["ReservationReturnUrl"]
+                            returnUrl = ViewData["ReservationReturnUrl"]
                         });
                 }
             }
@@ -713,7 +731,7 @@ public class ReservationController : ControllerBase<ReservationController>
 
         try
         {
-            var (ok, message) = _reservationService.Release(request, CurrentName());
+            var (ok, message) = _reservationService.Release(request, CurrentName());    
             TempData[ok ? "ReservationSuccess" : "ReservationError"] = message;
 
             if (!ok)
