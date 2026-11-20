@@ -23,33 +23,33 @@ namespace ASI.Basecode.Services.Services
 
     public class BorrowerProfileService : IBorrowerProfileService
     {
-        private readonly IBorrowerProfileRepository _repository;
+        private readonly IBorrowerProfileRepository _borrowerProfileRepository;
         private readonly INotificationService _notifications;
-        private readonly IUserRepository users;
-        private readonly IAccountRepository accounts;
-        private readonly IProfilePhotoService photos;
-        private readonly IEmailManager email;
-        private readonly ILogger<BorrowerProfileService> logger;
+        private readonly IUserRepository _userRepository;
+        private readonly IAccountRepository _accountRepository;
+        private readonly IProfilePhotoService _profilePhotoService;
+        private readonly IEmailManager _email;
+        private readonly ILogger<BorrowerProfileService> _logger;
 
-        public BorrowerProfileService(IBorrowerProfileRepository repository, 
-            IUserRepository users,
-            IAccountRepository accounts, 
-            IProfilePhotoService photos,
+        public BorrowerProfileService(IBorrowerProfileRepository borrowerProfileRepository, 
+            IUserRepository userRepository,
+            IAccountRepository accountRepository, 
+            IProfilePhotoService profilePhotoService,
             IEmailManager email, 
             ILogger<BorrowerProfileService> logger, 
             INotificationService notifications)
         {
-            _repository = repository;
+            _borrowerProfileRepository = borrowerProfileRepository;
             _notifications = notifications;
-            this.users = users;
-            this.accounts = accounts;
-            this.photos = photos;
-            this.email = email;
-            this.logger = logger;
+            _userRepository = userRepository;
+            _accountRepository = accountRepository;
+            _profilePhotoService = profilePhotoService;
+            _email = email;
+            _logger = logger;
         }
 
         public List<Department> GetDepartments() =>
-            _repository.GetActiveDepartments();
+            _borrowerProfileRepository.GetActiveDepartments();
 
         public BorrowerPageViewModel GetPage(string search, string status, int page, int pageSize)
         {
@@ -63,16 +63,16 @@ namespace ASI.Basecode.Services.Services
                 Status = status,
                 PageSize = pageSize,
                 Departments = GetDepartments(),
-                OverallTotal = _repository.CountProfiles(),
-                OverallEligible = _repository.CountProfiles(EligibilityStatuses.Eligible),
-                OverallSuspended = _repository.CountProfiles(EligibilityStatuses.Suspended)
+                OverallTotal = _borrowerProfileRepository.CountProfiles(),
+                OverallEligible = _borrowerProfileRepository.CountProfiles(EligibilityStatuses.Eligible),
+                OverallSuspended = _borrowerProfileRepository.CountProfiles(EligibilityStatuses.Suspended)
             };
 
-            vm.TotalCount = _repository.CountMatchingProfiles(filterSearch, filterStatus);
+            vm.TotalCount = _borrowerProfileRepository.CountMatchingProfiles(filterSearch, filterStatus);
             vm.TotalPages = Math.Max(1, (int)Math.Ceiling(vm.TotalCount / (double)pageSize));
             vm.Page = Math.Min(Math.Max(page, 1), vm.TotalPages);
 
-            vm.Rows = _repository.GetPage(filterSearch, filterStatus, (vm.Page - 1) * pageSize, pageSize)
+            vm.Rows = _borrowerProfileRepository.GetPage(filterSearch, filterStatus, (vm.Page - 1) * pageSize, pageSize)
                        .Select(b => new BorrowerRowViewModel
                        {
                            UserId = b.UserId,
@@ -95,10 +95,10 @@ namespace ASI.Basecode.Services.Services
 
         public BorrowerHistoryViewModel GetHistory(int userId)
         {
-            var b = _repository.GetForHistory(userId);
+            var b = _borrowerProfileRepository.GetForHistory(userId);
             if (b == null) return null;
 
-            var reservations = _repository.GetReservations(userId);
+            var reservations = _borrowerProfileRepository.GetReservations(userId);
 
             return new BorrowerHistoryViewModel
             {
@@ -134,7 +134,7 @@ namespace ASI.Basecode.Services.Services
             var department = GetDepartments().FirstOrDefault(d => d.DepartmentId == m.DepartmentId);
             if (department == null) return (false, "Select an active department.");
 
-            var profile = _repository.GetForUpdate(m.UserId);
+            var profile = _borrowerProfileRepository.GetForUpdate(m.UserId);
             if (profile == null) return (false, "Borrower not found.");
 
             var program = m.Program?.Trim();
@@ -165,13 +165,13 @@ namespace ASI.Basecode.Services.Services
             }
 
             profile.UpdatedBy = actor; profile.UpdatedAt = now;
-            _repository.SaveChanges();
+            _borrowerProfileRepository.SaveChanges();
             return (true, "Borrower updated.");
         }
 
         public (bool ok, string message) SetStatus(int userId, bool suspend, string reason, DateTime? until, string actor)
         {
-            var e = _repository.GetForUpdate(userId);
+            var e = _borrowerProfileRepository.GetForUpdate(userId);
             if (e == null) return (false, "Borrower not found.");
             var now = DateTime.Now;
             if (suspend)
@@ -190,7 +190,7 @@ namespace ASI.Basecode.Services.Services
                 e.SuspendedByUserId = null;
             }
             e.UpdatedBy = actor; e.UpdatedAt = now;
-            _repository.SaveChanges();
+            _borrowerProfileRepository.SaveChanges();
             return (true, suspend ? "Borrower suspended." : "Borrower activated.");
         }
 
@@ -198,11 +198,11 @@ namespace ASI.Basecode.Services.Services
         {
             model.UserCode = model.UserCode?.Trim(); model.Email = model.Email?.Trim();
             Validator.ValidateObject(model, new ValidationContext(model), true);
-
-            if (users.UserCodeExists(model.UserCode))
+                
+            if (_userRepository.UserCodeExists(model.UserCode))
                 throw new ValidationException("That student or employee ID is already registered.");    
 
-            if (accounts.EmailExists(model.Email))
+            if (_accountRepository.EmailExists(model.Email))
                 throw new ValidationException("That email is already registered.");
 
             var department = GetDepartments().FirstOrDefault(d => d.DepartmentId == model.DepartmentId);
@@ -245,20 +245,20 @@ namespace ASI.Basecode.Services.Services
             try
             {
                 if (photo != null)
-                    path = await photos.UploadProfileAsync(photo, cancellationToken);
+                    path = await _profilePhotoService.UploadProfileAsync(photo, cancellationToken);
 
                 user.ProfilePhotoStoragePath = path;
 
                 // One SaveChanges inserts this complete related graph in an EF transaction.
                 _notifications.RegistrationSubmitted(user);
-                users.AddUser(user);
+                _userRepository.AddUser(user);
             }
             catch (Exception exception)
             {
                 if (path != null)
                 {
-                    try { await photos.DeleteAsync(path, CancellationToken.None); }
-                    catch (Exception cleanup) { logger.LogWarning(cleanup, "Unable to clean up registration photo after a failed save."); }
+                    try { await _profilePhotoService.DeleteAsync(path, CancellationToken.None); }
+                    catch (Exception cleanup) { _logger.LogWarning(cleanup, "Unable to clean up registration photo after a failed save."); }
                 }
                 if (exception is DbUpdateException && exception.InnerException is SqlException sql && (sql.Number == 2601 || sql.Number == 2627))
                     throw new ValidationException("That email or school ID was just registered. Please sign in or contact your administrator.");
@@ -266,11 +266,11 @@ namespace ASI.Basecode.Services.Services
             }
             try
             {
-                await email.SendAsync(model.Email, "HiRAM registration awaiting approval",
+                await _email.SendAsync(model.Email, "HiRAM registration awaiting approval",
                     "Your registration has been received and is awaiting administrator approval. You cannot sign in until it is approved. Please do not register again while your request is pending.");
                 return true;
             }
-            catch (Exception exception) { logger.LogWarning(exception, "Registration saved but receipt email failed for user {UserId}.", user.UserId); return false; }
+            catch (Exception exception) { _logger.LogWarning(exception, "Registration saved but receipt email failed for user {UserId}.", user.UserId); return false; }
         }
     }
 }

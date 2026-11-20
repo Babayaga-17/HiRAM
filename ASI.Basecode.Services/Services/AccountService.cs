@@ -103,11 +103,7 @@ namespace ASI.Basecode.Services.Services
             };
 
             if (!string.IsNullOrWhiteSpace(user.ProfilePhotoStoragePath))
-            {
-                model.ProfilePhotoUrl = await _profilePhotoService.CreateReadUrlAsync(
-                    user.ProfilePhotoStoragePath,
-                    cancellationToken);
-            }
+                model.ProfilePhotoUrl = await _profilePhotoService.CreateReadUrlAsync(user.ProfilePhotoStoragePath, cancellationToken);
 
             return model;
         }

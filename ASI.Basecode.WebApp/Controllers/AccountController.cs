@@ -291,6 +291,7 @@ namespace ASI.Basecode.WebApp.Controllers
             var model = new BorrowerRegistrationViewModel();
 
             LoadRegistrationDepartments(model);
+
             return View(model);
         }
 
@@ -341,18 +342,33 @@ namespace ASI.Basecode.WebApp.Controllers
         [HttpGet]
         public async Task<IActionResult> MyProfile()
         {
-            var userIdClaim = User.FindFirst(
-                System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-            if (!int.TryParse(userIdClaim, out var userId))
+            if (!int.TryParse(userIdClaim, out var userId) || userId <= 0)
                 return Challenge();
 
-            var model = await _accountService.GetProfileAsync(userId, HttpContext.RequestAborted);
+            var cancellationToken = HttpContext.RequestAborted;
 
-            if (model == null)
-                return NotFound();
+            try
+            {
+                var model = await _accountService.GetProfileAsync(userId, cancellationToken);
 
-            return View(model);
+                if (model == null)
+                    return NotFound();
+
+                return View(model);
+            }
+            catch (OperationCanceledException)
+                when (cancellationToken.IsCancellationRequested)
+            {
+                // The browser abandoned this request, so no page needs rendering.
+                return new EmptyResult();
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Unable to load profile for user {UserId}.", userId);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, "Your profile could not be loaded. Please try again.");
+            }
         }
 
         [AllowAnonymous]
