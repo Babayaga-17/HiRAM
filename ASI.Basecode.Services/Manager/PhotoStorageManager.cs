@@ -50,9 +50,9 @@ public abstract class PhotoStorageManager
         return url;
     }
 
-    public async Task<Dictionary<string, string>> CreateReadUrlsAsync(IEnumerable<string> storagePaths, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, string>> CreateReadUrlsAsync(IEnumerable<string> storagePaths, CancellationToken cancellationToken = default) // accepts several paths
     {
-        var paths = storagePaths
+        var paths = storagePaths // removes duplicate entries
             .Where(path => !string.IsNullOrWhiteSpace(path))
             .Distinct(StringComparer.Ordinal)
             .ToList();
@@ -79,7 +79,6 @@ public abstract class PhotoStorageManager
         EnsureSuccess(response, "create photo URLs");
 
         var json = await response.Content.ReadAsStringAsync(cancellationToken);
-
         using var document = JsonDocument.Parse(json);
 
         if (document.RootElement.ValueKind != JsonValueKind.Array)
@@ -130,15 +129,15 @@ public abstract class PhotoStorageManager
     {
         var path = EncodePath(storagePath);
 
-        using var request = CreateRequest(HttpMethod.Post, $"object/{Uri.EscapeDataString(_bucket)}/{path}");
+        using var request = CreateRequest(HttpMethod.Post, $"object/{Uri.EscapeDataString(_bucket)}/{path}"); // creates the request URL
 
-        request.Headers.Add("x-upsert", "false");
-        request.Content = new StreamContent(content);
-        request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        request.Headers.Add("x-upsert", "false"); // tells the request not to overwrite a file on that url
+        request.Content = new StreamContent(content); // uploads the image bytes
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType); // identifies their format
 
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        using var response = await _httpClient.SendAsync(request, cancellationToken); // sends the request
 
-        EnsureSuccess(response, "upload");
+        EnsureSuccess(response, "upload"); // ensures successful request
     }
 
     private static string EncodePath(string storagePath)
