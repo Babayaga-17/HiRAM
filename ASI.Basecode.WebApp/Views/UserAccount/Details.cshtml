@@ -1,0 +1,129 @@
+@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.UserAccount
+@model UserAccountListItem
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "User Account";
+    ViewData["TopbarPage"] = "User account";
+    var isSelf = ViewData["IsSelf"] as bool? == true;
+    var isPending = Model.AccountStatus == ASI.Basecode.Resources.Constants.AccountStatuses.PendingApproval;
+    var registration = ViewData["RegistrationProfile"] as MyProfileViewModel;
+    var isLocked = Model.LockoutEndAt.HasValue && Model.LockoutEndAt.Value > DateTime.Now;
+    string Stamp(DateTime? value) => value.HasValue ? value.Value.ToString("MMM d, yyyy h:mm tt") : "—";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/user-account.css" asp-append-version="true" />
+}
+
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="UserAccount" asp-action="Index"><svg class="icon"><use href="#i-chevron" /></svg>Back to users</a>
+        <h1>@Model.FullName</h1>
+        <p>@Model.UserCode · @Model.Email</p>
+    </div>
+    <a class="button button-primary heading-action" asp-controller="UserAccount" asp-action="Edit" asp-route-id="@Model.UserId"><svg class="icon"><use href="#i-edit" /></svg>Edit user</a>
+</div>
+
+@if (TempData["UserAccountSuccess"] is string successMessage)
+{
+    <div class="category-notice category-notice-success" role="status">@successMessage</div>
+}
+@if (TempData["UserAccountError"] is string errorMessage)
+{
+    <div class="category-notice category-notice-error" role="alert">@errorMessage</div>
+}
+@if (TempData["UserAccountWarning"] is string warningMessage)
+{
+    <div class="category-notice" role="status">@warningMessage</div>
+}
+
+@if (isPending && registration != null)
+{
+    <section class="content-card registration-review" aria-labelledby="registrationReviewHeading">
+        <div class="registration-review-heading">
+            @if (!string.IsNullOrWhiteSpace(registration.ProfilePhotoUrl))
+            {
+                <img src="@registration.ProfilePhotoUrl" alt="Profile photo of @registration.FullName" referrerpolicy="no-referrer" width="80" height="80" />
+            }
+            <div><h2 id="registrationReviewHeading">Registration review</h2><p>Pending approval. Check these details before granting sign-in and borrowing access.</p></div>
+        </div>
+        <dl class="details-list">
+            <div><dt>Borrower type</dt><dd>@(registration.BorrowerType ?? "Not provided")</dd></div>
+            <div><dt>Department</dt><dd>@(registration.DepartmentName ?? "Not provided")</dd></div>
+            <div><dt>Eligibility</dt><dd>@(registration.EligibilityStatus == "Suspended" ? "Ineligible" : (registration.EligibilityStatus ?? "No borrower profile"))</dd></div>
+            @if (registration.BorrowerType != "Faculty")
+            {
+                <div><dt>Program</dt><dd>@(registration.Program ?? "Not provided")</dd></div>
+                <div><dt>Year level</dt><dd>@(registration.YearLevel?.ToString() ?? "Not provided")</dd></div>
+            }
+        </dl>
+    </section>
+}
+
+<div class="form-page-grid">
+    <section class="content-card form-card" aria-label="Account details">
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-user" /></svg></span>
+            <div><h2>Account details</h2><p>Personal information, role, and sign-in status.</p></div>
+        </div>
+        <dl class="details-list">
+            <div><dt>User ID</dt><dd>@Model.UserCode</dd></div>
+            <div><dt>Full name</dt><dd>@Model.FullName</dd></div>
+            <div><dt>Email</dt><dd>@Model.Email</dd></div>
+            <div><dt>Contact number</dt><dd>@(string.IsNullOrEmpty(Model.ContactNumber) ? "—" : Model.ContactNumber)</dd></div>
+            <div><dt>Role</dt><dd><span class="role-pill">@Model.RoleName</span></dd></div>
+            @{
+                var isSuspended = string.Equals(Model.AccountStatus, "Suspended", StringComparison.OrdinalIgnoreCase);
+                var displayStatus = isPending ? "Pending approval" : isSuspended ? "Inactive" : Model.AccountStatus;
+                var statusBadgeClass = isSuspended ? "inactive" : Model.AccountStatus.ToLowerInvariant();
+            }
+            <div><dt>Status</dt><dd><span class="status-badge status-@statusBadgeClass"><span></span>@displayStatus</span></dd></div>
+            <div><dt>Last sign-in</dt><dd>@Stamp(Model.LastLoginAt)</dd></div>
+            <div><dt>Failed sign-in attempts</dt><dd>@Model.FailedLoginAttempts</dd></div>
+            <div><dt>Locked until</dt><dd>@(isLocked ? Stamp(Model.LockoutEndAt) : "Not locked")</dd></div>
+            <div><dt>Created</dt><dd>@Stamp(Model.CreatedAt)</dd></div>
+            <div><dt>Last updated</dt><dd>@Stamp(Model.UpdatedAt)</dd></div>
+        </dl>
+    </section>
+
+    <aside class="form-side-card account-actions-card">
+        <span class="side-card-icon"><svg class="icon"><use href="#i-shield" /></svg></span>
+        <h2>Account access</h2>
+
+        @if (isSelf)
+        {
+            <p>This is your own account. You cannot deactivate it or change its role.</p>
+        }
+        else if (isPending)
+        {
+            <p>Approval activates this account and makes the borrower eligible to request equipment.</p>
+            <form asp-controller="UserAccount" asp-action="Approve" asp-route-id="@Model.UserId" method="post">
+                <input type="hidden" name="version" value="@Model.Version" />
+                <button type="submit" class="button button-primary">Approve registration</button>
+            </form>
+        }
+        else if (Model.IsActive)
+        {
+            <p>Deactivated users can no longer sign in until the account is activated again.</p>
+            <form asp-controller="UserAccount" asp-action="Deactivate" asp-route-id="@Model.UserId" method="post">
+                <input type="hidden" name="version" value="@Model.Version" />
+                <button type="submit" class="button button-danger">Deactivate account</button>
+            </form>
+        }
+        else
+        {
+            <p>This account is <strong>@(string.Equals(Model.AccountStatus, "Suspended", StringComparison.OrdinalIgnoreCase) ? "Inactive" : Model.AccountStatus)</strong> and cannot sign in.</p>
+            <form asp-controller="UserAccount" asp-action="Activate" asp-route-id="@Model.UserId" method="post">
+                <input type="hidden" name="version" value="@Model.Version" />
+                <button type="submit" class="button button-primary"><svg class="icon"><use href="#i-check" /></svg>Activate account</button>
+            </form>
+        }
+
+        <div class="form-divider"></div>
+        <p>Reset access gives the user a new temporary password and clears failed sign-in attempts and any lockout.</p>
+        <form asp-controller="UserAccount" asp-action="ResetAccess" asp-route-id="@Model.UserId" method="post">
+            <button type="submit" class="button button-secondary"><svg class="icon"><use href="#i-lock" /></svg>Reset access</button>
+        </form>
+    </aside>
+</div>

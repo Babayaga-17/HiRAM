@@ -1,0 +1,26 @@
+﻿using ASI.Basecode.Data.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ASI.Basecode.Data.Interfaces
+{
+    public interface IAccountRepository
+    {
+        Account GetAccountByEmail(string email);
+
+        // User and Role Management (WBS 5.1)
+        IQueryable<Account> GetAccounts();
+        Account GetAccountByUserId(int userId);
+        bool EmailExists(string email, int? excludeUserId = null);
+        int CountActiveAccountsByRole(string roleName, int? excludeUserId = null);
+        Dictionary<string, (int Total, int Active)> GetAccountCountsByRole();
+        void UpdateAccount(Account account);
+        bool UpdateRegistration(int userId, Action<Account> applyChanges);
+        Task UpdateLastLoginAtAsync(int accountId, DateTime loginAtUtc);
+        Task<Dictionary<string, int>> CountAccountsByStatusAsync();
+        Task<List<Account>> GetPendingRegistrationPreviewAsync();
+    }
+}

@@ -36,5 +36,12 @@ app.MapControllerRoute(
 app.MapControllers();
 app.MapRazorPages();
 
+var tunnelUrl = System.Environment.GetEnvironmentVariable("VS_TUNNEL_URL");
+
+System.Console.WriteLine(
+    string.IsNullOrWhiteSpace(tunnelUrl)
+        ? "Dev Tunnel: no active tunnel."
+        : $"Dev Tunnel: {tunnelUrl}");
+
 // Run application
 app.Run();

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -9,8 +9,9 @@ namespace ASI.Basecode.Services.ServiceModels
 {
     public class UserViewModel
     {
-        [Required(ErrorMessage = "Username is required.")]
-        public string UserId { get; set; }
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Enter a valid email address.")]
+        public string Email { get; set; }
 
         [Required(ErrorMessage = "Name is required.")]
         public string Name { get; set; }

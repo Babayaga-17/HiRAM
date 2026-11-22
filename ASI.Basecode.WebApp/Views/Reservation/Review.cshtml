@@ -1,0 +1,490 @@
+@* ASI.Basecode.WebApp/Views/Reservation/Details.cshtml *@
+@using ASI.Basecode.Services.ServiceModels
+@model ReservationDetailsViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = Model.ReservationNumber;
+    ViewData["TopbarPage"] = Model.Status == ReservationStatuses.Pending ? "Pending request" : "Request details";
+
+    string BadgeClass(string s) => s switch
+    {
+        ReservationStatuses.Pending => "status-pending",
+        ReservationStatuses.Approved => "rs-approved",
+        ReservationStatuses.Borrowed => "rs-borrowed",
+        ReservationStatuses.Rejected => "rs-rejected",
+        ReservationStatuses.Returned => "rs-returned",
+        _ => "rs-neutral"
+    };
+    var conditions = EquipmentConditions.Values;
+    var showReturnStatus = Model.BorrowedAt.HasValue || Model.Status is ReservationStatuses.Borrowed or ReservationStatuses.Returned;
+    var backStatus = Model.Status is ReservationStatuses.Pending or ReservationStatuses.Approved or ReservationStatuses.Borrowed or ReservationStatuses.Returned or ReservationStatuses.Rejected
+        ? Model.Status
+        : ReservationFilters.All;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/approval-release.css" asp-append-version="true" />
+    <style>
+        /* ---------- Layout: Reservation (wide) on the left, Borrower (narrow) on the right ---------- */
+        .rd-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+            gap: 16px;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+
+            .rd-grid > .rd-reservation {
+                grid-column: 1;
+            }
+
+            .rd-grid > .rd-borrower {
+                grid-column: 2;
+            }
+
+        @@media (max-width: 900px) {
+            .rd-grid {
+                grid-template-columns: 1fr;
+            }
+
+                .rd-grid > .rd-reservation,
+                .rd-grid > .rd-borrower {
+                    grid-column: 1;
+                }
+        }
+
+        /* ---------- Status pill: bold, glowing, readable in both themes ---------- */
+        .rd-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border: 1px solid transparent;
+        }
+
+            .rd-status::before {
+                content: "";
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: currentColor;
+                box-shadow: 0 0 0 4px rgba(255,255,255,0.12);
+            }
+
+            .rd-status.status-pending {
+                color: #fbbf24;
+                background: rgba(251,191,36,0.16);
+                border-color: rgba(251,191,36,0.55);
+            }
+
+            .rd-status.rs-approved {
+                color: #34d399;
+                background: rgba(52,211,153,0.16);
+                border-color: rgba(52,211,153,0.55);
+            }
+
+            .rd-status.rs-borrowed {
+                color: #60a5fa;
+                background: rgba(96,165,250,0.16);
+                border-color: rgba(96,165,250,0.55);
+            }
+
+            .rd-status.rs-returned {
+                color: #94a3b8;
+                background: rgba(148,163,184,0.16);
+                border-color: rgba(148,163,184,0.45);
+            }
+
+            .rd-status.rs-rejected {
+                color: #f87171;
+                background: rgba(248,113,113,0.16);
+                border-color: rgba(248,113,113,0.55);
+            }
+
+            .rd-status.rs-neutral {
+                color: #cbd5e1;
+                background: rgba(203,213,225,0.12);
+                border-color: rgba(203,213,225,0.4);
+            }
+
+        /* ---------- Alerts: colored bar with an icon-like accent ---------- */
+        .rd-alert {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            border-left: 4px solid currentColor;
+        }
+
+            .rd-alert.success {
+                color: #34d399;
+                background: rgba(52,211,153,0.14);
+            }
+
+            .rd-alert.error {
+                color: #f87171;
+                background: rgba(248,113,113,0.14);
+            }
+
+        /* ---------- Warning for ineligible borrowers ---------- */
+        .rd-warning {
+            padding: 12px 16px;
+            border-radius: 10px;
+            color: #fbbf24;
+            background: rgba(251,191,36,0.14);
+            border: 1px solid rgba(251,191,36,0.45);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        /* ---------- Reservation card header accent ---------- */
+        .rd-grid .rd-reservation {
+            border-top: 3px solid #6366f1;
+        }
+
+        .rd-grid .rd-borrower {
+            border-top: 3px solid #14b8a6;
+        }
+
+        .rd-equipment {
+            margin-bottom: 16px;
+        }
+
+        .rd-return-action {
+            margin-bottom: 16px;
+        }
+
+        .rd-inspection-item + .rd-inspection-item {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+        }
+
+    </style>
+}
+
+<div class="page-heading form-page-heading">
+    <div>
+        <a class="back-link" asp-controller="Reservation" asp-action="Pending" asp-route-status="@backStatus"><svg class="icon"><use href="#i-chevron" /></svg>Back to @backStatus.ToLowerInvariant() reservations</a>
+        <h1>@Model.ReservationNumber</h1>
+        <p>Reservation submitted @Model.RequestedAt.ToString("MMM d, yyyy h:mm tt")</p>
+    </div>
+    <span class="rd-status @BadgeClass(Model.Status)"><span></span>@Model.Status</span>
+</div>
+
+@if (Model.Status == ReservationStatuses.Borrowed)
+{
+    <a class="button button-primary rd-return-action"
+       asp-controller="Reservation"
+       asp-action="Return"
+       asp-route-id="@Model.ReservationId">
+        Process Return
+    </a>
+}
+
+@if (TempData["ReservationSuccess"] is string successMessage)
+{
+    <div class="rd-alert success" role="status">@successMessage</div>
+}
+@if (TempData["ReservationError"] is string errorMessage)
+{
+    <div class="rd-alert error" role="alert">@errorMessage</div>
+}
+@if (TempData["ReservationEmailWarning"] is string emailWarning)
+{
+    <div class="rd-alert error" role="status">@emailWarning</div>
+}
+
+<div class="rd-grid">
+    <!-- Reservation: wider, on the left -->
+    <section class="content-card form-card rd-reservation" aria-label="Reservation details">
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
+            <div><h2>Reservation</h2><p>Purpose and requested schedule.</p></div>
+        </div>
+        <dl class="details-list">
+            <div><dt>Purpose</dt><dd>@Model.Purpose</dd></div>
+            <div><dt>Start</dt><dd>@Model.StartDateTime.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            <div><dt>Expected return</dt><dd>@Model.ExpectedReturnDateTime.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            <div><dt>Requested at</dt><dd>@Model.RequestedAt.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            <div><dt>Items</dt><dd>@Model.ItemCount</dd></div>
+        </dl>
+    </section>
+
+    <!-- Borrower: narrower, on the right -->
+    <section class="content-card form-card rd-borrower" aria-label="Borrower information">
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-user" /></svg></span>
+            <div><h2>Borrower</h2><p>Who submitted this request.</p></div>
+        </div>
+        <dl class="details-list">
+            <div><dt>Name</dt><dd>@Model.BorrowerName</dd></div>
+            <div><dt>User ID</dt><dd>@(string.IsNullOrWhiteSpace(Model.BorrowerUserCode) ? "—" : Model.BorrowerUserCode)</dd></div>
+            <div><dt>Department</dt><dd>@(string.IsNullOrWhiteSpace(Model.DepartmentName) ? "—" : Model.DepartmentName)</dd></div>
+            <div><dt>Program</dt><dd>@(string.IsNullOrWhiteSpace(Model.Program) ? "—" : Model.Program)</dd></div>
+            <div><dt>Year level</dt><dd>@(Model.YearLevel.HasValue? Model.YearLevel.Value.ToString() : "—")</dd></div>
+            <div><dt>Contact</dt><dd>@(string.IsNullOrWhiteSpace(Model.ContactNumber) ? "—" : Model.ContactNumber)</dd></div>
+            <div><dt>Eligibility</dt><dd>@(string.IsNullOrWhiteSpace(Model.EligibilityStatus) ? "—" : Model.EligibilityStatus)</dd></div>
+        </dl>
+    </section>
+</div>
+
+<section class="content-card category-list rd-equipment" aria-labelledby="itemsHeading">
+    <div class="card-heading">
+        <div>
+            <h2 id="itemsHeading">Requested equipment</h2>
+            <p>Assets included in this reservation.</p>
+        </div>
+        <span class="count-pill">@Model.Items.Count @(Model.Items.Count == 1 ? "item" : "items")</span>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <p class="custodian-empty">This request does not list any equipment.</p>
+    }
+    else
+    {
+        <div class="table-scroll" role="region" aria-label="Requested equipment" tabindex="0">
+            <table class="category-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Equipment</th>
+                        <th scope="col">Condition</th>
+                        <th scope="col">Location</th>
+                        @if (Model.Status is ReservationStatuses.Borrowed or ReservationStatuses.Returned)
+                        {
+                            <th scope="col">Condition at release</th>
+                        }
+                        @if (showReturnStatus)
+                        {
+                            <th scope="col">Return status</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="category-name-cell">
+                                    <span class="category-tile"><svg class="icon"><use href="#i-box" /></svg></span>
+                                    <span>
+                                        <strong>@item.EquipmentName</strong>
+                                        <small>@item.EquipmentCode</small>
+                                    </span>
+                                </div>
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(item.ConditionStatus) ? "—" : item.ConditionStatus)</td>
+                            <td>@(string.IsNullOrWhiteSpace(item.StorageLocation) ? "—" : item.StorageLocation)</td>
+                            @if (Model.Status is ReservationStatuses.Borrowed or ReservationStatuses.Returned)
+                            {
+                                <td>
+                                    @(string.IsNullOrWhiteSpace(item.ConditionAtBorrowing) ? "—" : item.ConditionAtBorrowing)
+                                    @if (!string.IsNullOrWhiteSpace(item.BorrowingRemarks))
+                                    {
+                                        <div class="pending-muted">@item.BorrowingRemarks</div>
+                                    }
+                                </td>
+                            }
+                            @if (showReturnStatus)
+                            {
+                                <td>
+                                    @(item.IsReturned ? "Returned" : "Awaiting return")
+
+                                    @if (item.IsReturned && item.ReturnedAt.HasValue)
+                                    {
+                                        <div class="pending-muted">
+                                            @item.ReturnedAt.Value.ToString("MMM d, yyyy h:mm tt")
+                                        </div>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@if (Model.Items.Any(item => item.IsReturned))
+{
+    <section class="content-card form-card"
+             aria-labelledby="returnInspectionHeading">
+        <div class="form-card-header">
+            <div>
+                <h2 id="returnInspectionHeading">Return inspection</h2>
+                <p>Recorded condition and notes for returned equipment.</p>
+            </div>
+        </div>
+
+        @foreach (var item in Model.Items.Where(item => item.IsReturned))
+        {
+            <div class="rd-inspection-item">
+                <h3>@item.EquipmentName</h3>
+                <p class="pending-muted">@item.EquipmentCode</p>
+
+                <dl class="details-list">
+                    <div>
+                        <dt>Returned</dt>
+                        <dd>
+                            @(item.ReturnedAt.HasValue? item.ReturnedAt.Value.ToString("MMM d, yyyy h:mm tt") : "—")
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>Condition at return</dt>
+                        <dd>
+                            @(string.IsNullOrWhiteSpace(item.ConditionAtReturn) ? "—" : item.ConditionAtReturn)
+                        </dd>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(item.DamageNotes))
+                    {
+                        <div>
+                            <dt>Damage notes</dt>
+                            <dd>@item.DamageNotes</dd>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(item.MissingPartsNotes))
+                    {
+                        <div>
+                            <dt>Missing parts</dt>
+                            <dd>@item.MissingPartsNotes</dd>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(item.ReturnRemarks))
+                    {
+                        <div>
+                            <dt>Return remarks</dt>
+                            <dd>@item.ReturnRemarks</dd>
+                        </div>
+                    }
+                </dl>
+            </div>
+        }
+    </section>
+}
+
+@if (Model.Status == ReservationStatuses.Pending)
+{
+    <section class="content-card form-card rs-panel" aria-label="Decision">
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
+            <div><h2>Decision</h2><p>Approve this request or reject it with a reason.</p></div>
+        </div>
+
+        @if (Model.EligibilityStatus != EligibilityStatuses.Eligible)
+        {
+            <div class="rd-warning">This borrower is <strong>@(string.IsNullOrWhiteSpace(Model.EligibilityStatus) ? "not eligible" : Model.EligibilityStatus)</strong>, so the request can't be approved. You can still reject it.</div>
+        }
+
+        <div class="rs-decision-grid">
+            <form method="post" asp-controller="Reservation" asp-action="Approve" asp-route-id="@Model.ReservationId">
+                <label class="rs-label" for="approveRemarks">Approval remarks (optional)</label>
+                <textarea class="rs-input" id="approveRemarks" name="remarks" rows="3" maxlength="500" placeholder="Notes for the borrower or the custodian"></textarea>
+                <button type="submit" class="button button-primary" @(Model.EligibilityStatus != EligibilityStatuses.Eligible ? "disabled" : "")>Approve request</button>
+            </form>
+            <form method="post" asp-controller="Reservation" asp-action="Reject" asp-route-id="@Model.ReservationId">
+                <label class="rs-label" for="rejectReason">Rejection reason *</label>
+                <textarea class="rs-input" id="rejectReason" name="reason" rows="3" maxlength="250" required placeholder="Why is this request being rejected?"></textarea>
+                <button type="submit" class="button button-secondary">Reject request</button>
+            </form>
+        </div>
+    </section>
+}
+else if (Model.Status == ReservationStatuses.Approved)
+{
+    <section class="content-card form-card rs-panel" aria-label="Release equipment">
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-box" /></svg></span>
+            <div><h2>Release equipment</h2><p>Record the condition of each item, then confirm the release. The request will be marked as borrowed.</p></div>
+        </div>
+
+        <dl class="details-list rs-approval-info">
+            <div><dt>Approved</dt><dd>@(Model.ApprovedAt.HasValue? Model.ApprovedAt.Value.ToString("MMM d, yyyy h:mm tt") : "—")@(string.IsNullOrWhiteSpace(Model.ApprovedByName) ? "" : " by " + Model.ApprovedByName)</dd></div>
+            @if (!string.IsNullOrWhiteSpace(Model.ApprovalRemarks))
+            {
+                <div><dt>Approval remarks</dt><dd>@Model.ApprovalRemarks</dd></div>
+            }
+        </dl>
+
+        <form method="post" asp-controller="Reservation" asp-action="Release">
+            <input type="hidden" name="ReservationId" value="@Model.ReservationId" />
+            <label class="rs-label" for="releasedAt">Release date and time</label>
+            <input class="rs-input rs-datetime" id="releasedAt" type="datetime-local" name="ReleasedAt" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+
+            <div class="table-scroll" role="region" aria-label="Returned equipment" tabindex="0">
+                <table class="category-table rs-release-table">
+                    <thead>
+                        <tr><th scope="col">Equipment</th><th scope="col">CONDITION AT RELEASE *</th><th scope="col">Remarks</th></tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Items.Count; i++)
+                        {
+                            var item = Model.Items[i];
+                            var selected = conditions.Contains(item.ConditionStatus) ? item.ConditionStatus : EquipmentConditions.Good;
+                            <tr>
+                                <td><strong>@item.EquipmentName</strong><div class="pending-muted">@item.EquipmentCode</div></td>
+                                <td>
+                                    <input type="hidden" name="Items[@i].ReservationItemId" value="@item.ReservationItemId" />
+                                    <select class="rs-input" name="Items[@i].ConditionAtBorrowing" required>
+                                        @foreach (var c in conditions)
+                                        {
+                                            <option value="@c" selected="@(c == selected)">@c</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td><input class="rs-input" name="Items[@i].BorrowingRemarks" maxlength="250" placeholder="Optional notes (scratches, missing parts…)" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <button type="submit" class="button button-primary">Confirm release and mark as borrowed</button>
+        </form>
+    </section>
+}
+else
+{
+    <section class="content-card form-card rs-panel" aria-label="Request history">
+        <div class="form-card-header">
+            <span class="form-section-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
+            <div><h2>Request history</h2><p>What happened to this request.</p></div>
+        </div>
+        <dl class="details-list">
+            @if (Model.ApprovedAt.HasValue)
+            {
+                <div><dt>Approved</dt><dd>@Model.ApprovedAt.Value.ToString("MMM d, yyyy h:mm tt")@(string.IsNullOrWhiteSpace(Model.ApprovedByName) ? "" : " by " + Model.ApprovedByName)</dd></div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.ApprovalRemarks))
+            {
+                <div><dt>Approval remarks</dt><dd>@Model.ApprovalRemarks</dd></div>
+            }
+            @if (Model.RejectedAt.HasValue)
+            {
+                <div><dt>Rejected</dt><dd>@Model.RejectedAt.Value.ToString("MMM d, yyyy h:mm tt")</dd></div>
+                <div><dt>Reason</dt><dd>@(string.IsNullOrWhiteSpace(Model.RejectionReason) ? "—" : Model.RejectionReason)</dd></div>
+            }
+            @if (Model.BorrowedAt.HasValue)
+            {
+                <div><dt>Released</dt><dd>@Model.BorrowedAt.Value.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            }
+            @if (Model.ReturnedAt.HasValue)
+            {
+                <div><dt>Returned</dt><dd>@Model.ReturnedAt.Value.ToString("MMM d, yyyy h:mm tt")</dd></div>
+            }
+        </dl>
+    </section>
+}

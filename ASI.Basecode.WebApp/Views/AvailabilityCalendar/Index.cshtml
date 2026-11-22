@@ -1,0 +1,335 @@
+﻿@using ASI.Basecode.WebApp.Models
+@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Equipment
+@model AvailabilityCalendarViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Availability Calendar";
+    ViewData["TopbarPage"] = "Availability calendar";
+
+    var loadError = TempData["CalendarLoadError"] as string;
+    var isBorrower = User.IsInRole("Borrower");
+
+    string CalendarUrl(DateTime targetDate, string mode = null, string type = null)
+    {
+        return Url.Action("Index", "AvailabilityCalendar", new
+        {
+            search = Model.Search,
+            equipmentId = Model.EquipmentId,
+            categoryId = Model.CategoryId,
+            eventType = type ?? Model.EventType,
+            viewMode = mode ?? Model.ViewMode,
+            date = targetDate.ToString("yyyy-MM-dd")
+        });
+    }
+
+    string ChipClass(string type) => (type ?? "").ToLowerInvariant() switch
+    {
+        "reserved" => "chip-reserved",
+        "borrowed" => "chip-borrowed",
+        "maintenance" => "chip-maintenance",
+        _ => "chip-reserved"
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/availability-calendar.css" asp-append-version="true" />
+}
+
+<div class="page-heading">
+    <div>
+        <h1>Availability calendar</h1>
+        <p>See occupied periods at a glance and find an open borrowing window.</p>
+    </div>
+    @if (isBorrower)
+    {
+        <a class="button button-primary heading-action" asp-controller="Reservation" asp-action="Create">
+            <svg class="icon"><use href="#i-plus" /></svg>Reserve equipment
+        </a>
+    }
+</div>
+
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">@loadError</div>
+}
+else
+{
+    <section class="content-card calendar-filter-card" aria-label="Filter the calendar">
+        <form method="get" asp-action="Index" class="list-toolbar">
+            <input type="hidden" name="viewMode" value="@Model.ViewMode" />
+            <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+            @if (!string.IsNullOrEmpty(Model.EventType))
+            {
+                <input type="hidden" name="eventType" value="@Model.EventType" />
+            }
+
+            <label class="search-field">
+                <svg class="icon"><use href="#i-search" /></svg>
+                <span class="sr-only">Search equipment</span>
+                <input name="search" value="@Model.Search" type="search" placeholder="Search equipment..." autocomplete="off" />
+            </label>
+
+            <label class="filter-field">
+                <span>Equipment</span>
+                <select name="equipmentId" class="calendar-select" aria-label="Filter by equipment">
+                    <option value="">All equipment</option>
+                    @foreach (var item in Model.AllEquipments.OrderBy(e => e.EquipmentName))
+                    {
+                        <option value="@item.EquipmentId" selected="@(Model.EquipmentId == item.EquipmentId)">
+                            @item.EquipmentCode · @item.EquipmentName
+                        </option>
+                    }
+                </select>
+            </label>
+
+            <label class="filter-field">
+                <span>Category</span>
+                <select name="categoryId" class="calendar-select" aria-label="Filter by category">
+                    <option value="">All categories</option>
+                    @foreach (var cat in Model.Categories)
+                    {
+                        <option value="@cat.CategoryId" selected="@(Model.CategoryId == cat.CategoryId)">
+                            @cat.CategoryName
+                        </option>
+                    }
+                </select>
+            </label>
+
+            <button type="submit" class="button button-primary">Apply</button>
+            <a asp-action="Index" class="button button-secondary">Clear</a>
+        </form>
+    </section>
+
+    <section class="content-card calendar-card" aria-label="Availability calendar">
+        <div class="calendar-toolbar">
+            <div class="calendar-nav">
+                <a href="@CalendarUrl(Model.PrevDate)" class="calendar-nav-button" aria-label="Previous">&lsaquo;</a>
+                <h2 class="calendar-title">@Model.RangeTitle</h2>
+                <a href="@CalendarUrl(Model.NextDate)" class="calendar-nav-button" aria-label="Next">&rsaquo;</a>
+                <a href="@CalendarUrl(DateTime.Today)" class="calendar-today-button">Today</a>
+            </div>
+            <div class="calendar-views" role="group" aria-label="Change view">
+                <a href="@CalendarUrl(Model.SelectedDate, "day")" class="@(Model.ViewMode == "day" ? "is-active" : "")">Day</a>
+                <a href="@CalendarUrl(Model.SelectedDate, "week")" class="@(Model.ViewMode == "week" ? "is-active" : "")">Week</a>
+                <a href="@CalendarUrl(Model.SelectedDate, "month")" class="@(Model.ViewMode == "month" ? "is-active" : "")">Month</a>
+            </div>
+        </div>
+
+        <div class="calendar-legend" role="group" aria-label="Filter by entry types">
+            <a href="@CalendarUrl(Model.SelectedDate, null, string.Equals(Model.EventType, "Reserved", StringComparison.OrdinalIgnoreCase) ? "" : "Reserved")"
+               class="@(string.Equals(Model.EventType, "Reserved", StringComparison.OrdinalIgnoreCase) ? "is-active" : "")">
+                <span class="legend-dot legend-reserved"></span>Reserved (@Model.ReservedCount)
+            </a>
+            <a href="@CalendarUrl(Model.SelectedDate, null, string.Equals(Model.EventType, "Borrowed", StringComparison.OrdinalIgnoreCase) ? "" : "Borrowed")"
+               class="@(string.Equals(Model.EventType, "Borrowed", StringComparison.OrdinalIgnoreCase) ? "is-active" : "")">
+                <span class="legend-dot legend-borrowed"></span>Borrowed (@Model.BorrowedCount)
+            </a>
+            <a href="@CalendarUrl(Model.SelectedDate, null, string.Equals(Model.EventType, "Maintenance", StringComparison.OrdinalIgnoreCase) ? "" : "Maintenance")"
+               class="@(string.Equals(Model.EventType, "Maintenance", StringComparison.OrdinalIgnoreCase) ? "is-active" : "")">
+                <span class="legend-dot legend-maintenance"></span>Maintenance (@Model.MaintenanceCount)
+            </a>
+            @if (!string.IsNullOrEmpty(Model.EventType))
+            {
+                <a href="@CalendarUrl(Model.SelectedDate, null, "")" class="text-button" style="font-size: 11px; margin-left: 8px;">Show all types</a>
+            }
+        </div>
+
+        @if (Model.ViewMode == "month")
+        {
+            <div class="calendar-scroll" tabindex="0" role="region" aria-label="Month calendar view">
+                <div class="calendar-month">
+                    <div class="calendar-weekday">Sun</div>
+                    <div class="calendar-weekday">Mon</div>
+                    <div class="calendar-weekday">Tue</div>
+                    <div class="calendar-weekday">Wed</div>
+                    <div class="calendar-weekday">Thu</div>
+                    <div class="calendar-weekday">Fri</div>
+                    <div class="calendar-weekday">Sat</div>
+
+                    @{
+                        var currentDay = Model.RangeStart.Date;
+                        while (currentDay <= Model.RangeEnd.Date)
+                        {
+                            var dayDate = currentDay;
+                            var dayStart = dayDate;
+                            var dayEnd = dayStart.AddDays(1);
+                            var dayEvents = Model.Events.Where(e => e.Start < dayEnd && e.End > dayStart).ToList();
+                            var isOutside = dayDate.Month != Model.SelectedDate.Month;
+                            var isToday = dayDate == DateTime.Today;
+                            var isSelected = dayDate == Model.SelectedDate.Date;
+
+                            <div class="calendar-cell @(isOutside ? "is-outside" : "") @(isSelected ? "is-selected" : "")">
+                                <a href="@CalendarUrl(dayDate, "day")" class="calendar-day-number @(isToday ? "is-today" : "")" title="View @dayDate.ToString("MMM d, yyyy")">
+                                    @dayDate.Day
+                                </a>
+
+                                @foreach (var evt in dayEvents.Take(3))
+                                {
+                                    <a href="@CalendarUrl(dayDate, "day")" class="calendar-chip @ChipClass(evt.Type)" title="@evt.EquipmentName (@evt.Type - @evt.Status)">
+                                        <strong>@evt.EquipmentName</strong>
+                                        <small>@evt.Start.ToString("h:mm tt")</small>
+                                    </a>
+                                }
+
+                                @if (dayEvents.Count > 3)
+                                {
+                                    <a href="@CalendarUrl(dayDate, "day")" class="calendar-more">+@(dayEvents.Count - 3) more</a>
+                                }
+                            </div>
+
+                            currentDay = currentDay.AddDays(1);
+                        }
+                    }
+                </div>
+            </div>
+        }
+        else if (Model.ViewMode == "week")
+        {
+            <div class="calendar-scroll" tabindex="0" role="region" aria-label="Week calendar view">
+                <div class="calendar-week">
+                    @{
+                        var weekDay = Model.RangeStart.Date;
+                        for (int i = 0; i < 7; i++)
+                        {
+                            var dayDate = weekDay;
+                            var dayStart = dayDate;
+                            var dayEnd = dayStart.AddDays(1);
+                            var dayEvents = Model.Events.Where(e => e.Start < dayEnd && e.End > dayStart).ToList();
+                            var isToday = dayDate == DateTime.Today;
+                            var isSelected = dayDate == Model.SelectedDate.Date;
+
+                            <div class="calendar-week-day @(isToday ? "is-today" : "") @(isSelected ? "is-selected" : "")">
+                                <a href="@CalendarUrl(dayDate, "day")" class="calendar-week-head">
+                                    <strong>@dayDate.ToString("ddd")</strong>
+                                    <span>@dayDate.ToString("MMM d")</span>
+                                </a>
+
+                                @if (dayEvents.Count == 0)
+                                {
+                                    <span class="calendar-empty">No events</span>
+                                }
+                                else
+                                {
+                                    @foreach (var evt in dayEvents)
+                                    {
+                                        <a href="@CalendarUrl(dayDate, "day")" class="calendar-chip @ChipClass(evt.Type)" title="@evt.EquipmentName (@evt.Type - @evt.Status)">
+                                            <strong>@evt.EquipmentName</strong>
+                                            <small>@evt.Start.ToString("h:mm tt") – @evt.End.ToString("h:mm tt")</small>
+                                        </a>
+                                    }
+                                }
+                            </div>
+
+                            weekDay = weekDay.AddDays(1);
+                        }
+                    }
+                </div>
+            </div>
+        }
+        else // day view
+        {
+            <div class="calendar-day">
+                @if (Model.SelectedDateEvents.Count == 0)
+                {
+                    <p class="calendar-empty-large">No equipment reservations or maintenance scheduled for @Model.SelectedDate.ToString("MMMM d, yyyy").</p>
+                }
+                else
+                {
+                    @foreach (var evt in Model.SelectedDateEvents)
+                    {
+                        <div class="calendar-day-row @ChipClass(evt.Type)">
+                            <div>
+                                <strong>@evt.EquipmentName (@evt.EquipmentCode)</strong>
+                                <small>@evt.Type &middot; Status: @evt.Status</small>
+                            </div>
+                            <span class="calendar-day-time">@evt.Start.ToString("h:mm tt") – @evt.End.ToString("h:mm tt")</span>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    </section>
+
+    <section class="content-card available-panel" aria-labelledby="availableHeading">
+        <div class="available-head">
+            <h2 id="availableHeading">Available equipment &middot; <span>@Model.SelectedDate.ToString("MMMM d, yyyy")</span></h2>
+            <span class="count-pill">@Model.AvailableEquipments.Count available</span>
+        </div>
+        <p class="available-note">Equipment with no conflicting reservation or maintenance on this day.</p>
+        @if (Model.AvailableEquipments.Count == 0)
+        {
+            <p class="calendar-empty">No equipment is currently available for borrowing on this date.</p>
+        }
+        else
+        {
+            <ul class="available-grid">
+                @foreach (var eq in Model.AvailableEquipments)
+                {
+                    <li class="available-item">
+                        <div>
+                            <strong>@eq.EquipmentName</strong>
+                            <small>@eq.EquipmentCode &middot; @eq.CategoryName</small>
+                        </div>
+                        @if (isBorrower)
+                        {
+                            <a asp-controller="Equipment" asp-action="Details" asp-route-id="@eq.EquipmentId">View Details</a>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    @* <section class="content-card category-list" style="margin-top: 18px;" aria-labelledby="scheduleHeading">
+        <div class="card-heading">
+            <div>
+                <h2 id="scheduleHeading">Reservation &amp; Maintenance Schedule</h2>
+                <p>Detailed view of all occupied equipment periods in the current calendar view.</p>
+            </div>
+            <span class="count-pill">@Model.EquipmentSchedule.Count @(Model.EquipmentSchedule.Count == 1 ? "entry" : "entries")</span>
+        </div>
+
+        @if (Model.EquipmentSchedule.Count == 0)
+        {
+            <div class="empty-results">
+                <span class="empty-icon"><svg class="icon"><use href="#i-calendar" /></svg></span>
+                <h3>No scheduled periods</h3>
+                <p>There are no equipment reservations or maintenance tasks scheduled in this period.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-scroll" role="region" aria-label="Reservation schedule" tabindex="0">
+                <table class="category-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Equipment</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Starts</th>
+                            <th scope="col">Ends</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in Model.EquipmentSchedule)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="category-name-cell">
+                                        <span class="category-tile"><svg class="icon"><use href="#i-calendar" /></svg></span>
+                                        <span><strong>@entry.EquipmentName</strong><small>@entry.EquipmentCode</small></span>
+                                    </div>
+                                </td>
+                                <td><span class="role-pill">@entry.Type</span></td>
+                                <td><span class="status-badge status-@entry.Status.ToLowerInvariant()"><span></span>@entry.Status</span></td>
+                                <td>@entry.Start.ToString("MMM d, yyyy h:mm tt")</td>
+                                <td>@entry.End.ToString("MMM d, yyyy h:mm tt")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section> *@
+}

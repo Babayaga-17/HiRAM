@@ -1,69 +1,110 @@
-﻿@model LoginViewModel
-@using static ASI.Basecode.Resources.Views.Screen
-@section styles {
-    <link rel="stylesheet" href="~/css/login.css" />
-}
+@model LoginViewModel
 @{
     ViewBag.LoginView = true;
-    ViewData["Title"] = "Login Page";
+    ViewData["IsAccountPage"] = true;
+    ViewData["UseLegacyAssets"] = false;
+    ViewData["Title"] = "Sign In | HiRAM";
 }
-<div>
-    @Html.AntiForgeryToken()
-</div>
-<div class="container py-5" style="display:flex; align-content:center;height:calc(100vh - 64px)">
-    <div class="row d-flex justify-content-center align-items-center h-100">
-        <div class="col-xl-10">
-            <div class="card rounded-3 text-black">
-                <div class="row g-0 w-1000px">
-                    <div class="col-lg-6">
-                        <div class="card-body p-md-5 mx-md-4">
-                            <div class="text-center">
-                                <img src="~/img/asi-logo-invert.svg"
-                                     style="width: 185px;" alt="logo">
-                            </div>
-                            <form method="post" action="/Account/Login" id="loginForm">
-                                <div class="form-outline mb-4">
-                                    <label class="form-label" for="form2Example11">@UserId</label>
-                                    <input type="text" id="form2Example11" class="form-control"
-                                           asp-for="UserId" placeholder="Enter userid" />
-                                    <span asp-validation-for="UserId" class="text-danger"></span>
-                                </div>
-                                <div class="form-outline mb-4">
-                                    <label class="form-label" for="form2Example22">@Password</label>
-                                    <input type="password" id="form2Example22" class="form-control"
-                                           asp-for="Password" placeholder="Enter password" />
-                                    <span asp-validation-for="Password" class="text-danger"></span>
-                                </div>
-                                <div class="text-center pt-1 mb-5 pb-1 d-flex flex-column align-items-center">
-                                    <button class="btn btn-primary btn-block login-btn gradient-custom-2 mb-3" type="submit">
-                                        @Login
-                                    </button>
-                                    <div>
-                                        <a class="text-muted" href="#!">@ForgotPass</a>
-                                    </div>
-                                </div>
-                                <div class="d-flex align-items-center justify-content-center pb-4">
-                                    <p class="mb-0 me-2 mr-1">@DontHaveAcc</p>
-                                    <a asp-controller="Account" asp-action="Register" class="btn btn-outline-danger">@CreateNew</a>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    <div class="col-lg-6 d-flex">
-                        <img style="width:400px"src="~/img/LiveIT.png" />
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-@section scripts {
-    <script>
-        // Check for error message and display Toastr notification
-        var errorMessage = '@TempData["ErrorMessage"]';
-        if (errorMessage) {
-            toastr.error(errorMessage);
-        }
-    </script>
+@section Styles {
+    <link rel="stylesheet" href="~/css/password-toggle.css" asp-append-version="true" />
+}
+
+<main class="auth-shell login-shell">
+    <section class="form-panel" aria-labelledby="loginHeading">
+        <header class="form-head">
+            <h1 id="loginHeading">Sign in</h1>
+            <p>Use your HiRAM account to continue.</p>
+        </header>
+
+        <form class="login-form"
+              id="loginForm"
+              asp-controller="Account"
+              asp-action="Login"
+              method="post">
+
+            <input type="hidden"
+                   name="returnUrl"
+                   value="@ViewData["ReturnUrl"]" />
+
+            <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+            <div class="form-field">
+                <label for="UserId">Email</label>
+                <div class="input-wrap">
+                    <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="8" r="4"></circle>
+                        <path d="M4 21a8 8 0 0 1 16 0"></path>
+                    </svg>
+                    <input asp-for="UserId" type="text" placeholder="Enter your email" autocomplete="username" />
+                </div>
+                <span asp-validation-for="UserId" class="field-validation-error"></span>
+            </div>
+
+            <div class="form-field">
+                <label for="Password">Password</label>
+                <div class="input-wrap password-field">
+                    <svg class="input-icon" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="4" y="10" width="16" height="11" rx="2"></rect>
+                        <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"></path>
+                    </svg>
+                    <input asp-for="Password" type="password" placeholder="Enter your password" autocomplete="current-password" />
+
+                    <button class="password-toggle js-password-toggle"
+                            id="passwordToggle"
+                            type="button"
+                            data-target="Password"
+                            data-password-label="password"
+                            aria-controls="Password"
+                            aria-label="Show password">
+
+                        <svg class="eye-icon eye-open"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             hidden>
+                            <use href="#i-eye"></use>
+                        </svg>
+
+                        <svg class="eye-icon eye-closed"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true">
+                            <use href="#i-eye-closed"></use>
+                        </svg>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="field-validation-error"></span>
+            </div>
+
+            <div class="form-options">
+                <label class="remember-option">
+                    <input asp-for="RememberMe" />
+                    <span>Remember me</span>
+                </label>
+                <a class="forgot-link" asp-controller="Account" asp-action="ForgotPassword">Forgot password?</a>
+            </div>
+
+            <button class="sign-in-button" type="submit">
+                <span>Sign in</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12h14M14 7l5 5-5 5"></path>
+                </svg>
+            </button>
+
+        </form>
+        <p class="auth-switch">New to HiRAM? <a asp-controller="Account" asp-action="Register">Create an account</a></p>
+    </section>
+    <section class="auth-intro" aria-labelledby="lendingTitle">
+        <h2 id="lendingTitle">Borrow school equipment</h2>
+        <p>Find what you need for class, check when it’s free, and keep track of your reservations.</p>
+        <ul class="lending-steps">
+            <li><svg class="icon" aria-hidden="true"><use href="#i-box" /></svg>Browse school equipment</li>
+            <li><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg>Check availability and reserve</li>
+            <li><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Track requests and returns</li>
+        </ul>
+    </section>
+</main>
+
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/password-toggle.js" asp-append-version="true"></script>
 }

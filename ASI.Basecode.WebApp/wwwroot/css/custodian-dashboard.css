@@ -1,0 +1,18 @@
+/* Desk grid: three equal tracks and two 20px gutters; review queue spans two tracks. */
+.custodian-dashboard .rd-main-grid { grid-template-columns: repeat(3,minmax(0,1fr)); grid-template-areas: "review review overdue" "releases returns workload"; }
+.custodian-dashboard .rd-main-grid > .rd-panel:first-child { grid-area: review; }
+.custodian-dashboard .rd-side { display: contents; }
+.custodian-dashboard .rd-side > .rd-panel { grid-area: overdue; }
+.custodian-dashboard .rd-workload { grid-area: workload; }
+.custodian-dashboard .rd-releases { grid-area: releases; }
+.custodian-dashboard .rd-returns { grid-area: returns; }
+@media (max-width: 1100px) {
+    .custodian-dashboard .rd-main-grid { grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-areas: "review overdue" "releases returns" "workload workload"; }
+}
+@media (max-width: 700px) {
+    .custodian-dashboard .rd-main-grid { grid-template-columns: minmax(0,1fr); grid-template-areas: "review" "overdue" "releases" "returns" "workload"; }
+}
+.custodian-dashboard .rd-main-grid { align-items: stretch; }
+.custodian-dashboard .rd-panel { display: flex; flex-direction: column; }
+.custodian-dashboard .rd-panel-footer { margin-top: auto; }
+.custodian-dashboard .rd-inline-links { margin-top: auto; padding-top: 8px; }

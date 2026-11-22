@@ -23,5 +23,23 @@
             Success = 0,
             Failed = 1,
         }
+
+        public enum LoginFailureReason
+        {
+            InvalidCredentials,
+            PendingApproval,
+            Inactive,
+            Suspended,
+            Disabled,
+            TemporarilyLocked
+        }
+
+        public enum SendResetCodeStatus
+        {
+            Sent,
+            AccountNotFound,
+            Cooldown,
+            Failed
+        }
     }
 }

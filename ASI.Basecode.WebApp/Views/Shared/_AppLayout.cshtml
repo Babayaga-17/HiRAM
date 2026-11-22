@@ -1,0 +1,37 @@
+@{
+    var isBorrowerProfile = ViewContext.RouteData.Values["controller"]?.ToString() == "BorrowerProfile";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] | HiRAM</title>
+    <partial name="_ThemeAssets" />
+    <partial name="_BrandFavicon" />
+    <link rel="stylesheet" href="~/css/app.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/workspace.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/notifications.css" asp-append-version="true" />
+    @if (isBorrowerProfile)
+    {
+        <link rel="stylesheet" href="~/css/borrower-profile.css" asp-append-version="true" />
+    }
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="app-body">
+    <partial name="_AppIcons" />
+    <div class="app-shell">
+        <div class="sidebar-scrim" id="sidebarScrim" aria-hidden="true"></div>
+        <partial name="_AppSidebar" />
+        <div class="app-main">
+            <a class="skip-link" href="#mainContent">Skip to main content</a>
+            <partial name="_AppTopbar" />
+            <main class="app-content" id="mainContent" tabindex="-1">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+    <script src="~/js/app.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

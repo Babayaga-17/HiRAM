@@ -1,0 +1,212 @@
+@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.UserAccount
+@model List<UserAccountListItem>
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Users & Roles";
+    ViewData["TopbarPage"] = "Users & roles";
+    var roles = ViewData["Roles"] as List<RoleListItem> ?? new List<RoleListItem>();
+    var totalCount = ViewBag.TotalCount as int? ?? Model.Count;
+    var activeCount = ViewBag.ActiveCount as int? ?? Model.Count(account => account.IsActive);
+    var filteredCount = ViewBag.FilteredCount as int? ?? Model.Count;
+    var loadError = TempData["UserAccountLoadError"] as string;
+
+    var search = ViewBag.Search as string ?? "";
+    var selectedRole = ViewBag.Role as string ?? "all";
+    var selectedStatus = ViewBag.Status as string ?? "all";
+    var currentPage = ViewBag.Page as int? ?? 1;
+    var pageSize = ViewBag.PageSize as int? ?? 5;
+    var totalPages = ViewBag.TotalPages as int? ?? 1;
+    var firstItem = ViewBag.FirstItem as int? ?? (Model.Count == 0 ? 0 : 1);
+    var lastItem = ViewBag.LastItem as int? ?? Model.Count;
+
+    var hasFilters = !string.IsNullOrWhiteSpace(search) ||
+        (!string.IsNullOrWhiteSpace(selectedRole) && !selectedRole.Equals("all", StringComparison.OrdinalIgnoreCase)) ||
+        (!string.IsNullOrWhiteSpace(selectedStatus) && !selectedStatus.Equals("all", StringComparison.OrdinalIgnoreCase));
+
+    string LastActive(DateTime? value)
+    {
+        if (!value.HasValue) return "Never";
+        var v = value.Value;
+        if (v.Date == DateTime.Today) return "Today, " + v.ToString("h:mm tt");
+        if (v.Date == DateTime.Today.AddDays(-1)) return "Yesterday, " + v.ToString("h:mm tt");
+        return v.Year == DateTime.Today.Year ? v.ToString("MMM d, h:mm tt") : v.ToString("MMM d, yyyy");
+    }
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/user-account.css" asp-append-version="true" />
+}
+
+<div class="page-heading">
+    <div>
+        <h1>Users &amp; roles</h1>
+        <p>Manage system access and role assignments for HiRAM users.</p>
+    </div>
+    <a class="button button-primary heading-action" asp-controller="UserAccount" asp-action="Create"><svg class="icon"><use href="#i-plus" /></svg>Create user</a>
+</div>
+
+@if (TempData["UserAccountSuccess"] is string successMessage)
+{
+    <div class="category-notice category-notice-success" role="status">@successMessage</div>
+}
+@if (TempData["UserAccountError"] is string errorMessage)
+{
+    <div class="category-notice category-notice-error" role="alert">@errorMessage</div>
+}
+
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">@loadError</div>
+}
+else
+{
+    <section class="stats-grid" aria-label="User overview">
+        <div class="stat-card">
+            <span class="stat-copy"><span>Total users</span><strong>@totalCount</strong><small>Accounts in HiRAM</small></span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-copy"><span>Active accounts</span><strong>@activeCount</strong><small>Can sign in</small></span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-copy"><span>Roles</span><strong>@roles.Count</strong><small><a asp-controller="UserAccount" asp-action="RoleAccess">View role access</a></small></span>
+        </div>
+    </section>
+
+    <section class="content-card category-list" aria-labelledby="userListHeading">
+        <div class="card-heading">
+            <div><h2 id="userListHeading">All users</h2><p>Search accounts and manage their roles and status.</p></div>
+            <span class="count-pill">@filteredCount @(filteredCount == 1 ? "user" : "users")</span>
+        </div>
+
+        @if (totalCount == 0 && !hasFilters)
+        {
+            <div class="empty-categories">
+                <span class="empty-icon"><svg class="icon"><use href="#i-users" /></svg></span>
+                <h3>No user accounts yet</h3>
+                <p>Create an account to give someone access to HiRAM.</p>
+                <a class="button button-primary" asp-controller="UserAccount" asp-action="Create"><svg class="icon"><use href="#i-plus" /></svg>Create user</a>
+            </div>
+        }
+        else
+        {
+            <form method="get" asp-action="Index" class="list-toolbar">
+                <label class="search-field"><svg class="icon" aria-hidden="true"><use href="#i-search" /></svg><span class="sr-only">Search users</span><input name="search" value="@search" type="search" placeholder="Search user, email, or ID…" autocomplete="off" /></label>
+                <label class="filter-field filter-field-compact">
+                    <span>Show</span>
+                    <select name="pageSize" aria-label="Items per page" onchange="this.form.submit()">
+                        @foreach (var size in new[] { 5, 10, 20 })
+                        {
+                            <option value="@size" selected="@(pageSize == size)">@size</option>
+                        }
+                    </select>
+                </label>
+                <label class="filter-field">
+                    <span>Role</span>
+                    <select name="role" aria-label="Filter by role">
+                        <option value="all">All roles</option>
+                        @foreach (var role in roles)
+                        {
+                            <option value="@role.RoleName" selected="@(string.Equals(selectedRole, role.RoleName, StringComparison.OrdinalIgnoreCase))">@role.RoleName</option>
+                        }
+                    </select>
+                </label>
+                <label class="filter-field">
+                    <span>Status</span>
+                    <select name="status" aria-label="Filter by status">
+                        <option value="all">All statuses</option>
+                        @foreach (var status in ASI.Basecode.Resources.Constants.AccountStatuses.FilterOptions)
+                        {
+                            <option value="@status" selected="@(string.Equals(selectedStatus, status, StringComparison.OrdinalIgnoreCase))">@(status == "PendingApproval" ? "Pending approval" : status)</option>
+                        }
+                    </select>
+                </label>
+                <button type="submit" class="button button-primary">Apply</button>
+                <a asp-action="Index" class="button button-secondary">Clear</a>
+            </form>
+
+            @if (filteredCount == 0)
+            {
+                <div class="empty-results">
+                    <span class="empty-icon"><svg class="icon"><use href="#i-search" /></svg></span>
+                    <h3>No matching users</h3>
+                    <p>Try a different search term, role, or status.</p>
+                    <a asp-action="Index" class="text-button">Clear filters</a>
+                </div>
+            }
+            else
+            {
+                <div class="table-scroll" role="region" aria-label="User accounts" tabindex="0">
+                    <table class="category-table">
+                        <thead><tr><th scope="col">User</th><th scope="col">Email</th><th scope="col">Role</th><th scope="col">Last active</th><th scope="col">Status</th><th scope="col" class="actions-column">Actions</th></tr></thead>
+                        <tbody>
+                            @foreach (var account in Model)
+                            {
+                                <tr>
+                                    <td><div class="category-name-cell"><span class="category-tile"><svg class="icon"><use href="#i-user" /></svg></span><span><strong>@account.FullName</strong><small>@account.UserCode</small></span></div></td>
+                                    <td>@account.Email</td>
+                                    <td><span class="role-pill">@account.RoleName</span></td>
+                                    <td>@LastActive(account.LastLoginAt)</td>
+                                    @{
+                                        var isSuspended = string.Equals(account.AccountStatus, "Suspended", StringComparison.OrdinalIgnoreCase);
+                                        var displayStatus = account.AccountStatus == "PendingApproval" ? "Pending approval" : isSuspended ? "Inactive" : account.AccountStatus;
+                                        var statusBadgeClass = isSuspended ? "inactive" : account.AccountStatus.ToLowerInvariant();
+                                    }
+                                    <td><span class="status-badge status-@statusBadgeClass"><span></span>@displayStatus</span></td>
+                                    <td class="actions-column">
+                                        <div class="row-actions">
+                                            <a class="icon-button" asp-controller="UserAccount" asp-action="Details" asp-route-id="@account.UserId" aria-label="View @account.FullName" title="View account"><svg class="icon"><use href="#i-eye" /></svg></a>
+                                            <a class="icon-button" asp-controller="UserAccount" asp-action="Edit" asp-route-id="@account.UserId" aria-label="Edit @account.FullName" title="Edit account"><svg class="icon"><use href="#i-edit" /></svg></a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="table-footer">
+                    <span>Showing @firstItem–@lastItem of @filteredCount users</span>
+                    @if (filteredCount > 0)
+                    {
+                        <nav class="pager" aria-label="Users pagination">
+                            @if (currentPage > 1)
+                            {
+                                <a class="pager-link" asp-action="Index" asp-route-page="@(currentPage - 1)"
+                                    asp-route-pageSize="@pageSize" asp-route-search="@search"
+                                    asp-route-role="@selectedRole" asp-route-status="@selectedStatus">
+                                    Previous
+                                </a>
+                            }
+
+                            @for (var p = Math.Max(1, currentPage - 2); p <= Math.Min(totalPages, currentPage + 2); p++)
+                            {
+                                if (p == currentPage)
+                                {
+                                    <span class="pager-link pager-active" aria-current="page">
+                                        @p
+                                    </span>
+                                }
+                                else
+                                {
+                                    <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-pageSize="@pageSize"
+                                        asp-route-search="@search" asp-route-role="@selectedRole"
+                                        asp-route-status="@selectedStatus">
+                                        @p
+                                    </a>
+                                }
+                            }
+
+                            @if (currentPage < totalPages)
+                            {
+                                <a class="pager-link" asp-action="Index" asp-route-page="@(currentPage + 1)"
+                                    asp-route-pageSize="@pageSize" asp-route-search="@search"
+                                    asp-route-role="@selectedRole" asp-route-status="@selectedStatus">
+                                    Next
+                                </a>
+                            }
+                        </nav>
+                    }
+                </div>
+            }
+        }
+    </section>
+}

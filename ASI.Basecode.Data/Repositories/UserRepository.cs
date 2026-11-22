@@ -1,6 +1,7 @@
 ﻿using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Models;
 using Basecode.Data.Repositories;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,9 +22,9 @@ namespace ASI.Basecode.Data.Repositories
             return this.GetDbSet<User>();
         }
 
-        public bool UserExists(string userId)
+        public bool UserExists(int userId)
         {
-            return this.GetDbSet<User>().Any(x => x.UserId == userId);
+            return this.GetDbSet<Account>().Any(x => x.UserId == userId);
         }
 
         public void AddUser(User user)
@@ -32,5 +33,26 @@ namespace ASI.Basecode.Data.Repositories
             UnitOfWork.SaveChanges();
         }
 
+        public User GetProfileByUserId(int userId)
+        {
+            return GetDbSet<User>()
+                .AsNoTracking()
+                .Include(user => user.Account)
+                .Include(user => user.BorrowerProfileUser)
+                    .ThenInclude(profile => profile.Department)
+                .FirstOrDefault(user => user.UserId == userId);
+        }
+
+        public bool UserCodeExists(string userCode, int? excludeUserId = null)
+        {
+            var query = this.GetDbSet<User>().Where(user => user.UserCode == userCode);
+
+            if (excludeUserId.HasValue)
+            {
+                query = query.Where(user => user.UserId != excludeUserId.Value);
+            }
+
+            return query.Any();
+        }
     }
 }

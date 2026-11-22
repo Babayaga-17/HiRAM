@@ -1,0 +1,198 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Equipment
+@model List<EquipmentListItem>
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Browse Equipment";
+    ViewData["TopbarPage"] = "Browse equipment";
+
+    var loadError = TempData["BrowseLoadError"] as string;
+    var categoryOptions = ViewBag.Categories as Microsoft.AspNetCore.Mvc.Rendering.SelectList;
+    var selectedIds = ViewBag.SelectedIds as List<int> ?? new List<int>();
+
+    var placeholderUrl = Url.Content("~/images/equipment-placeholder.svg");
+
+    var reservationId = (int?)ViewData["EditingReservationId"];
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/browse-equipment.css" asp-append-version="true" />
+}
+
+<div class="page-heading">
+    <div>
+        <h1>Find the right equipment</h1>
+        <p>Search the school inventory, check availability, and select the items you need.</p>
+    </div>
+</div>
+
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">@loadError</div>
+}
+else if (Model.Count == 0)
+{
+    <section class="content-card">
+        <div class="empty-categories">
+            <span class="empty-icon"><svg class="icon"><use href="#i-box" /></svg></span>
+            <h3>No equipment available yet</h3>
+            <p>Equipment will appear here once the custodian adds it.</p>
+        </div>
+    </section>
+}
+else
+{
+    <div id="browseRoot"
+         data-state-key="hiram.browse.@(reservationId?.ToString() ?? "new")"
+         data-selected="@string.Join(",", selectedIds)"
+         data-placeholder="@placeholderUrl"
+         data-select-url="@Url.Action("Select", "BrowseEquipment", new { reservationId })"
+         data-deselect-url="@Url.Action("Deselect", "BrowseEquipment", new { reservationId })"
+         data-clear-url="@Url.Action("Clear", "BrowseEquipment", new { reservationId })">
+        @Html.AntiForgeryToken()
+
+        <section class="content-card browse-toolbar-card" aria-label="Search and filter equipment">
+            <div class="list-toolbar">
+                <label class="search-field">
+                    <svg class="icon"><use href="#i-search" /></svg>
+                    <span class="sr-only">Search equipment</span>
+                    <input id="browseSearch" type="search" placeholder="Search code, name, or model..." autocomplete="off" />
+                </label>
+                <label class="filter-field">
+                    <span>Category</span>
+                    <select id="categoryFilter" aria-label="Filter by category">
+                        <option value="all">All categories</option>
+                        @if (categoryOptions != null)
+                        {
+                            @foreach (var option in categoryOptions)
+                            {
+                                <option value="@option.Value">@option.Text</option>
+                            }
+                        }
+                    </select>
+                </label>
+                <label class="filter-field">
+                    <span>Status</span>
+                    <select id="statusFilter" aria-label="Filter by status">
+                        <option value="all">All statuses</option>
+                        <option value="available">Available</option>
+                        <option value="reserved">Reserved</option>
+                        <option value="borrowed">Borrowed</option>
+                        <option value="undermaintenance">Under Maintenance</option>
+                        <option value="unavailable">Unavailable</option>
+                    </select>
+                </label>
+                <div class="view-toggle" role="group" aria-label="Change view">
+                    <button type="button" data-view="grid" class="is-active">Grid</button>
+                    <button type="button" data-view="list">List</button>
+                </div>
+            </div>
+        </section>
+
+        <p class="browse-count" id="browseCount"></p>
+
+        <section class="content-card selection-tray" id="selectionTray" aria-label="Selected equipment" hidden>
+            <div class="selection-tray-head">
+                <h2>Selected equipment (<span id="selectionCount">0</span>)</h2>
+                <button type="button" class="text-button" id="clearSelection">Clear selection</button>
+            </div>
+            <ul class="selection-chips" id="selectionChips"></ul>
+            <div class="selection-tray-footer">
+                <p class="selection-tray-note">
+                    Ready to reserve? Choose your pickup and return schedule on the next page.
+                </p>
+
+                <a class="button button-primary"
+                   asp-controller="Reservation"
+                   asp-action="@(reservationId.HasValue ? "Edit" : "Create")"
+                   asp-route-id="@reservationId">
+                    Continue to reservation
+                </a>
+            </div>
+        </section>
+
+        <div class="browse-grid" id="browseGrid">
+            @foreach (var item in Model)
+            {
+                var photos = item.ImageUrls ?? new List<string>();
+                var coverUrl = photos.Count > 0 ? photos[0] : placeholderUrl;
+                var brandModel = string.Join(" ", new[] { item.Brand, item.Model }.Where(value => !string.IsNullOrWhiteSpace(value)));
+
+                <article class="equipment-card"
+                         data-id="@item.EquipmentId"
+                         data-name="@item.EquipmentName"
+                         data-code="@item.EquipmentCode"
+                         data-category="@item.CategoryId"
+                         data-category-name="@item.CategoryName"
+                         data-brand="@item.Brand"
+                         data-model="@item.Model"
+                         data-serial="@item.SerialNumber"
+                         data-condition="@item.ConditionStatus"
+                         data-status="@item.StatusClass"
+                         data-status-label="@item.StatusLabel"
+                         data-location="@item.StorageLocation"
+                         data-description="@item.Description"
+                         data-next="@(item.NextReservationStart?.ToString("MMM d, yyyy h:mm tt"))"
+                         data-images="@string.Join("|", photos)"
+                         data-selectable="@(item.Status != EquipmentAvailability.Unavailable ? "true" : "false")"
+                         data-availability-url="@Url.Action("Availability", "BrowseEquipment", new { id = item.EquipmentId, reservationId })">
+                    <div class="equipment-photo">
+                        <span class="photo-fallback"><span class="photo-icon"></span>No equipment photo</span>
+                        <img class="equipment-photo-img" src="@coverUrl" alt="@(photos.Count > 0 ? "Photo of " + item.EquipmentName : "")" loading="lazy" />
+                        <span class="status-badge status-@item.StatusClass badge-on-photo"><span></span>@item.StatusLabel</span>
+                        @if (photos.Count > 1)
+                        {
+                            <span class="equipment-photo-count">@photos.Count photos</span>
+                        }
+                    </div>
+
+                    <div class="equipment-card-body">
+                        <div class="equipment-card-main">
+                            <span class="category-tile list-tile"><svg class="icon"><use href="#i-box" /></svg></span>
+                            <span class="equipment-card-title">
+                                <strong>@item.EquipmentName</strong>
+                                <small>@item.EquipmentCode &middot; @item.CategoryName</small>
+                            </span>
+                        </div>
+                        <div class="equipment-card-info">
+                            <span class="status-badge status-@item.StatusClass badge-in-info"><span></span>@item.StatusLabel</span>
+                            <span class="browse-condition browse-condition-@item.ConditionStatus.ToLowerInvariant()">@item.ConditionStatus</span>
+                            <span class="equipment-card-detail">@brandModel</span>
+                            <span class="equipment-card-detail is-location">@item.StorageLocation</span>
+                        </div>
+                    </div>
+
+                    <div class="equipment-card-actions">
+                        <a class="button button-secondary view-equipment"
+                           asp-controller="BrowseEquipment" asp-action="Details"
+                           asp-route-id="@item.EquipmentId" asp-route-reservationId="@reservationId">
+                            View details
+                        </a>
+                        <button type="button" class="button button-primary select-equipment">Select</button>
+                    </div>
+                </article>
+            }
+        </div>
+
+        <section class="content-card" id="emptyResults" hidden>
+            <div class="empty-categories">
+                <span class="empty-icon"><svg class="icon"><use href="#i-search" /></svg></span>
+                <h3>No equipment found</h3>
+                <p>Try a different search or clear one of the filters.</p>
+                <button type="button" class="text-button" id="clearFilters">Clear filters</button>
+            </div>
+        </section>
+
+        <div class="table-footer">
+            <span></span>
+            <nav class="pager" id="pager" aria-label="Pagination"></nav>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @if (loadError == null && Model.Count > 0)
+    {
+        <script src="~/js/browse-equipment.js" asp-append-version="true"></script>
+    }
+}

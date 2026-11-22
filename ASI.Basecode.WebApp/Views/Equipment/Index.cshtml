@@ -1,0 +1,390 @@
+﻿@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Equipment
+@model EquipmentIndexViewModel
+
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Equipment";
+
+    var loadError = TempData["EquipmentLoadError"] as string;
+    var categoryOptions = ViewBag.Categories as Microsoft.AspNetCore.Mvc.Rendering.SelectList;
+}
+
+<div class="page-heading">
+    <div>
+        <h1>Equipment management</h1>
+        <p>Maintain inventory details, condition, availability, and storage locations.</p>
+    </div>
+
+    <a class="button button-primary heading-action" asp-controller="Equipment" asp-action="Create">
+        <svg class="icon">
+            <use href="#i-plus" />
+        </svg>
+        Add equipment
+    </a>
+</div>
+
+@if (TempData["EquipmentSuccess"] is string successMessage)
+{
+    <div class="category-notice category-notice-success" role="status">
+        @successMessage
+    </div>
+}
+
+@if (TempData["EquipmentError"] is string errorMessage)
+{
+    <div class="category-notice category-notice-error" role="alert">
+        @errorMessage
+    </div>
+}
+
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">
+        @loadError
+    </div>
+}
+else
+{
+    <section class="stats-grid" aria-label="Equipment overview">
+        <div class="stat-card">
+            <span class="stat-copy">
+                <span>Total equipment</span>
+                <strong>@Model.TotalEquipment</strong>
+                <small>Items in the inventory</small>
+            </span>
+        </div>
+
+        <div class="stat-card">
+            <span class="stat-copy">
+                <span>Available now</span>
+                <strong>@Model.AvailableCount</strong>
+                <small>Ready to be reserved</small>
+            </span>
+        </div>
+
+        <div class="stat-card">
+            <span class="stat-copy">
+                <span>Needs attention</span>
+                <strong>@Model.AttentionCount</strong>
+                <small>Under maintenance or unavailable</small>
+            </span>
+        </div>
+    </section>
+
+    <section class="content-card category-list" aria-labelledby="equipmentListHeading">
+
+        <div class="card-heading">
+            <div>
+                <h2 id="equipmentListHeading">All equipment</h2>
+                <p>Browse, search, and manage inventory items.</p>
+            </div>
+
+            @*
+        <span class="count-pill">
+        @Model.TotalEquipment @(Model.TotalEquipment == 1 ? "item" : "items")
+        </span>
+        *@
+        </div>
+
+        @if (Model.TotalEquipment == 0)
+        {
+            <div class="empty-categories">
+                <span class="empty-icon">
+                    <svg class="icon">
+                        <use href="#i-box" />
+                    </svg>
+                </span>
+
+                <h3>No equipment yet</h3>
+                <p>Equipment will appear here once it is added.</p>
+
+                <a class="button button-primary" asp-controller="Equipment" asp-action="Create">
+                    <svg class="icon">
+                        <use href="#i-plus" />
+                    </svg>
+                    Add equipment
+                </a>
+            </div>
+        }
+        else
+        {
+            <form method="get" asp-action="Index" class="list-toolbar">
+                <label class="search-field">
+                    <svg class="icon" aria-hidden="true">
+                        <use href="#i-search" />
+                    </svg>
+                    <span class="sr-only">Search equipment</span>
+
+                    <input type="search" name="search" value="@Model.Search" placeholder="Search code, name, brand, or model"
+                        autocomplete="off" />
+                </label>
+
+                <label class="filter-field filter-field-compact">
+                    <span>Show</span>
+
+                    <select name="pageSize" aria-label="Items per page" onchange="this.form.submit()">
+                        @foreach (var size in new[] { 5, 10, 20 })
+                        {
+                            <option value="@size" selected="@(Model.PageSize == size)">@size</option>
+                        }
+                    </select>
+                </label>
+
+                <label class="filter-field">
+                    <span>Category</span>
+
+                    <select asp-for="CategoryId" asp-items="categoryOptions" name="categoryId">
+                        <option value="">All categories</option>
+                    </select>
+                </label>
+
+                <label class="filter-field">
+                    <span>Status</span>
+
+                    <select asp-for="Status" name="status">
+                        <option value="all">All statuses</option>
+                        <option value="available">Available</option>
+                        <option value="reserved">Reserved</option>
+                        <option value="borrowed">Borrowed</option>
+                        <option value="undermaintenance">Under Maintenance</option>
+                        <option value="unavailable">Unavailable</option>
+                    </select>
+                </label>
+
+                <button type="submit" class="button button-primary">
+                    Apply
+                </button>
+
+                <a asp-action="Index" class="button button-secondary">
+                    Clear
+                </a>
+            </form>
+
+            <div class="table-scroll" role="region" aria-label="Equipment inventory" tabindex="0">
+                <table class="category-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Equipment</th>
+                            <th scope="col">Category</th>
+                            <th scope="col">Brand / model</th>
+                            <th scope="col">Condition</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Location</th>
+                            <th scope="col" class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="equipmentRows">
+                        @foreach (var item in Model.Items)
+                        {
+                            var activationAction = item.IsActive ? "Deactivate" : "Activate";
+
+                            <tr data-id="@item.EquipmentId"
+                                data-name="@item.EquipmentName">
+
+                                <td>
+                                    <div class="category-name-cell">
+                                        <span class="category-tile">
+                                            @if (item.ImageUrls.Count > 0)
+                                            {
+                                                <img class="equipment-cover-thumbnail" src="@item.ImageUrls[0]" alt="" />
+                                            }
+                                            else
+                                            {
+                                                <svg class="icon" aria-hidden="true">
+                                                    <use href="#i-box" />
+                                                </svg>
+                                            }
+                                        </span>
+                                        <span>
+                                            <strong>@item.EquipmentName</strong>
+                                            <small>@item.EquipmentCode</small>
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <td>@item.CategoryName</td>
+
+                                <td>
+                                    @string.Join(" ", new[] { item.Brand, item.Model }.Where(value => !string.IsNullOrWhiteSpace(value)))
+                                </td>
+
+                                <td>
+                                    <span class="condition-badge condition-@item.ConditionStatus.ToLowerInvariant()">
+                                        @item.ConditionStatus
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="status-badge status-@item.StatusClass">
+                                        <span></span>
+                                        @item.StatusLabel
+                                    </span>
+                                </td>
+
+                                <td>@item.StorageLocation</td>
+
+                                <td class="actions-column">
+                                    <div class="row-actions">
+
+                                        <a class="icon-button" asp-controller="Equipment" asp-action="Details"
+                                           asp-route-id="@item.EquipmentId" aria-label="View @item.EquipmentName"
+                                           title="View details">
+                                            <svg class="icon" aria-hidden="true">
+                                                <use href="#i-eye" />
+                                            </svg>
+                                        </a>
+
+                                        <a class="icon-button" asp-controller="Equipment" asp-action="Edit"
+                                           asp-route-id="@item.EquipmentId" aria-label="Edit @item.EquipmentName"
+                                           title="Edit equipment">
+                                            <svg class="icon">
+                                                <use href="#i-edit" />
+                                            </svg>
+                                        </a>
+
+                                        <form class="category-action-form"
+                                              asp-controller="Equipment"
+                                              asp-action="@activationAction"
+                                              asp-route-id="@item.EquipmentId"
+                                              method="post">
+
+                                            <input type="hidden" name="page" value="@Model.Page" />
+                                            <input type="hidden" name="search" value="@Model.Search" />
+                                            <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                                            <input type="hidden" name="status" value="@Model.Status" />
+
+                                            <button type="submit" class="status-action"
+                                                    aria-label="@($"{activationAction} {item.EquipmentName}")">
+                                                @activationAction
+                                            </button>
+                                        </form>
+
+                                        @* @if (!item.IsActive)
+                                        {
+                                            <button type="button"
+                                                    class="status-action status-action-danger delete-equipment"
+                                                    aria-label="Delete @item.EquipmentName"
+                                                    title="Delete equipment">
+                                                Delete
+                                            </button>
+                                        } *@
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.FilteredCount == 0)
+            {
+                <div class="empty-results">
+                    <span class="empty-icon">
+                        <svg class="icon">
+                            <use href="#i-search" />
+                        </svg>
+                    </span>
+
+                    <h3>No matching equipment</h3>
+                    <p>Try a different search or clear your filters.</p>
+
+                    <a asp-action="Index" class="text-button">
+                        Clear filters
+                    </a>
+                </div>
+            }
+
+            <div class="table-footer">
+                <span>
+                    Showing @Model.FirstItem–@Model.LastItem
+                    of @Model.FilteredCount items
+                </span>
+
+                @if (Model.FilteredCount > 0)
+                {
+                    <nav class="pager" aria-label="Equipment pagination">
+                        @if (Model.Page > 1)
+                        {
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page - 1)"
+                                asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search"
+                                asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                                Previous
+                            </a>
+                        }
+
+                        @for (var p = Math.Max(1, Model.Page - 2); p <= Math.Min(Model.TotalPages, Model.Page + 2); p++)
+                        {
+                            if (p == Model.Page)
+                            {
+                                <span class="pager-link pager-active" aria-current="page">
+                                    @p
+                                </span>
+                            }
+                            else
+                            {
+                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-pageSize="@Model.PageSize"
+                                    asp-route-search="@Model.Search" asp-route-categoryId="@Model.CategoryId"
+                                    asp-route-status="@Model.Status">
+                                    @p
+                                </a>
+                            }
+                        }
+                        @if (Model.Page < Model.TotalPages)
+                        {
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page + 1)"
+                                asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search"
+                                asp-route-categoryId="@Model.CategoryId" asp-route-status="@Model.Status">
+                                Next
+                            </a>
+                        }
+                    </nav>
+                }
+            </div>
+        }
+    </section>
+
+    @if (Model.Items.Count > 0)
+    {
+        <dialog class="app-dialog" id="deleteEquipmentDialog" aria-labelledby="deleteEquipmentTitle"
+            aria-describedby="deleteEquipmentMessage">
+
+            <h2 id="deleteEquipmentTitle">Delete equipment</h2>
+
+            <p id="deleteEquipmentMessage">
+                Permanently delete
+                <strong id="deleteEquipmentName"></strong>?
+                This cannot be undone.
+            </p>
+
+            <form asp-controller="Equipment" asp-action="Delete" method="post">
+
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+                <input type="hidden" name="status" value="@Model.Status" />
+
+                <input type="hidden" name="id" id="deleteEquipmentId" />
+
+                <div class="dialog-actions">
+                    <button type="button" class="button button-secondary dialog-close">
+                        Cancel
+                    </button>
+
+                    <button type="submit" class="button button-danger">
+                        Delete equipment
+                    </button>
+                </div>
+            </form>
+        </dialog>
+    }
+}
+
+@section Scripts {
+    @if (Model.Items.Count > 0 && loadError == null)
+    {
+        <script src="~/js/equipment.js" asp-append-version="true"></script>
+    }
+}

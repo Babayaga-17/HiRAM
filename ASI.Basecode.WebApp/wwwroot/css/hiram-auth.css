@@ -1,0 +1,222 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    min-width: 0;
+    margin: 0;
+    background: var(--background);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+button, input { font: inherit; }
+a { color: var(--link); text-underline-offset: 3px; }
+
+.auth-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1120px;
+    min-height: 72px;
+    margin-inline: auto;
+    padding-inline: 24px;
+    border-bottom: 1px solid var(--line);
+}
+
+.auth-shell {
+    width: min(100% - 32px, 480px);
+    margin: clamp(32px, 12vh, 136px) auto 40px;
+}
+
+.login-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+    width: min(100% - 48px, 1000px);
+    align-items: center;
+    gap: clamp(36px, 8vw, 108px);
+}
+
+.login-shell .form-panel { grid-column: 2; grid-row: 1; }
+.auth-intro { min-width: 0; grid-column: 1; grid-row: 1; }
+
+.auth-intro h2 {
+    max-width: 18ch;
+    margin: 0 0 14px;
+    font-size: clamp(26px, 3vw, 32px);
+    line-height: 1.15;
+    letter-spacing: -.04em;
+}
+
+.auth-intro p { max-width: 35ch; margin: 0; color: var(--muted); font-size: 16px; }
+
+.lending-steps {
+    max-width: 350px;
+    list-style: none;
+    padding: 0;
+    margin: 28px 0 0;
+}
+
+.lending-steps li {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 48px;
+    border-top: 1px solid var(--line);
+    font-weight: 600;
+}
+
+.lending-steps .icon { color: var(--link); }
+.lending-steps li:last-child .icon { color: var(--accent-ink); }
+
+.form-panel {
+    min-width: 0;
+    padding: clamp(20px, 4vw, 36px);
+    border: 1px solid var(--line);
+    border-block-start: 3px solid var(--primary);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
+}
+
+.form-panel h1 {
+    margin: 0 0 6px;
+    font-size: clamp(26px, 3vw, 30px);
+    line-height: 1.2;
+    letter-spacing: -.04em;
+}
+
+.form-head { margin-bottom: 22px; }
+.form-head p, #codeExpiryText, #resendCooldownText {
+    margin: 0;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+.field, .form-field { margin: 0 0 16px; }
+
+.field label, .form-field label {
+    display: block;
+    margin: 0 0 6px;
+    font-weight: 650;
+}
+
+.input-wrap { position: relative; }
+.input-wrap > svg {
+    position: absolute;
+    top: 50%;
+    left: 13px;
+    width: 18px;
+    height: 18px;
+    transform: translateY(-50%);
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 1.8;
+    pointer-events: none;
+}
+
+.field input, .form-field input {
+    width: 100%;
+    min-height: 46px;
+    padding: 9px 12px;
+    border: 1px solid var(--control-line);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 16px;
+}
+.input-wrap input { padding-inline-start: 40px; }
+.input-wrap.password-field input { padding-inline-end: 50px; }
+.input-wrap input.code { letter-spacing: .16em; font-variant-numeric: tabular-nums; }
+
+.form-options, .btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+.form-options { margin: 0 0 18px; }
+
+.remember-option { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; }
+.remember-option input { width: 16px; height: 16px; margin: 0; }
+
+.btn-primary, .btn-secondary, .sign-in-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 9px 16px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    font-weight: 650;
+    text-decoration: none;
+    transition: background-color var(--motion);
+    cursor: pointer;
+}
+.btn-primary, .sign-in-button { background: var(--primary); color: var(--on-primary); }
+.btn-primary:hover, .sign-in-button:hover { background: var(--primary-hover); }
+.btn-secondary { border-color: var(--line); color: var(--link); }
+.btn-secondary:hover { background: var(--raised); }
+.sign-in-button { width: 100%; }
+.sign-in-button svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+
+.alert, .validation-summary-errors {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: var(--radius-control);
+    background: var(--danger-soft);
+    color: var(--danger-ink);
+}
+.validation-summary ul { margin: 0; padding-inline-start: 18px; }
+.validation-summary-valid, .field-validation-valid { display: none; }
+.field-validation-error { display: block; color: var(--danger-ink); font-size: 13px; }
+.input-validation-error { border-color: var(--danger) !important; }
+.alert[role="status"] { background: var(--success-soft); color: var(--success-ink); }
+
+.form-links, #resendCooldownText { margin-top: 14px; }
+#codeExpiryText { margin-bottom: 14px; font-variant-numeric: tabular-nums; }
+.resend-code {
+    border: 0;
+    padding: 8px 4px;
+    color: var(--link);
+    background: transparent;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.btn-primary:disabled, .resend-code:disabled { opacity: .65; cursor: not-allowed; }
+.send-code-status:not(:empty) { width: 100%; color: var(--muted); }
+.send-code-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: send-code-spin .65s linear infinite;
+}
+@keyframes send-code-spin { to { transform: rotate(360deg); } }
+
+.icon {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+.auth-shell code { overflow-wrap: anywhere; }
+
+@media (max-width: 740px) {
+    .auth-shell { margin-top: 32px; }
+    .auth-header { min-height: 60px; padding-inline: 16px; }
+    .login-shell { width: min(100% - 32px, 480px); grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    .login-shell .form-panel { grid-column: 1; }
+    .auth-intro { grid-row: 2; padding-inline: 4px; }
+    .lending-steps { display: none; }
+}
+
+.auth-switch { margin: 20px 0 0; color: var(--muted); text-align: center; }
+.auth-switch a { font-weight: 650; }
+.registration-shell { margin-top: 32px; }
+.registration-notice { margin: 0 0 18px; padding: 12px; background: var(--info-soft); color: var(--info-ink); border-radius: var(--radius-control); font-size: 13px; }
+.registration-shell .password-field input { padding-inline-start: 12px; }

@@ -1,0 +1,50 @@
+@using ASI.Basecode.Services.ServiceModels.Reservation
+@model ReservationFormModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Reserve equipment";
+    ViewData["TopbarPage"] = "Reserve equipment";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/equipment-reservation.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/reservation-create.css" asp-append-version="true" />
+}
+
+@if (Model.EligibilityStatus == EligibilityStatuses.Eligible)
+{
+    <partial name="_ReservationPage.cshtml" model="Model" />
+}
+else
+{
+    <section class="content-card reservation-empty" role="status">
+        <h1>Unable to reserve equipment</h1>
+
+        @if (Model.EligibilityStatus == EligibilityStatuses.Suspended)
+        {
+            <p>Your borrowing eligibility is suspended.</p>
+        }
+        else if (Model.EligibilityStatus == EligibilityStatuses.Ineligible)
+        {
+            <p>You are currently ineligible to borrow equipment.</p>
+        }
+        else
+        {
+            <p>Your borrowing eligibility could not be verified. Please try again.</p>
+        }
+
+        <p>Please contact the equipment desk if you need assistance.</p>
+
+        <a class="button button-secondary"
+           asp-controller="BrowseEquipment"
+           asp-action="Index">
+            Back to equipment
+        </a>
+
+        <a class="button button-primary"
+           asp-controller="Reservation"
+           asp-action="MyReservation">
+            My reservations
+        </a>
+    </section>
+}

@@ -1,0 +1,348 @@
+.browse-toolbar-card .list-toolbar {
+    padding-top: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.view-toggle {
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+    .view-toggle button {
+        height: 36px;
+        padding: 0 14px;
+        border: 0;
+        background: var(--surface);
+        color: var(--ink);
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+    }
+
+        .view-toggle button.is-active {
+            background: var(--primary);
+            color: var(--on-primary);
+        }
+
+.browse-count {
+    margin: 14px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* Selected equipment tray */
+.selection-tray {
+    margin-top: 16px;
+    padding: 16px 20px;
+}
+
+.selection-tray-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+    .selection-tray-head h2 {
+        margin: 0;
+        font-size: 14px;
+    }
+
+.selection-tray-note {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.selection-tray-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding-top: 10px;
+}
+
+    .selection-tray-footer .selection-tray-note {
+        margin: 0;
+    }
+
+.selection-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.selection-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--raised);
+    font-size: 12px;
+}
+
+    .selection-chip button {
+        border: 0;
+        background: transparent;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        color: var(--muted);
+    }
+
+/* Photo placeholder icon (used on cards, gallery and thumbnails) */
+.photo-icon {
+    display: block;
+    width: 40px;
+    height: 40px;
+    background: url("../images/equipment-placeholder.svg") center / contain no-repeat;
+}
+
+.photo-fallback {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--link);
+}
+
+/* Equipment cards (grid and list) */
+.browse-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+    .browse-grid.is-list {
+        grid-template-columns: 1fr;
+    }
+
+.equipment-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+}
+
+    .equipment-card.is-selected {
+        border-color: var(--link);
+        box-shadow: 0 0 0 1px var(--primary);
+    }
+
+.equipment-photo {
+    position: relative;
+    display: grid;
+    place-items: center;
+    aspect-ratio: 16 / 9;
+    background: var(--raised);
+}
+
+.equipment-photo-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.badge-on-photo {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 2;
+}
+
+.equipment-photo-count {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    z-index: 2;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(31, 41, 55, .82);
+    color: var(--on-primary);
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.equipment-card-body {
+    display: grid;
+    gap: 10px;
+    padding: 16px 18px 6px;
+}
+
+.equipment-card-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.equipment-card-title {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+    .equipment-card-title strong {
+        font-size: 14px;
+    }
+
+    .equipment-card-title small {
+        font-size: 11px;
+        color: var(--muted);
+    }
+
+.equipment-card-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+}
+
+.equipment-card-detail {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+    .equipment-card-detail.is-location {
+        flex-basis: 100%;
+    }
+
+.equipment-card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 12px 18px 18px;
+    margin-top: auto;
+}
+
+    .equipment-card-actions .button {
+        width: 100%;
+        justify-content: center;
+    }
+
+.browse-grid:not(.is-list) .list-tile {
+    display: none;
+}
+
+.browse-grid:not(.is-list) .badge-in-info {
+    display: none;
+}
+
+/* List view: no photos */
+.browse-grid.is-list .equipment-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 18px;
+    padding: 14px 18px;
+}
+
+.browse-grid.is-list .equipment-photo {
+    display: none;
+}
+
+.browse-grid.is-list .badge-on-photo {
+    display: none;
+}
+
+.browse-grid.is-list .equipment-card-body {
+    display: contents;
+}
+
+.browse-grid.is-list .equipment-card-main {
+    flex: 1 1 240px;
+}
+
+.browse-grid.is-list .equipment-card-info {
+    flex: 2 1 320px;
+}
+
+.browse-grid.is-list .equipment-card-detail.is-location {
+    flex-basis: auto;
+}
+
+.browse-grid.is-list .equipment-card-actions {
+    display: flex;
+    padding: 0;
+    margin-top: 0;
+}
+
+    .browse-grid.is-list .equipment-card-actions .button {
+        width: auto;
+    }
+
+.select-equipment:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+.select-equipment.is-selected {
+    background: var(--success-soft);
+    color: var(--success-ink);
+    box-shadow: none;
+}
+
+/* Condition badges */
+.browse-condition {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 750;
+    background: var(--raised);
+    color: var(--muted);
+}
+
+.browse-condition-fair {
+    background: var(--raised);
+    color: var(--pending-ink);
+}
+
+.browse-condition-damaged, .browse-condition-lost {
+    background: var(--danger-soft);
+    color: var(--danger-ink);
+}
+
+.pager-link:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+@media (max-width: 620px) {
+    .browse-toolbar-card .list-toolbar {
+        align-items: stretch;
+    }
+
+    .browse-toolbar-card .view-toggle {
+        align-self: flex-start;
+    }
+}
+
+.selection-tray-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.selection-limit-note {
+    margin: 10px 0 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #c58a3a;
+}

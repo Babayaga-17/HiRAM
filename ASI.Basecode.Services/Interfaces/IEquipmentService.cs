@@ -1,0 +1,30 @@
+﻿using ASI.Basecode.Data.Models;
+using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Equipment;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ASI.Basecode.Services.Interfaces
+{
+    public interface IEquipmentService
+    {
+        void AddEquipment(EquipmentFormViewModel model, string createdBy, IReadOnlyList<string> photoPaths = null);
+        IReadOnlyList<string> DeleteEquipment(int id, string deletedBy);
+        List<EquipmentListItem> GetEquipments();
+        EquipmentListItem GetEquipmentById(int id);
+        (bool Found, IReadOnlyList<string> RemovedPhotoPaths) EditEquipment(EquipmentFormViewModel model, string updatedBy, IReadOnlyList<string> photoPaths = null, IReadOnlyList<int> removedPhotoIds = null);
+        bool SetEquipmentStatus(int equipmentId, bool isActive, string updatedBy);
+        List<EquipmentListItem> GetBorrowableEquipments();
+        EquipmentListItem GetBorrowableEquipmentById(int id);
+        List<EquipmentBusyPeriod> GetSchedule(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null);
+        List<EquipmentCalendarEvent> GetCalendarEvents(DateTime start, DateTime end);
+        EquipmentAvailabilityResult GetAvailability(int equipmentId, DateTime start, DateTime end, int? excludeReservationId = null);
+        EquipmentIndexViewModel GetEquipmentPage(EquipmentListRequest request);
+        List<EquipmentPhoto> GetEquipmentPhotos(int equipmentId);
+        Task<int> CountEquipmentAsync();
+
+    }
+}

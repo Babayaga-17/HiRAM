@@ -1,0 +1,353 @@
+@using ASI.Basecode.Services.ServiceModels
+@model EquipmentCategoryIndexViewModel
+@{
+    Layout = "_AppLayout";
+    ViewData["Title"] = "Equipment Categories";
+    var loadError = TempData["CategoryLoadError"] as string;
+}
+
+<div class="page-heading">
+    <div>
+        <h1>Equipment categories</h1>
+        <p>Organize equipment into clear groups so it is easier to manage and find.</p>
+    </div>
+    <a class="button button-primary heading-action" asp-controller="EquipmentCategory" asp-action="Create"><svg
+            class="icon">
+            <use href="#i-plus" />
+        </svg>Add category</a>
+</div>
+
+@if (TempData["CategorySuccess"] is string successMessage)
+{
+    <div class="category-notice category-notice-success" role="status">@successMessage</div>
+}
+@if (TempData["CategoryError"] is string errorMessage)
+{
+    <div class="category-notice category-notice-error" role="alert">@errorMessage</div>
+}
+
+@if (loadError != null)
+{
+    <div class="category-notice category-notice-error" role="alert">@loadError</div>
+}
+else
+{
+    <section class="stats-grid" aria-label="Category overview">
+        <div class="stat-card">
+            <span class="stat-copy">
+                <span>Total categories</span>
+                <strong>@Model.TotalCategories</strong>
+                <small>Across your equipment catalog</small>
+            </span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-copy">
+                <span>Active categories</span>
+                <strong>@Model.ActiveCategories</strong>
+                <small>Available for equipment</small>
+            </span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-copy">
+                <span>Equipment organized</span>
+                <strong>@Model.TotalEquipment</strong>
+                <small>Items in these categories</small>
+            </span>
+        </div>
+    </section>
+
+    <section class="content-card category-list" aria-labelledby="categoryListHeading">
+        <div class="card-heading">
+            <div>
+                <h2 id="categoryListHeading">All categories</h2>
+                <p>Browse, search, and manage equipment groups.</p>
+            </div>
+
+            @*
+        @if (Model.TotalCategories > 1)
+        {
+        <span class="count-pill">@Model.TotalCategories categories</span>
+        }
+        else if (Model.TotalCategories == 1)
+        {
+        <span class="count-pill">@Model.TotalCategories category</span>
+        }
+        else
+        {
+        <span class="count-pill">No categories</span>
+        }
+        *@
+        </div>
+
+        @if (Model.TotalCategories == 0)
+        {
+            <div class="empty-categories">
+                <h3>No categories yet</h3>
+                <p>Categories will appear here once they are added.</p>
+
+                <a class="button button-primary" asp-action="Create">
+                    Add category
+                </a>
+            </div>
+        }
+        else
+        {
+            <form method="get" asp-action="Index" class="list-toolbar">
+                <label class="search-field">
+                    <svg class="icon">
+                        <use href="#i-search" />
+                    </svg>
+                    <span class="sr-only">Search categories</span>
+
+                    <input type="search" name="search" value="@Model.Search" placeholder="Search by name, code, or description"
+                        autocomplete="off" />
+                </label>
+
+                <label class="filter-field filter-field-compact">
+                    <span>Show</span>
+
+                    <select name="pageSize" aria-label="Categories per page" onchange="this.form.submit()">
+                        @foreach (var size in new[] { 5, 10, 20 })
+                        {
+                            <option value="@size" selected="@(Model.PageSize == size)">@size</option>
+                        }
+                    </select>
+                </label>
+
+                <label class="filter-field">
+                    <span>Status</span>
+
+                    <select asp-for="Status" name="status" aria-label="Filter by status">
+                        <option value="all">All statuses</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </label>
+
+                <button type="submit" class="button button-primary">
+                    Apply
+                </button>
+
+                <a asp-action="Index" class="button button-secondary">
+                    Clear
+                </a>
+            </form>
+            <div class="table-scroll" role="region" aria-label="Equipment categories" tabindex="0">
+                <table class="category-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Category</th>
+                            <th scope="col">Code</th>
+                            <th scope="col">Equipment</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categoryRows">
+                        @foreach (var category in Model.Items)
+                        {
+                            <tr data-id="@category.CategoryId" data-name="@category.CategoryName" data-code="@category.CategoryCode"
+                                data-description="@category.Description" data-equipment="@category.EquipmentCount"
+                                data-status="@(category.IsActive ? "active" : "inactive")">
+                                <td>
+                                    <div class="category-name-cell"><span class="category-tile"><svg class="icon">
+                                                <use href="#i-layers" />
+                                            </svg></span><span><strong>@category.CategoryName</strong><small>@category.Description</small></span>
+                                    </div>
+                                </td>
+                                <td><span class="code-text">@category.CategoryCode</span></td>
+                                <td><span class="equipment-count">@category.EquipmentCount items</span></td>
+                                <td><span
+                                        class="status-badge @(category.IsActive ? "status-active" : "status-inactive")"><span></span>@(category.IsActive
+                            ? "Active" : "Inactive")</span></td>
+                                <td class="actions-column">
+                                    <div class="row-actions">
+                                        <button type="button" class="icon-button view-category"
+                                            aria-label="View @category.CategoryName" title="View details">
+                                            <svg class="icon">
+                                                <use href="#i-eye" />
+                                            </svg>
+                                        </button>
+                                        <a class="icon-button edit-category" asp-controller="EquipmentCategory" asp-action="Edit"
+                                            asp-route-id="@category.CategoryId" aria-label="Edit @category.CategoryName"
+                                            title="Edit category">
+                                            <svg class="icon">
+                                                <use href="#i-edit" />
+                                            </svg>
+                                        </a>
+                                        @if (category.IsActive)
+                                        {
+                                            <form class="category-action-form" asp-controller="EquipmentCategory"
+                                                asp-action="Deactivate" asp-route-id="@category.CategoryId" method="post">
+
+                                                <input type="hidden" name="page" value="@Model.Page" />
+                                                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="status" value="@Model.Status" />
+
+                                                <button type="submit" class="status-action"
+                                                    aria-label="Deactivate @category.CategoryName">Deactivate</button>
+                                            </form>
+                                        }
+                                        else
+                                        {
+                                            <form class="category-action-form" asp-controller="EquipmentCategory" asp-action="Activate"
+                                                asp-route-id="@category.CategoryId" method="post">
+
+                                                <input type="hidden" name="page" value="@Model.Page" />
+                                                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                                                <input type="hidden" name="search" value="@Model.Search" />
+                                                <input type="hidden" name="status" value="@Model.Status" />
+
+                                                <button type="submit" class="status-action"
+                                                    aria-label="Activate @category.CategoryName">Activate</button>
+                                            </form>
+                                            <button type="button" class="status-action status-action-danger delete-category"
+                                                disabled="@(category.EquipmentCount > 0)"
+                                                title="@(category.EquipmentCount > 0 ? "Reassign assigned equipment before deleting this category." : "Delete category")"
+                                                aria-label="Delete @category.CategoryName">
+                                                Delete
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (Model.FilteredCount == 0)
+            {
+                <div class="empty-results">
+                    <span class="empty-icon">
+                        <svg class="icon">
+                            <use href="#i-search" />
+                        </svg>
+                    </span>
+
+                    <h3>No matching categories</h3>
+                    <p>Try a different search term or status filter.</p>
+
+                    <a asp-action="Index" class="text-button">
+                        Clear filters
+                    </a>
+                </div>
+            }
+            <div class="table-footer">
+                <span>
+                    Showing @Model.FirstItem–@Model.LastItem
+                    of @Model.FilteredCount categories
+                </span>
+
+                @if (Model.FilteredCount > 0)
+                {
+                    <nav class="pager" aria-label="Category pagination">
+                        @if (Model.Page > 1)
+                        {
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page - 1)"
+                                asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status">
+                                Previous
+                            </a>
+                        }
+
+                        @for (var p = Math.Max(1, Model.Page - 2); p <= Math.Min(Model.TotalPages, Model.Page + 2); p++)
+                        {
+                            if (p == Model.Page)
+                            {
+                                <span class="pager-link pager-active" aria-current="page">
+                                    @p
+                                </span>
+                            }
+                            else
+                            {
+                                <a class="pager-link" asp-action="Index" asp-route-page="@p" asp-route-pageSize="@Model.PageSize"
+                                    asp-route-search="@Model.Search" asp-route-status="@Model.Status">
+                                    @p
+                                </a>
+                            }
+                        }
+
+                        @if (Model.Page < Model.TotalPages)
+                        {
+                            <a class="pager-link" asp-action="Index" asp-route-page="@(Model.Page + 1)"
+                                asp-route-pageSize="@Model.PageSize" asp-route-search="@Model.Search" asp-route-status="@Model.Status">
+                                Next
+                            </a>
+                        }
+                    </nav>
+                }
+            </div>
+        }
+    </section>
+
+    @if (Model.TotalCategories > 0)
+    {
+        <dialog class="app-dialog" id="detailsDialog" aria-labelledby="detailsTitle">
+            <div class="dialog-top">
+                <span class="dialog-icon">
+                    <svg class="icon">
+                        <use href="#i-layers" />
+                    </svg>
+                </span>
+                <button type="button" class="icon-button dialog-close" aria-label="Close details">
+                    <svg class="icon">
+                        <use href="#i-close" />
+                    </svg>
+                </button>
+            </div>
+            <span class="dialog-kicker">CATEGORY DETAILS</span>
+            <h2 id="detailsTitle"></h2>
+            <p id="detailsDescription"></p>
+            <dl class="details-list">
+                <div>
+                    <dt>Category code</dt>
+                    <dd id="detailsCode"></dd>
+                </div>
+                <div>
+                    <dt>Equipment</dt>
+                    <dd id="detailsEquipment"></dd>
+                </div>
+                <div>
+                    <dt>Status</dt>
+                    <dd id="detailsStatus"></dd>
+                </div>
+            </dl>
+            <div class="dialog-actions">
+                <button type="button" class="button button-secondary dialog-close">Close</button>
+                <a class="button button-primary" id="detailsEdit" href="#">
+                    <svg class="icon">
+                        <use href="#i-edit" />
+                    </svg>Edit category
+                </a>
+            </div>
+        </dialog>
+
+        <dialog class="app-dialog" id="deleteCategoryDialog" aria-labelledby="deleteCategoryTitle"
+            aria-describedby="deleteCategoryMessage">
+            <h2 id="deleteCategoryTitle">Delete category</h2>
+            <p id="deleteCategoryMessage">Permanently delete <strong id="deleteCategoryName"></strong>? This cannot be undone.
+            </p>
+            <form asp-controller="EquipmentCategory" asp-action="Delete" method="post">
+
+                <input type="hidden" name="page" value="@Model.Page" />
+                <input type="hidden" name="pageSize" value="@Model.PageSize" />
+                <input type="hidden" name="search" value="@Model.Search" />
+                <input type="hidden" name="status" value="@Model.Status" />
+
+                <input type="hidden" name="id" id="deleteCategoryId" />
+                <div class="dialog-actions">
+                    <button type="button" class="button button-secondary dialog-close">Cancel</button>
+                    <button type="submit" class="button button-danger">Delete category</button>
+                </div>
+            </form>
+        </dialog>
+    }
+}
+
+
+@section Scripts {
+    @if (Model.TotalCategories > 0 && loadError == null)
+    {
+        <script src="~/js/category.js" asp-append-version="true"></script>
+    }
+}

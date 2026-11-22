@@ -1,0 +1,401 @@
+using ASI.Basecode.Data.Models;
+using ASI.Basecode.Resources.Constants;
+using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.ServiceModels;
+using ASI.Basecode.Services.ServiceModels.Equipment;
+using ASI.Basecode.WebApp.Mvc;
+using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace ASI.Basecode.WebApp.Controllers;
+
+[Authorize(Roles = RoleNames.Borrower)]
+public class BrowseEquipmentController : ControllerBase<BrowseEquipmentController>
+{
+    private const string SelectionKey = "SelectedEquipmentIds";
+
+    private readonly IEquipmentService _equipmentService;
+    private readonly IEquipmentCategoryService _equipmentCategoryService;
+    private readonly IReservationService _reservationService;
+    private readonly IEquipmentPhotoService _equipmentPhotoService;
+
+    public BrowseEquipmentController(
+        IHttpContextAccessor httpContextAccessor,
+        ILoggerFactory loggerFactory,
+        IConfiguration configuration,
+        IEquipmentService equipmentService,
+        IEquipmentCategoryService equipmentCategoryService,
+        IReservationService reservationService,
+        IEquipmentPhotoService equipmentPhotoService,
+        IMapper mapper = null) : base(httpContextAccessor, loggerFactory, configuration, mapper)
+    {
+        _equipmentService = equipmentService;
+        _equipmentCategoryService = equipmentCategoryService;
+        _reservationService = reservationService;
+        _equipmentPhotoService = equipmentPhotoService;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Index(int? reservationId)
+    {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
+        ViewData["EditingReservationId"] = reservationId;
+        ViewBag.Categories = new SelectList(new List<EquipmentCategoryListItem>(), "CategoryId", "CategoryName");
+        ViewBag.SelectedIds = new List<int>();
+
+        try
+        {
+            LoadCategories();
+
+            var equipments = _equipmentService.GetBorrowableEquipments();
+
+            // Drop selections that can no longer be borrowed (deactivated, damaged, or lost).
+            var selectableIds = equipments
+                .Where(item => item.Status != EquipmentAvailability.Unavailable)
+                .Select(item => item.EquipmentId)
+                .ToList();
+
+            var selected = GetSelectedIds(reservationId)
+                .Where(selectableIds.Contains)
+                .Take(ReservationPolicy.MaxEquipmentPerReservation)
+                .ToList();
+            SaveSelectedIds(selected, reservationId);
+            ViewBag.SelectedIds = selected;
+
+            await LoadCoverPhotosAsync(equipments, HttpContext.RequestAborted);
+
+            return View(equipments);
+        }
+        catch (OperationCanceledException) when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            // The browser cancelled this request; no page response is needed.
+            return new EmptyResult();
+        }
+        catch (Exception exception) when (!HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogError(exception, "Unable to load equipment for browsing.");
+            TempData["BrowseLoadError"] = "Unable to load equipment. Please try again.";
+            return View(new List<EquipmentListItem>());
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Details(int id, int? reservationId)
+    {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
+        var equipment = _equipmentService.GetBorrowableEquipmentById(id);
+        if (equipment == null)
+            return NotFound();
+
+        try
+        {
+            await LoadDetailPhotosAsync(equipment, HttpContext.RequestAborted);
+
+            ViewData["EditingReservationId"] = reservationId;
+            ViewBag.IsSelected = GetSelectedIds(reservationId).Contains(id);
+
+            return View("~/Views/Equipment/Details.cshtml", equipment);
+        }
+        catch (OperationCanceledException)
+            when (HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            return new EmptyResult();
+        }
+    }
+
+    [HttpGet]
+    public IActionResult Schedule(int id, DateTime? from, DateTime? to, int? reservationId)
+    {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+        if (!from.HasValue || !to.HasValue || to <= from || (to.Value - from.Value).TotalDays > 62)
+            return BadRequest(new { message = "Choose a calendar range of up to 62 days." });
+
+        try
+        {
+            if (_equipmentService.GetBorrowableEquipmentById(id) == null)
+                return NotFound();
+
+            var periods = _equipmentService.GetSchedule(id, from.Value, to.Value, reservationId);
+            return Json(new
+            {
+                periods = periods.Select(period => new
+                {
+                    type = period.Type,
+                    label = period.Label,
+                    startIso = period.Start.ToString("yyyy-MM-dd'T'HH:mm:ss"),
+                    endIso = period.End.ToString("yyyy-MM-dd'T'HH:mm:ss")
+                })
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to load equipment schedule.");
+            return StatusCode(500, new { message = "Unable to load the calendar. Please try again." });
+        }
+    }
+
+    [HttpGet]
+    public IActionResult Availability(int id, DateTime? from, DateTime? to, int? reservationId)
+    {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
+        try
+        {
+            var start = from ?? DateTime.Now;
+            var end = to ?? start.AddDays(14);
+            var result = _equipmentService.GetAvailability(id, start, end, reservationId);
+
+            return Json(new
+            {
+                isAvailable = result.IsAvailable,
+                reason = result.Reason,
+                periods = result.Periods.Select(period => new
+                {
+                    type = period.Type,
+                    label = period.Label,
+                    start = FormatDate(period.Start),
+                    end = FormatDate(period.End)
+                }),
+                slots = result.Slots.Select(slot => new
+                {
+                    start = FormatDate(slot.Start),
+                    end = FormatDate(slot.End)
+                })
+            });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to load equipment availability.");
+            return StatusCode(500, new { message = "Unable to load availability." });
+        }
+    }
+
+    // Select equipment (kept in the session until reservations are built)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Select(int id, int? reservationId)
+    {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
+        try
+        {
+            var equipment = _equipmentService.GetBorrowableEquipmentById(id);
+
+            if (equipment == null)
+                return BadRequest(new { message = "This equipment is no longer available for borrowing." });
+
+            if (!equipment.IsActive)
+                return BadRequest(new { message = "This equipment is inactive and cannot be selected." });
+
+            if (equipment.Status == EquipmentAvailability.Unavailable)
+                return BadRequest(new { message = "Equipment in " + equipment.ConditionStatus + " condition cannot be selected." });
+
+            var selected = GetSelectedIds(reservationId);
+
+            if (!selected.Contains(id) && selected.Count >= ReservationPolicy.MaxEquipmentPerReservation)
+                return BadRequest(new { message = $"You can select up to {ReservationPolicy.MaxEquipmentPerReservation} equipment items per reservation." });
+
+            if (!selected.Contains(id))
+            {
+                selected.Add(id);
+                SaveSelectedIds(selected, reservationId);
+            }
+
+            return Json(new { ids = selected });
+        }
+        catch (Exception exception)
+        {
+            _logger.LogError(exception, "Unable to select equipment.");
+            return StatusCode(500, new { message = "Unable to select the equipment. Please try again." });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Deselect(int id, int? reservationId)
+    {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
+        var selected = GetSelectedIds(reservationId);
+        selected.Remove(id);
+        SaveSelectedIds(selected, reservationId);
+
+        return Json(new { ids = selected });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult Clear(int? reservationId)
+    {
+        if (!CanEditSelection(reservationId))
+            return NotFound();
+
+        SaveSelectedIds(new List<int>(), reservationId);
+
+        return Json(new { ids = new List<int>() });
+    }
+
+    #region Helpers
+
+    private async Task LoadCoverPhotosAsync(IEnumerable<EquipmentListItem> items, CancellationToken cancellationToken)
+    {
+        var equipment = items.ToList();
+
+        var paths = equipment
+            .Select(item => item.CoverPhotoStoragePath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (paths.Count == 0)
+            return;
+
+        try
+        {
+            var urls = await _equipmentPhotoService.CreateReadUrlsAsync(paths, cancellationToken);
+
+            foreach (var item in equipment)
+            {
+                var path = item.CoverPhotoStoragePath;
+
+                if (!string.IsNullOrWhiteSpace(path) && urls.TryGetValue(path, out var url))
+                {
+                    item.ImageUrls.Add(url);
+                }
+            }
+
+            var missingCount = paths.Count - urls.Count;
+
+            if (missingCount > 0)
+            {
+                _logger.LogWarning(
+                    "Unable to load {Count} equipment cover photos.",
+                    missingCount);
+            }
+        }
+        catch (Exception exception)
+            when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(
+                exception, "Unable to load equipment cover photos.");
+        }
+    }
+
+    private async Task LoadDetailPhotosAsync(EquipmentListItem equipment, CancellationToken cancellationToken)
+    {
+        var photos = _equipmentService.GetEquipmentPhotos(equipment.EquipmentId);
+
+        var paths = photos
+            .Select(photo => photo.StoragePath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (paths.Count == 0)
+            return;
+
+        try
+        {
+            var urls = await _equipmentPhotoService.CreateReadUrlsAsync(paths, cancellationToken);
+
+            foreach (var photo in photos)
+            {
+                if (!string.IsNullOrWhiteSpace(photo.StoragePath) && urls.TryGetValue(photo.StoragePath, out var url))
+                {
+                    equipment.ImageUrls.Add(url);
+                }
+            }
+
+            var missingCount = paths.Count - urls.Count;
+
+            if (missingCount > 0)
+            {
+                _logger.LogWarning("Unable to load {Count} photos for equipment {EquipmentId}.", missingCount, equipment.EquipmentId);
+            }
+        }
+        catch (Exception exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(exception, "Unable to load photos for equipment {EquipmentId}.", equipment.EquipmentId);
+        }
+    }
+
+    private void LoadCategories()
+    {
+        // Borrowers only see active categories in the filter.
+        var categories = _equipmentCategoryService.GetEquipmentCategories()
+            .Where(category => category.IsActive)
+            .OrderBy(category => category.CategoryName)
+            .ToList();
+
+        ViewBag.Categories = new SelectList(categories, "CategoryId", "CategoryName");
+    }
+
+    private List<int> GetSelectedIds(int? reservationId)
+    {
+        var key = reservationId.HasValue
+            ? $"SelectedEquipmentIds:Edit:{reservationId.Value}"
+            : SelectionKey;
+
+        var value = _session.GetString(key);
+
+        if (string.IsNullOrEmpty(value))
+            return new List<int>();
+
+        return value.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => int.TryParse(part, out var id) ? id : 0)
+            .Where(id => id > 0)
+            .ToList();
+    }
+
+    private void SaveSelectedIds(List<int> ids, int? reservationId)
+    {
+        var key = reservationId.HasValue
+            ? $"SelectedEquipmentIds:Edit:{reservationId.Value}"
+            : SelectionKey;
+
+        _session.SetString(key, string.Join(",", ids));
+    }
+
+    private static string FormatDate(DateTime value)
+    {
+        return value.ToString("MMM d, yyyy h:mm tt");
+    }
+
+    private bool CanEditSelection(int? reservationId)
+    {
+        if (!reservationId.HasValue)
+            return true;
+
+        if (!int.TryParse(
+            User.FindFirstValue(ClaimTypes.NameIdentifier),
+            out var borrowerUserId))
+            return false;
+
+        var reservation = _reservationService.GetReservationDetails(
+            reservationId.Value,
+            borrowerUserId);
+
+        return reservation?.Status == ReservationStatuses.Pending;
+    }
+
+    #endregion
+}

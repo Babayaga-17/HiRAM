@@ -1,0 +1,171 @@
+/* ASI.Basecode.WebApp/wwwroot/css/approval-release.css */
+.rs-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 18px;
+    border-bottom: 1px solid var(--line)
+}
+
+.rs-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-weight: 600;
+}
+
+.rs-tab:hover, .rs-tab.active { color: var(--link); }
+.rs-tab.active { border-bottom-color: var(--link); }
+
+.rs-count {
+    min-width: 22px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--primary-soft);
+    color: var(--link);
+    font-size: .7rem;
+    font-weight: 700;
+    text-align: center
+}
+
+.status-badge.rs-approved {
+    color: var(--success-ink);
+    background: var(--success-soft);
+}
+
+.status-badge.rs-borrowed {
+    color: var(--borrowed-ink);
+    background: var(--borrowed-soft);
+}
+
+.status-badge.rs-rejected {
+    color: var(--danger-ink);
+    background: var(--danger-soft);
+}
+
+.status-badge.rs-returned {
+    color: var(--success-ink);
+    background: var(--success-soft);
+}
+
+.status-badge.rs-neutral {
+    color: var(--neutral-ink);
+    background: var(--neutral-soft);
+}
+
+    .status-badge.rs-approved span, .status-badge.rs-borrowed span, .status-badge.rs-rejected span,
+    .status-badge.rs-returned span, .status-badge.rs-neutral span {
+        background: currentColor
+    }
+
+.rs-overdue {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    color: var(--danger-ink);
+    background: var(--danger-soft);
+}
+
+.rs-small {
+    padding: 6px 12px;
+    font-size: .78rem
+}
+
+.rs-notice-success {
+    background: var(--success-soft);
+    border: 1px solid var(--success-soft);
+    color: var(--success-ink)
+}
+
+.rs-warn {
+    margin: 0 0 16px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    background: var(--danger-soft);
+    border: 1px solid var(--danger-soft);
+    color: var(--danger-ink);
+    font-size: .85rem
+}
+
+.rs-panel {
+    margin-top: 22px
+}
+
+.rs-decision-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px
+}
+
+.rs-label {
+    display: block;
+    margin: 0 0 6px;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--ink)
+}
+
+.rs-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--raised);
+    color: var(--ink);
+    font: inherit;
+    font-size: .86rem;
+    outline: none
+}
+
+    .rs-input:focus {
+        border-color: var(--line);
+        box-shadow: 0 0 0 4px var(--primary-soft)
+    }
+
+    .rs-input::placeholder {
+        color: var(--muted)
+    }
+
+.rs-decision-grid form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start
+}
+
+.rs-decision-grid textarea {
+    resize: vertical
+}
+
+.rs-datetime {
+    max-width: 260px;
+    margin-bottom: 16px
+}
+
+.rs-release-table .rs-input {
+    min-width: 150px
+}
+
+.rs-panel form > .button {
+    margin-top: 18px
+}
+
+.rs-approval-info {
+    margin-bottom: 16px
+}
+
+@media (max-width:760px) {
+    .rs-decision-grid {
+        grid-template-columns: 1fr
+    }
+}
+
+.return-form .rs-input {
+    background: var(--surface);
+    border-color: var(--control-line, var(--line));
+    color: var(--ink);
+}

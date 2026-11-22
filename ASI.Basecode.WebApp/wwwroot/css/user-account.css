@@ -1,0 +1,74 @@
+/* User and Role Management additions on top of app.css. */
+
+.role-pill {
+    display: inline-flex;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: var(--raised);
+    color: var(--primary-hover);
+    font-size: 11px;
+    font-weight: 700
+}
+
+/* Account statuses beyond Active/Inactive (CK_Accounts_status). */
+.status-disabled {
+    color: var(--danger-ink);
+    background: var(--danger-soft)
+}
+
+.account-actions-card .button {
+    width: 100%;
+    justify-content: center;
+    margin-top: 12px
+}
+
+.account-actions-card form {
+    margin: 0
+}
+
+.temp-password-card {
+    max-width: 640px
+}
+
+.temp-password {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 18px 0 12px;
+    padding: 14px 16px;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    background: var(--background)
+}
+
+    .temp-password code {
+        color: var(--ink);
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: .06em;
+        word-break: break-all
+    }
+
+.temp-password-note {
+    color: var(--muted);
+    font-size: 12px
+}
+
+.access-table .access-cell {
+    text-align: center
+}
+.registration-review { padding: 24px; margin-bottom: 24px; }
+.registration-review-heading { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+.registration-review-heading img { flex: none; border-radius: var(--radius-control); object-fit: cover; }
+.registration-review-heading h2 { margin: 0 0 8px; font-size: 18px; }
+.registration-review-heading p { margin: 0; color: var(--muted); line-height: 1.6; }
+.status-pendingapproval { background: var(--pending-soft); color: var(--pending-ink); }
+@media (max-width: 600px) { .registration-review-heading { align-items: flex-start; flex-direction: column; } }
+
+fieldset.borrower-details {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+}

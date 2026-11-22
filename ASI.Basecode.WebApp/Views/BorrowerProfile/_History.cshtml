@@ -1,0 +1,378 @@
+﻿@* ASI.Basecode.WebApp/Views/BorrowerProfile/_History.cshtml *@
+@using ASI.Basecode.Services.ServiceModels
+@using ASI.Basecode.Services.ServiceModels.Borrower
+@using ASI.Basecode.Services.Services
+@using ASI.Basecode.Resources.Constants
+@model BorrowerHistoryViewModel
+@{
+    const string DateFormat = "MMM dd, yyyy · h:mm tt";
+
+    // Maps a reservation status to a tone class defined in the CSS below
+    string Tone(string status) => status switch
+    {
+        ReservationStatuses.Returned => "ok",
+        ReservationStatuses.Overdue => "warn",
+        ReservationStatuses.Rejected or ReservationStatuses.Cancelled => "bad",
+        ReservationStatuses.Borrowed or ReservationStatuses.Approved => "info",
+        _ => "neutral"
+    };
+
+    string Initials(string name)
+    {
+        var parts = (name ?? "?").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return string.Concat(parts.Take(2).Select(p => char.ToUpper(p[0])));
+    }
+}
+
+<style>
+    /* Uses the site's theme variables so it follows light and dark mode.
+           Fallback values match the original blue and navy palette. */
+    .hb {
+        font-size: 14px;
+        color: var(--ink, #1b2340);
+    }
+
+    /* ---------- Header banner: primary blue, like the Add buttons ---------- */
+    .hb-hero {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 18px;
+        border-radius: 14px;
+        background: var(--primary, #2563eb);
+        color: var(--on-primary, #ffffff);
+        margin-bottom: 16px;
+    }
+
+    .hb-avatar {
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        font-weight: 700;
+        font-size: 16px;
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.35);
+        flex: none;
+    }
+
+    .hb-hero-text h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 650;
+        color: var(--on-primary, #ffffff);
+    }
+
+    .hb-hero-text p {
+        margin: 2px 0 0;
+        font-size: 13px;
+        opacity: 0.85;
+    }
+
+    /* ---------- Cards ---------- */
+    .hb-list {
+        display: grid;
+        gap: 12px;
+    }
+
+    .hb-card {
+        position: relative;
+        border: 1px solid var(--line, #dfe3f0);
+        border-left: 4px solid var(--hb-accent, var(--muted, #6b7280));
+        border-radius: 14px;
+        padding: 14px 16px;
+        background: var(--surface, #ffffff);
+    }
+
+        /* Tone sets: accent for the border and text, soft for the pill background */
+        .hb-card.ok {
+            --hb-accent: var(--success-ink, #15803d);
+            --hb-soft: var(--success-soft, #dcfce7);
+        }
+
+        .hb-card.info {
+            --hb-accent: var(--link, #2563eb);
+            --hb-soft: var(--primary-soft, #dbeafe);
+        }
+
+        .hb-card.warn {
+            --hb-accent: #b45309;
+            --hb-soft: #fef3c7;
+        }
+
+        .hb-card.bad {
+            --hb-accent: var(--danger, #dc2626);
+            --hb-soft: var(--danger-soft, #fee2e2);
+        }
+
+        .hb-card.neutral {
+            --hb-accent: var(--muted, #6b7280);
+            --hb-soft: var(--neutral-soft, #e5e7eb);
+        }
+
+    .hb-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .hb-code {
+        font-weight: 650;
+        font-size: 13px;
+        word-break: break-all;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        color: var(--ink, #1b2340);
+    }
+
+    .hb-purpose {
+        margin-top: 2px;
+        font-size: 13px;
+        color: var(--muted, #6b7280);
+    }
+
+    .hb-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+        background: var(--hb-soft, var(--neutral-soft, #e5e7eb));
+        color: var(--hb-accent, var(--muted, #6b7280));
+    }
+
+        .hb-pill::before {
+            content: "";
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--hb-accent, var(--muted, #6b7280));
+        }
+
+    /* ---------- Equipment chips ---------- */
+    .hb-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 12px 0;
+    }
+
+    .hb-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 10px;
+        border: 1px solid var(--line, #dfe3f0);
+        background: var(--raised, transparent);
+        color: var(--ink, #1b2340);
+        font-size: 13px;
+    }
+
+    .hb-chip-code {
+        font-size: 11px;
+        color: var(--muted, #6b7280);
+        white-space: nowrap;
+    }
+
+    .hb-chip.returned {
+        opacity: 0.7;
+    }
+
+    /* ---------- Timeline ---------- */
+    .hb-timeline {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 4px;
+    }
+
+    .hb-step {
+        position: relative;
+        padding-top: 16px;
+    }
+
+        .hb-step::before {
+            content: "";
+            position: absolute;
+            top: 5px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--line, #dfe3f0);
+        }
+
+        .hb-step.done::before {
+            background: var(--hb-accent, var(--primary, #2563eb));
+        }
+
+    .hb-step-dot {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--surface, #ffffff);
+        border: 2px solid var(--line, #cbd5e1);
+    }
+
+    .hb-step.done .hb-step-dot {
+        background: var(--hb-accent, var(--primary, #2563eb));
+        border-color: var(--hb-accent, var(--primary, #2563eb));
+    }
+
+    .hb-step-label {
+        display: block;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted, #6b7280);
+    }
+
+    .hb-step-value {
+        display: block;
+        font-size: 12px;
+        white-space: nowrap;
+        margin-top: 2px;
+        color: var(--ink, #1b2340);
+    }
+
+    .hb-step-sub {
+        display: block;
+        font-size: 11px;
+        white-space: nowrap;
+        color: var(--muted, #6b7280);
+    }
+
+    /* ---------- Empty state and footer ---------- */
+    .hb-empty {
+        padding: 32px 16px;
+        text-align: center;
+        border: 1px dashed var(--line, #dfe3f0);
+        border-radius: 14px;
+        color: var(--muted, #6b7280);
+    }
+
+    .hb-foot {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 16px;
+    }
+
+    @@media (max-width: 560px) {
+        .hb-timeline {
+            grid-template-columns: 1fr;
+        }
+
+        .hb-step {
+            padding-top: 0;
+            padding-left: 20px;
+        }
+
+            .hb-step::before {
+                top: 0;
+                bottom: 0;
+                left: 5px;
+                right: auto;
+                width: 2px;
+                height: auto;
+            }
+
+        .hb-step-dot {
+            top: 2px;
+        }
+    }
+</style>
+
+<div class="hb">
+    <div class="hb-hero">
+        <div class="hb-avatar">@Initials(Model.FullName)</div>
+        <div class="hb-hero-text">
+            <h3>Borrowing history</h3>
+            <p>@Model.FullName · @Model.UserCode</p>
+        </div>
+    </div>
+
+    @if (!Model.Rows.Any())
+    {
+        <div class="hb-empty">This borrower has no reservations yet.</div>
+    }
+    else
+    {
+        <div class="hb-list">
+            @foreach (var r in Model.Rows)
+            {
+                var tone = Tone(r.Status);
+                <article class="hb-card @tone">
+                    <div class="hb-top">
+                        <div>
+                            <div class="hb-code">@r.ReservationNumber</div>
+                            <div class="hb-purpose">@r.Purpose</div>
+                        </div>
+                        <span class="hb-pill">@r.Status</span>
+                    </div>
+
+                    <div class="hb-chips">
+                        @if (!r.Items.Any())
+                        {
+                            <span class="hb-purpose">No equipment listed</span>
+                        }
+                        @foreach (var i in r.Items)
+                        {
+                            <span class="hb-chip @(i.IsReturned ? "returned" : "")">
+                                <strong>@i.EquipmentName</strong>
+                                <span class="hb-chip-code">@i.EquipmentCode@(i.IsReturned ? " · returned" : "")</span>
+                            </span>
+                        }
+                    </div>
+
+                    <div class="hb-timeline">
+                        <div class="hb-step done">
+                            <span class="hb-step-dot"></span>
+                            <span class="hb-step-label">Scheduled</span>
+                            <span class="hb-step-value">@r.StartDateTime.ToString(DateFormat)</span>
+                            <span class="hb-step-sub">until @r.ExpectedReturnDateTime.ToString(DateFormat)</span>
+                        </div>
+
+                        <div class="hb-step @(r.BorrowedAt.HasValue ? "done" : "")">
+                            <span class="hb-step-dot"></span>
+                            <span class="hb-step-label">Borrowed</span>
+                            @if (r.BorrowedAt.HasValue)
+                            {
+                                <span class="hb-step-value">@r.BorrowedAt.Value.ToString(DateFormat)</span>
+                            }
+                            else
+                            {
+                                <span class="hb-step-value">Not yet borrowed</span>
+                            }
+                        </div>
+
+                        <div class="hb-step @(r.ReturnedAt.HasValue ? "done" : "")">
+                            <span class="hb-step-dot"></span>
+                            <span class="hb-step-label">Returned</span>
+                            @if (r.ReturnedAt.HasValue)
+                            {
+                                <span class="hb-step-value">@r.ReturnedAt.Value.ToString(DateFormat)</span>
+                            }
+                            else
+                            {
+                                <span class="hb-step-value">Not returned</span>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+
+    <div class="hb-foot">
+        <button type="button" class="bp-btn ghost" onclick="bpHistClose()">Close</button>
+    </div>
+</div>

@@ -44,6 +44,16 @@ namespace ASI.Basecode.WebApp
                 options.LoginPath = new PathString("/Account/Login");
                 options.AccessDeniedPath = new PathString("/html/Forbidden.html");
                 options.ReturnUrlParameter = "ReturnUrl";
+                // Invalidate limited pending sessions issued before approval became mandatory for login.
+                options.Events.OnValidatePrincipal = async context =>
+                {
+                    if (context.Principal?.FindFirst("AccountStatus")?.Value == AccountStatuses.PendingApproval)
+                    {
+                        context.RejectPrincipal();
+                        await Microsoft.AspNetCore.Authentication.AuthenticationHttpContextExtensions.SignOutAsync(
+                            context.HttpContext, Const.AuthenticationScheme);
+                    }
+                };
                 options.TicketDataFormat = new CustomJwtDataFormat(SecurityAlgorithms.HmacSha256, _tokenValidationParameters, Configuration, tokenProviderOptionsFactory);
             });
 
@@ -53,6 +63,20 @@ namespace ASI.Basecode.WebApp
                 {
                     policy.RequireAuthenticatedUser();
                 });
+
+                // WBS 5.19 Menu/Function access: one role-based policy per restricted menu (see Authorization/MenuAccess.cs).
+                foreach (var entry in ASI.Basecode.WebApp.Authorization.MenuAccess.Entries)
+                {
+                    if (entry.PolicyName == null || entry.Roles == null || options.GetPolicy(entry.PolicyName) != null)
+                        continue;
+
+                    var roles = System.Linq.Enumerable.ToArray(entry.Roles);
+                    options.AddPolicy(entry.PolicyName, policy =>
+                    {
+                        policy.RequireAuthenticatedUser();
+                        policy.RequireRole(roles);
+                    });
+                }
             });
 
             this._services.AddMvc(options =>

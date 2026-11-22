@@ -1,4 +1,9 @@
 # C# BaseCode
+
+## HiRAM development guide
+
+Start with [docs/development/README.md](docs/development/README.md) for shared conventions, integration rules, and agreed development plans. Update the relevant guide when changing a shared contract.
+
 ## _ASI Bridge/JumpStart Program BaseCode_
 
 This is the base code that will be used during the bridge and jumpstart program.

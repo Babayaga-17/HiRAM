@@ -1,0 +1,104 @@
+.equipment-photo-grid {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 104px), 128px));
+    gap: 12px;
+}
+
+.form-group .equipment-photo-input {
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    border: 0;
+}
+
+.equipment-photo-picker,
+.equipment-photo-tile {
+    position: relative;
+    aspect-ratio: 1;
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--background);
+}
+
+.equipment-photo-picker {
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 8px;
+    border-style: dashed;
+    border-color: var(--link);
+    background: var(--raised);
+    color: var(--link);
+    font-size: .875rem;
+    text-align: center;
+    cursor: pointer;
+}
+
+    .equipment-photo-picker:hover {
+        border-color: var(--primary-hover);
+        background: var(--primary-soft);
+    }
+
+    .equipment-photo-picker .icon {
+        width: 32px;
+        height: 32px;
+        padding: 6px;
+        border-radius: 8px;
+        background: var(--primary);
+        color: var(--on-primary);
+    }
+
+    .equipment-photo-picker[hidden] {
+        display: none;
+    }
+
+.equipment-photo-grid:has(.equipment-photo-input:focus-visible)
+.equipment-photo-picker,
+.equipment-photo-tile button:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 3px;
+}
+
+.equipment-photo-tile img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: inherit;
+}
+
+.equipment-photo-tile button,
+.equipment-photo-tile figcaption {
+    position: absolute;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: .75rem;
+}
+
+.equipment-photo-tile button {
+    right: 6px;
+    bottom: 6px;
+    min-height: 32px;
+    border: 1px solid var(--line);
+    background: var(--danger-soft);
+    color: var(--danger-ink);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.equipment-photo-tile button:hover {
+    background: var(--danger-soft);
+    border-color: var(--danger);
+}
+
+.equipment-photo-tile figcaption {
+    top: 6px;
+    left: 6px;
+    background: var(--primary);
+    color: var(--on-primary);
+    font-weight: 600;
+}

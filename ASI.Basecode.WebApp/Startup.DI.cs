@@ -1,7 +1,8 @@
-﻿using ASI.Basecode.Data;
+using ASI.Basecode.Data;
 using ASI.Basecode.Data.Interfaces;
 using ASI.Basecode.Data.Repositories;
 using ASI.Basecode.Services.Interfaces;
+using ASI.Basecode.Services.Manager;
 using ASI.Basecode.Services.ServiceModels;
 using ASI.Basecode.Services.Services;
 using ASI.Basecode.WebApp.Authentication;
@@ -34,16 +35,42 @@ namespace ASI.Basecode.WebApp
 
             // Services
             this._services.TryAddSingleton<TokenValidationParametersFactory>();
-            this._services.AddScoped<IUserService, UserService>();
-          
+            this._services.AddScoped<IAccountService, AccountService>();
+            this._services.AddScoped<IEquipmentCategoryService, EquipmentCategoryService>();
+            this._services.AddScoped<IEquipmentService, EquipmentService>();
+            this._services.AddScoped<IPasswordResetService, PasswordResetService>();
+            this._services.AddScoped<IBorrowerProfileService, BorrowerProfileService>();
+            this._services.AddScoped<IUserAccountService, UserAccountService>();
+            this._services.AddScoped<IReservationService, ReservationService>();
+            this._services.AddScoped<IReportService, ReportService>();
+            this._services.AddScoped<IDashboardService, DashboardService>();
+            this._services.AddHttpClient<IEquipmentPhotoService, EquipmentPhotoService>();
+            this._services.AddHttpClient<IProfilePhotoService, ProfilePhotoService>();
+            this._services.AddScoped<IMaintenanceService, MaintenanceService>();
+
+            this._services.Configure<SupabaseStorageOptions>(this.Configuration.GetSection(SupabaseStorageOptions.SectionName));
 
             // Repositories
+            this._services.AddScoped<INotificationRepository, NotificationRepository>();
+            this._services.AddScoped<INotificationService, NotificationService>();
+            this._services.AddScoped<IBorrowerProfileRepository, BorrowerProfileRepository>();
             this._services.AddScoped<IUserRepository, UserRepository>();
+            this._services.AddScoped<IAccountRepository, AccountRepository>();
+            this._services.AddScoped<IEquipmentCategoryRepository, EquipmentCategoryRepository>();
+            this._services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+            this._services.AddScoped<IReservationRepository, ReservationRepository>();
+            this._services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
+            this._services.AddScoped<IReportRepository, ReportRepository>();
+            this._services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+            this._services.AddScoped<IMaintenanceRepository, MaintenanceRepository>();
 
             // Manager Class
             this._services.AddScoped<SignInManager>();
+            this._services.AddScoped<IEmailManager, EmailManager>();
+
 
             this._services.AddHttpClient();
         }
     }
 }
+

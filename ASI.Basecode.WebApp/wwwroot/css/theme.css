@@ -1,0 +1,181 @@
+:root {
+    color-scheme: light;
+    --font-body: Inter, system-ui, sans-serif;
+    --font-heading: Manrope, var(--font-body);
+    --background: #F7F9FF;
+    --surface: #FFFFFF;
+    --raised: #F0F4FF;
+    --ink: #17203A;
+    --muted: #53627A;
+    --line: #DCE4F2;
+    --control-line: #7888A2;
+    --primary: #1D4ED8;
+    --primary-hover: #1E40AF;
+    --primary-soft: #DBEAFE;
+    --link: #1D4ED8;
+    --accent: #F97316;
+    --accent-soft: #FFEDD5;
+    --accent-ink: #C2410C;
+    --on-primary: #FFFFFF;
+    --on-accent: #17203A;
+
+    --success: #16A34A;
+    --success-ink: #166534;
+    --success-soft: #DCFCE7;
+    --pending: #D97706;
+    --pending-ink: #92400E;
+    --pending-soft: #FEF3C7;
+    --borrowed: #2563EB;
+    --borrowed-ink: #1E40AF;
+    --borrowed-soft: #DBEAFE;
+    --danger: #DC2626;
+    --danger-hover: #B91C1C;
+    --danger-ink: #B91C1C;
+    --danger-soft: #FEE2E2;
+    --info: #0284C7;
+    --info-ink: #075985;
+    --info-soft: #E0F2FE;
+    --neutral: #64748B;
+    --neutral-ink: #475569;
+    --neutral-soft: #E9EEF6;
+    --scrim: rgb(7 15 30 / 58%);
+    --overlay-shadow: 0 12px 40px rgb(7 15 30 / 24%);
+    --radius-control: 8px;
+    --radius-panel: 12px;
+    --space-section: 24px;
+    --motion: 180ms ease;
+}
+
+@media screen {
+    :root[data-theme="dark"] {
+        color-scheme: dark;
+        --background: #0B1220;
+        --surface: #111C30;
+        --raised: #1B2A45;
+        --ink: #F5F7FF;
+        --muted: #A6B4C9;
+        --line: #31415A;
+        --control-line: #7486A3;
+        --primary-hover: #2855CD;
+        --primary-soft: #1E365A;
+        --link: #93C5FD;
+        --accent: #FB923C;
+        --accent-soft: #422919;
+        --accent-ink: #FDBA74;
+        --success-ink: #86EFAC;
+        --success-soft: #153827;
+        --pending-ink: #FCD34D;
+        --pending-soft: #3D2E13;
+        --borrowed-ink: #BFDBFE;
+        --borrowed-soft: #1B3459;
+        --danger-ink: #FCA5A5;
+        --danger-soft: #471F2A;
+        --info-ink: #BAE6FD;
+        --info-soft: #14354A;
+        --neutral-ink: #CBD5E1;
+        --neutral-soft: #253149;
+    }
+}
+
+body {
+    font-family: var(--font-body);
+}
+
+h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+}
+
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 3px;
+}
+
+:where(input, textarea)::placeholder {
+    color: var(--muted);
+    opacity: 1;
+}
+
+:where(input[type="checkbox"], input[type="radio"]) {
+    accent-color: var(--primary);
+}
+
+[hidden] { display: none !important; }
+
+.icon-library {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
+.brand-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ink);
+    text-decoration: none;
+}
+
+.brand-mark { display: block; flex: none; width: 36px; height: 36px; }
+.brand-mark img { display: block; width: 100%; height: 100%; }
+.brand-name { display: block; flex: none; width: 103px; line-height: 1; }
+.brand-name img { display: block; width: 100%; height: auto; }
+.brand-mark .brand-dark, .brand-name .brand-dark { display: none; }
+@media screen {
+    :root[data-theme="dark"] .brand-light { display: none; }
+    :root[data-theme="dark"] .brand-dark { display: block; }
+    /* Report paper remains white in either screen theme. */
+    :root[data-theme="dark"] .pv-sheet .brand-light { display: block; }
+    :root[data-theme="dark"] .pv-sheet .brand-dark { display: none; }
+}
+@media print {
+    .brand-mark .brand-light, .brand-name .brand-light { display: block; }
+    .brand-mark .brand-dark, .brand-name .brand-dark { display: none; }
+}
+
+.theme-toggle {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    color: var(--muted);
+    background: transparent;
+    cursor: pointer;
+    transition: background-color var(--motion), color var(--motion);
+}
+
+.theme-toggle:hover {
+    background: var(--raised);
+    color: var(--link);
+}
+
+.theme-toggle svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+}
+
+.theme-toggle .theme-sun,
+[data-theme="dark"] .theme-toggle .theme-moon { display: none; }
+
+[data-theme="dark"] .theme-toggle .theme-sun { display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
+
+@media print {
+    :root { color-scheme: light; }
+}
